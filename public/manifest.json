@@ -1,0 +1,45 @@
+{
+  "name": "Sirius Ambiental - Portal do Colaborador",
+  "short_name": "Portal Ponto",
+  "description": "Sistema de controle de ponto eletrônico para colaboradores - Sirius Ambiental",
+  "start_url": "/portal",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0F3C4C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo-sirius.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo-sirius.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Bater Ponto",
+      "short_name": "Ponto",
+      "description": "Registrar entrada/saída",
+      "url": "/portal",
+      "icons": [{ "src": "/logo-sirius.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Histórico",
+      "short_name": "Histórico",
+      "description": "Ver histórico de ponto",
+      "url": "/portal/historico",
+      "icons": [{ "src": "/logo-sirius.png", "sizes": "96x96" }]
+    }
+  ]
+}

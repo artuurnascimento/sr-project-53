@@ -1,0 +1,178 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Sirius Ambiental",
+  "alternateName": "SIRIUS PORT LTDA",
+  "url": "https://siriusport.com",
+  "logo": "https://siriusport.com/logo-sirius.png",
+  "description": "Empresa especializada em resposta a emergências ambientais, oferecendo soluções completas em contenção de vazamentos, monitoramento ambiental, consultoria especializada e operações de salvatagem marítimo e terrestre.",
+  "foundingDate": "2008",
+  "foundingLocation": {
+    "@type": "Place",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Cabo de Santo Agostinho",
+      "addressRegion": "PE",
+      "addressCountry": "BR"
+    }
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "PE-024, Rota dos Coqueiros, 4165, Torre 6 Apt. 702",
+    "addressLocality": "Cabo de Santo Agostinho",
+    "addressRegion": "PE",
+    "postalCode": "54518-605",
+    "addressCountry": "BR"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": "-8.3194",
+    "longitude": "-35.0342"
+  },
+  "contactPoint": [
+    {
+      "@type": "ContactPoint",
+      "telephone": "+55-81-99822-1113",
+      "contactType": "emergency",
+      "areaServed": "BR",
+      "availableLanguage": ["Portuguese", "English"],
+      "hoursAvailable": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+        ],
+        "opens": "00:00",
+        "closes": "23:59"
+      }
+    },
+    {
+      "@type": "ContactPoint",
+      "email": "contato@siriusport.com.br",
+      "contactType": "customer service",
+      "areaServed": "BR",
+      "availableLanguage": ["Portuguese", "English"],
+      "hoursAvailable": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"
+        ],
+        "opens": "08:00",
+        "closes": "18:00"
+      }
+    }
+  ],
+  "sameAs": [
+    "https://www.linkedin.com/company/sirius-ambiental",
+    "https://www.facebook.com/siriusambiental"
+  ],
+  "knowsAbout": [
+    "Environmental Emergency Response",
+    "Oil Spill Containment",
+    "Maritime Emergency Response", 
+    "Individual Emergency Plan (IEP)",
+    "Area Emergency Plan (AEP)",
+    "Environmental Monitoring",
+    "Environmental Consulting",
+    "Maritime Salvage Operations",
+    "Emergency Response Training",
+    "Hazardous Materials Management"
+  ],
+  "serviceArea": {
+    "@type": "GeoCircle",
+    "geoMidpoint": {
+      "@type": "GeoCoordinates",
+      "latitude": "-8.3194",
+      "longitude": "-35.0342"
+    },
+    "geoRadius": "1000000"
+  },
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Environmental Emergency Services",
+    "itemListElement": [
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Containment Barriers",
+          "description": "Maritime and terrestrial containment systems for spill response"
+        }
+      },
+      {
+        "@type": "Offer", 
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Maritime Emergency Response",
+          "description": "24/7 rapid response to maritime environmental emergencies"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service", 
+          "name": "Individual Emergency Plan (IEP)",
+          "description": "Development of comprehensive emergency response plans"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Environmental Monitoring",
+          "description": "Continuous monitoring of environmental parameters"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Environmental Consulting",
+          "description": "Specialized consulting for environmental compliance"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Salvage and Rescue",
+          "description": "Maritime salvage operations and vessel recovery"
+        }
+      }
+    ]
+  },
+  "award": [
+    "ISO 14001 Certified",
+    "Environmental Excellence Award",
+    "Maritime Safety Recognition"
+  ],
+  "employee": [
+    {
+      "@type": "Person",
+      "jobTitle": "Environmental Specialist",
+      "worksFor": {
+        "@type": "Organization",
+        "name": "Sirius Ambiental"
+      }
+    },
+    {
+      "@type": "Person", 
+      "jobTitle": "Maritime Operations Coordinator",
+      "worksFor": {
+        "@type": "Organization",
+        "name": "Sirius Ambiental"
+      }
+    },
+    {
+      "@type": "Person",
+      "jobTitle": "Emergency Response Consultant", 
+      "worksFor": {
+        "@type": "Organization",
+        "name": "Sirius Ambiental"
+      }
+    }
+  ],
+  "industry": "Environmental Services",
+  "numberOfEmployees": "25-50",
+  "currenciesAccepted": "BRL",
+  "paymentAccepted": "Cash, Credit Card, Bank Transfer"
+}
