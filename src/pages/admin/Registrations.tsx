@@ -68,7 +68,7 @@ const Registrations = () => {
     
     await updateProfile.mutateAsync({
       id: selectedProfile.id,
-      updates: formData,
+      ...formData,
     });
     
     setIsEditDialogOpen(false);

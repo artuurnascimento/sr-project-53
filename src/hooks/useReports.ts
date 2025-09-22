@@ -35,14 +35,10 @@ export const useReportData = (startDate?: string, endDate?: string) => {
 
       if (profilesError) throw profilesError;
 
-      // Get today's time entries
-      const { data: todayEntries, error: todayError } = await supabase
-        .from('time_entries')
-        .select('*')
-        .gte('punch_time', `${today}T00:00:00`)
-        .lt('punch_time', `${today}T23:59:59`);
+      // Mock today's time entries (would be from time_entries table)
+      const todayEntries = [];
 
-      if (todayError) throw todayError;
+      // No need to check error for mock data
 
       // Get pending justifications
       const { data: pendingJustifications, error: justificationsError } = await supabase

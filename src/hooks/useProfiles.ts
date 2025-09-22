@@ -24,7 +24,7 @@ export const useProfiles = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .order('full_name', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as Profile[];
@@ -66,7 +66,7 @@ export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Profile> }) => {
+    mutationFn: async ({ id, ...updates }: Partial<Profile> & { id: string }) => {
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
