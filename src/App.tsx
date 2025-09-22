@@ -14,6 +14,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfUse from "./pages/TermsOfUse";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import DashboardRedirect from "./components/DashboardRedirect";
 
 // Portal pages
 import PortalHome from "./pages/portal/Home";
@@ -48,12 +49,29 @@ const App = () => (
             <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
             <Route path="/termos-uso" element={<TermsOfUse />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/dashboard-redirect" element={<DashboardRedirect />} />
             
             {/* Portal Routes */}
-            <Route path="/portal" element={<PortalHome />} />
-            <Route path="/portal/home" element={<PortalHome />} />
-            <Route path="/portal/historico" element={<PortalHistory />} />
-            <Route path="/portal/justificativas" element={<PortalJustifications />} />
+            <Route path="/portal" element={
+              <ProtectedRoute>
+                <PortalHome />
+              </ProtectedRoute>
+            } />
+            <Route path="/portal/home" element={
+              <ProtectedRoute>
+                <PortalHome />
+              </ProtectedRoute>
+            } />
+            <Route path="/portal/historico" element={
+              <ProtectedRoute>
+                <PortalHistory />
+              </ProtectedRoute>
+            } />
+            <Route path="/portal/justificativas" element={
+              <ProtectedRoute>
+                <PortalJustifications />
+              </ProtectedRoute>
+            } />
             
             {/* Admin Routes */}
             <Route path="/admin" element={
@@ -67,12 +85,12 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/admin/aprovacoes" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute requiredRole="manager">
                 <AdminApprovals />
               </ProtectedRoute>
             } />
             <Route path="/admin/relatorios" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute requiredRole="manager">
                 <AdminReports />
               </ProtectedRoute>
             } />

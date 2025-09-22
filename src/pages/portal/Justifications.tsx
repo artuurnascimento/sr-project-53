@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PortalLayout from '@/components/layout/PortalLayout';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { useJustifications, useCreateJustification } from '@/hooks/useJustifications';
 
@@ -94,8 +93,7 @@ const Justifications = () => {
   };
 
   return (
-    <ProtectedRoute>
-      <PortalLayout>
+    <PortalLayout>
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
@@ -201,8 +199,7 @@ const Justifications = () => {
             )}
           </div>
         </div>
-      </PortalLayout>
-    </ProtectedRoute>
+    </PortalLayout>
   );
 };
 

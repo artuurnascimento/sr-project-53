@@ -110,6 +110,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           description: error.message,
           variant: "destructive",
         });
+        return { error };
+      } else {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Redirecionando para seu painel...",
+        });
       }
       
       return { error };

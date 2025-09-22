@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import AdminLayout from '@/components/layout/AdminLayout';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { useActivityLogs } from '@/hooks/useActivityLogs';
 
 const Audit = () => {
@@ -100,8 +99,7 @@ const Audit = () => {
   };
 
   return (
-    <ProtectedRoute requiredRole="admin">
-      <AdminLayout>
+    <AdminLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -320,8 +318,7 @@ const Audit = () => {
             </CardContent>
           </Card>
         </div>
-      </AdminLayout>
-    </ProtectedRoute>
+    </AdminLayout>
   );
 };
 

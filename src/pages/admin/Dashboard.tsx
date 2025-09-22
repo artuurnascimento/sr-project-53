@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import AdminLayout from '@/components/layout/AdminLayout';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { useReportData } from '@/hooks/useReports';
 import { useTimeEntries } from '@/hooks/useTimeTracking';
 import { useJustifications } from '@/hooks/useJustifications';
@@ -73,21 +72,18 @@ const Dashboard = () => {
 
   if (reportLoading) {
     return (
-      <ProtectedRoute requiredRole="admin">
-        <AdminLayout>
+      <AdminLayout>
           <div className="space-y-6">
             <div className="text-center py-12">
               <p className="text-muted-foreground">Carregando dashboard...</p>
             </div>
           </div>
-        </AdminLayout>
-      </ProtectedRoute>
+      </AdminLayout>
     );
   }
 
   return (
-    <ProtectedRoute requiredRole="admin">
-      <AdminLayout>
+    <AdminLayout>
         <div className="space-y-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -360,8 +356,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-      </AdminLayout>
-    </ProtectedRoute>
+    </AdminLayout>
   );
 };
 

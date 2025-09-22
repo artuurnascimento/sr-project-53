@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PortalLayout from '@/components/layout/PortalLayout';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTimeEntries, useWorkingHours } from '@/hooks/useTimeTracking';
 
@@ -164,8 +163,7 @@ const History = () => {
   const sortedDates = Object.keys(groupedEntries).sort().reverse();
 
   return (
-    <ProtectedRoute>
-      <PortalLayout>
+    <PortalLayout>
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Histórico de Ponto</h1>
@@ -329,8 +327,7 @@ const History = () => {
             </CardContent>
           </Card>
         </div>
-      </PortalLayout>
-    </ProtectedRoute>
+    </PortalLayout>
   );
 };
 

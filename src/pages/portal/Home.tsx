@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PortalLayout from '@/components/layout/PortalLayout';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateTimeEntry, useTodayTimeEntries, useWorkingHours } from '@/hooks/useTimeTracking';
 
@@ -155,8 +154,7 @@ const PortalHome = () => {
   };
 
   return (
-    <ProtectedRoute>
-      <PortalLayout>
+    <PortalLayout>
         <div className="max-w-md mx-auto space-y-6">
           {/* Status Connection */}
           <div className="flex items-center justify-between">
@@ -329,8 +327,7 @@ const PortalHome = () => {
             </CardContent>
           </Card>
         </div>
-      </PortalLayout>
-    </ProtectedRoute>
+    </PortalLayout>
   );
 };
 

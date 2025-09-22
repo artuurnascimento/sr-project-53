@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Settings, Trash2, Plug, PlugZap, AlertCircle, CheckCircle } from 'lucide-react';
+import { Users, DollarSign, Lock, MessageCircle, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminLayout from '@/components/layout/AdminLayout';
-import ProtectedRoute from '@/components/ProtectedRoute';
 
 const Integrations = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -159,8 +159,7 @@ const Integrations = () => {
   };
 
   return (
-    <ProtectedRoute requiredRole="admin">
-      <AdminLayout>
+    <AdminLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -410,8 +409,7 @@ const Integrations = () => {
             </CardContent>
           </Card>
         </div>
-      </AdminLayout>
-    </ProtectedRoute>
+    </AdminLayout>
   );
 };
 

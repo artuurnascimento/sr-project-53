@@ -24,10 +24,6 @@ const Auth = () => {
     fullName: '',
   });
 
-  // Redirect if already authenticated
-  if (user) {
-    return <Navigate to="/portal" replace />;
-  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +51,10 @@ const Auth = () => {
     );
   }
 
+  // Redirect authenticated users to appropriate panel based on role
+  if (user) {
+    return <Navigate to="/dashboard-redirect" replace />;
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md shadow-2xl border-slate-200/50">

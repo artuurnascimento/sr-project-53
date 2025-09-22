@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import AdminLayout from '@/components/layout/AdminLayout';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { useReportData } from '@/hooks/useReports';
 import { useTimeEntries } from '@/hooks/useTimeTracking';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -78,8 +77,7 @@ const Reports = () => {
   };
 
   return (
-    <ProtectedRoute requiredRole="admin">
-      <AdminLayout>
+    <AdminLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -372,8 +370,7 @@ const Reports = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </AdminLayout>
-    </ProtectedRoute>
+    </AdminLayout>
   );
 };
 

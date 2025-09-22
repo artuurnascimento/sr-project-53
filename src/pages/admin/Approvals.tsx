@@ -9,9 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import AdminLayout from '@/components/layout/AdminLayout';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { useJustifications, useUpdateJustification } from '@/hooks/useJustifications';
 import { useAuth } from '@/contexts/AuthContext';
+
+const formatDateTime = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return date.toLocaleString('pt-BR');
+};
 
 const Approvals = () => {
   const { profile } = useAuth();
@@ -101,8 +105,7 @@ const Approvals = () => {
   }) || [];
 
   return (
-    <ProtectedRoute requiredRole="admin">
-      <AdminLayout>
+    <AdminLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -391,8 +394,7 @@ const Approvals = () => {
             </Card>
           )}
         </div>
-      </AdminLayout>
-    </ProtectedRoute>
+    </AdminLayout>
   );
 };
 

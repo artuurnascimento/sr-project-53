@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import AdminLayout from '@/components/layout/AdminLayout';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { useProfiles, useCreateProfile, useUpdateProfile, useDeleteProfile } from '@/hooks/useProfiles';
 
 const Registrations = () => {
@@ -136,8 +135,7 @@ const Registrations = () => {
   };
 
   return (
-    <ProtectedRoute requiredRole="admin">
-      <AdminLayout>
+    <AdminLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -481,8 +479,7 @@ const Registrations = () => {
             </DialogContent>
           </Dialog>
         </div>
-      </AdminLayout>
-    </ProtectedRoute>
+    </AdminLayout>
   );
 };
 
