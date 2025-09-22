@@ -22,7 +22,6 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
 }
@@ -129,45 +128,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: fullName,
-          },
-        },
-      });
-      
-      if (error) {
-        toast({
-          title: "Erro ao criar conta",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Conta criada com sucesso!",
-          description: "Verifique seu email para confirmar a conta.",
-        });
-      }
-      
-      return { error };
-    } catch (error: any) {
-      toast({
-        title: "Erro ao criar conta",
-        description: "Ocorreu um erro inesperado",
-        variant: "destructive",
-      });
-      return { error };
-    }
-  };
-
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -221,7 +181,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     profile,
     loading,
     signIn,
-    signUp,
     signOut,
     updateProfile,
   };

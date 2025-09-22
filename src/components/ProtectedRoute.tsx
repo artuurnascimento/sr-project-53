@@ -29,22 +29,14 @@ const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRoutePr
     return <>{children}</>;
   }
 
-  // Check role permissions
+// Check role permissions - only block access if specifically required and user doesn't have permission
   if (requiredRole && profile?.role !== requiredRole && profile?.role !== 'admin') {
-    // If user has a role but not the required one, redirect to appropriate panel
-    if (profile?.role === 'employee') {
-      return <Navigate to="/portal" replace />;
-    } else if (profile?.role === 'manager' || profile?.role === 'admin') {
-      return <Navigate to="/admin" replace />;
-    }
-    
-    // Fallback to access denied
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive">Acesso Negado</h1>
+          <h1 className="text-2xl font-bold text-destructive">Acesso Restrito</h1>
           <p className="text-muted-foreground mt-2">
-            Você não tem permissão para acessar esta página.
+            Esta área requer permissões de {requiredRole === 'manager' ? 'gerente' : 'administrador'}.
           </p>
           <div className="mt-4 space-x-2">
             <button 
@@ -53,22 +45,12 @@ const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRoutePr
             >
               Voltar
             </button>
-            {profile?.role === 'employee' && (
-              <a 
-                href="/portal" 
-                className="px-4 py-2 text-sm bg-primary text-white hover:bg-primary/90 rounded"
-              >
-                Ir para Portal do Colaborador
-              </a>
-            )}
-            {(profile?.role === 'admin' || profile?.role === 'manager') && (
-              <a 
-                href="/admin" 
-                className="px-4 py-2 text-sm bg-primary text-white hover:bg-primary/90 rounded"
-              >
-                Ir para Painel Administrativo
-              </a>
-            )}
+            <a 
+              href="/dashboard-redirect" 
+              className="px-4 py-2 text-sm bg-primary text-white hover:bg-primary/90 rounded"
+            >
+              Ir para Início
+            </a>
           </div>
         </div>
       </div>

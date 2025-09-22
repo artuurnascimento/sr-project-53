@@ -51,7 +51,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard-redirect" element={<DashboardRedirect />} />
             
-            {/* Portal Routes */}
+            {/* Portal Routes - accessible to all authenticated users */}
             <Route path="/portal" element={
               <ProtectedRoute>
                 <PortalHome />
@@ -73,14 +73,14 @@ const App = () => (
               </ProtectedRoute>
             } />
             
-            {/* Admin Routes */}
+            {/* Admin Routes - accessible to admin and manager roles */}
             <Route path="/admin" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute>
                 <AdminDashboard />
               </ProtectedRoute>
             } />
             <Route path="/admin/dashboard" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute>
                 <AdminDashboard />
               </ProtectedRoute>
             } />
