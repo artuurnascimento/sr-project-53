@@ -63,10 +63,13 @@ const Auth = () => {
             <img 
               src={logoSirius} 
               alt="Sirius Ambiental" 
-              className="h-16 w-auto"
+             className="h-20 w-auto"
             />
           </div>
-          <CardTitle className="text-2xl font-bold text-slate-900">Sirius Ambiental</CardTitle>
+         <div className="text-center mb-2">
+           <h1 className="text-2xl font-bold text-slate-900 leading-tight">Sirius</h1>
+           <h2 className="text-2xl font-bold text-slate-900 leading-tight -mt-1">Ambiental</h2>
+         </div>
           <CardDescription>
             Portal do Colaborador - Acesse sua conta
           </CardDescription>
