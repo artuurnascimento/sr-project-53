@@ -474,6 +474,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      promote_user_to_admin: {
+        Args: { user_email: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
