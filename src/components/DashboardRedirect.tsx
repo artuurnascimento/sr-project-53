@@ -29,49 +29,49 @@ const DashboardRedirect = () => {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Bem-vindo, {profile?.full_name || 'Usuário'}!
+            Bem-vindo, {profile?.full_name || 'Usuário'}! 👋
           </h1>
           <p className="text-slate-600">
-            Escolha o painel que deseja acessar
+            Escolha qual sistema deseja acessar
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Portal do Colaborador */}
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50">
             <CardHeader className="text-center">
-              <div className="w-16 h-16 bg-blue-500 rounded-lg mx-auto mb-4 flex items-center justify-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
                 <Clock className="h-8 w-8 text-white" />
               </div>
-              <CardTitle className="text-xl">Portal do Colaborador</CardTitle>
+              <CardTitle className="text-xl text-blue-900">⚡ Portal do Colaborador</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-slate-600 mb-4">
-                Gerencie seu ponto eletrônico, justificativas e histórico de atividades.
+              <p className="text-blue-700 mb-4">
+                Registre seu ponto eletrônico, gerencie justificativas e acompanhe seu histórico pessoal.
               </p>
               <Link to="/portal">
-                <Button className="w-full">
-                  Acessar Portal
+                <Button className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700">
+                  Acessar Meu Portal
                 </Button>
               </Link>
             </CardContent>
           </Card>
 
           {/* Painel Administrativo */}
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-red-500 bg-gradient-to-br from-red-50 to-orange-50">
             <CardHeader className="text-center">
-              <div className="w-16 h-16 bg-orange-500 rounded-lg mx-auto mb-4 flex items-center justify-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
                 <Settings className="h-8 w-8 text-white" />
               </div>
-              <CardTitle className="text-xl">Painel Administrativo</CardTitle>
+              <CardTitle className="text-xl text-red-900">🔧 Painel Administrativo</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-slate-600 mb-4">
-                Gerencie colaboradores, aprovações, relatórios e configurações do sistema.
+              <p className="text-red-700 mb-4">
+                Gerencie colaboradores, aprove justificativas, configure sistemas e gere relatórios.
               </p>
               <Link to="/admin/dashboard">
-                <Button variant="outline" className="w-full">
-                  Acessar Admin
+                <Button variant="outline" className="w-full border-red-200 text-red-700 hover:bg-red-50">
+                  Acessar Administração
                 </Button>
               </Link>
             </CardContent>

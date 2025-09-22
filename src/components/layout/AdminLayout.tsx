@@ -38,8 +38,8 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           to={item.path}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
             isActive(item.path)
-              ? 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/25'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-orange-500/25'
+              : 'text-red-100 hover:text-white hover:bg-red-500/20'
           }`}
         >
           <item.icon className="h-5 w-5" />
@@ -50,9 +50,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-amber-50">
       {/* Mobile Header */}
-      <header className="lg:hidden flex items-center justify-between p-4 bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50">
+      <header className="lg:hidden flex items-center justify-between p-4 bg-red-600/90 backdrop-blur-md border-b border-red-200/60 sticky top-0 z-50 text-white">
         <div className="flex items-center gap-3">
           <Sheet>
             <SheetTrigger asChild>
@@ -71,8 +71,8 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                       className="h-10 w-auto"
                     />
                     <div>
-                      <h2 className="font-bold text-slate-900">Sirius Ambiental</h2>
-                      <p className="text-sm text-slate-500">Painel Administrativo</p>
+                      <h2 className="font-bold text-white">Sirius Ambiental</h2>
+                      <p className="text-sm text-red-100">🔧 PAINEL ADMINISTRATIVO</p>
                     </div>
                   </div>
                 </div>
@@ -103,9 +103,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             />
             <div>
               <div className="flex flex-col">
-                <h1 className="font-bold text-slate-900 text-xs leading-tight">Sirius</h1>
-                <h2 className="font-bold text-slate-900 text-xs leading-tight -mt-0.5">Ambiental</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Admin</p>
+                <h1 className="font-bold text-white text-xs leading-tight">Sirius</h1>
+                <h2 className="font-bold text-white text-xs leading-tight -mt-0.5">Ambiental</h2>
+                <p className="text-xs text-red-100 mt-0.5">🔧 ADMIN</p>
               </div>
             </div>
           </div>
@@ -150,21 +150,21 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       <div className="flex">
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex w-80 min-h-screen">
-          <div className="flex flex-col w-full bg-white/60 backdrop-blur-xl border-r border-slate-200/60 shadow-xl">
+          <div className="flex flex-col w-full bg-gradient-to-b from-red-600 to-red-700 backdrop-blur-xl border-r border-red-500/60 shadow-xl text-white">
             {/* Sidebar Header */}
-            <div className="p-8 border-b border-slate-200/60">
+            <div className="p-8 border-b border-red-500/60">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <img 
                     src={logoSirius} 
                     alt="Sirius Ambiental" 
-                    className="h-12 w-auto"
+                    className="h-12 w-auto filter brightness-0 invert"
                   />
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-amber-400 rounded-full border-2 border-white"></div>
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Sirius Ambiental</h2>
-                  <p className="text-sm text-slate-500 font-medium">Painel Administrativo</p>
+                  <h2 className="text-xl font-bold text-white">Sirius Ambiental</h2>
+                  <p className="text-sm text-red-100 font-medium">🔧 PAINEL ADMINISTRATIVO</p>
                 </div>
               </div>
             </div>
@@ -172,28 +172,28 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             {/* Navigation */}
             <nav className="flex-1 p-6">
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                  Navegação Principal
+                <p className="text-xs font-semibold text-red-200 uppercase tracking-wider mb-4">
+                  🛠️ FERRAMENTAS ADMINISTRATIVAS
                 </p>
                 <NavContent />
               </div>
             </nav>
 
             {/* User Profile Section */}
-            <div className="p-6 border-t border-slate-200/60">
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50">
+            <div className="p-6 border-t border-red-500/60">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-red-500/20 to-red-400/20 border border-red-400/30">
                 <Avatar className="h-10 w-10 ring-2 ring-white shadow-md">
                   <AvatarImage src={profile?.avatar_url || ''} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white font-semibold">
+                  <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-semibold">
                     {profile?.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'AD'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-slate-900 truncate">
+                  <div className="font-semibold text-white truncate">
                     {profile?.full_name || 'Administrador'}
                   </div>
-                  <div className="text-sm text-slate-500 truncate">
-                    {profile?.role === 'admin' ? 'Administrador' : 'Gerente'}
+                  <div className="text-sm text-red-100 truncate">
+                    🔧 {profile?.role === 'admin' ? 'ADMINISTRADOR' : 'GERENTE'}
                   </div>
                 </div>
                 <DropdownMenu>
