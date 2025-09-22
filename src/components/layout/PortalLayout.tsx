@@ -238,24 +238,3 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
 };
 
 export default PortalLayout;
-
-                </div>
-              </div>
-              <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sair
-              </Button>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
-};
-
-export default PortalLayout;
