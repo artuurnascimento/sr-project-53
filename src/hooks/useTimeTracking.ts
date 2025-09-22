@@ -21,6 +21,7 @@ export interface TimeEntry {
 export const useTimeEntries = (employeeId?: string, date?: string) => {
   return useQuery({
     queryKey: ['time_entries', employeeId, date],
+    enabled: !!employeeId, // Only run query when employeeId is provided
     queryFn: async () => {
       let query = supabase
         .from('time_entries')
@@ -82,14 +83,15 @@ export const useCreateTimeEntry = () => {
   });
 };
 
-export const useTodayTimeEntries = (employeeId: string) => {
+export const useTodayTimeEntries = (employeeId?: string) => {
   const today = new Date().toISOString().split('T')[0];
   return useTimeEntries(employeeId, today);
 };
 
-export const useWorkingHours = (employeeId: string, date: string) => {
+export const useWorkingHours = (employeeId?: string, date?: string) => {
   return useQuery({
     queryKey: ['working_hours', employeeId, date],
+    enabled: !!employeeId && !!date, // Only run query when both employeeId and date are provided
     queryFn: async () => {
       const startDate = new Date(date);
       const endDate = new Date(date);

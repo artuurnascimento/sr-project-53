@@ -18,8 +18,8 @@ const PortalHome = () => {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const createTimeEntry = useCreateTimeEntry();
-  const { data: todayEntries, refetch: refetchToday } = useTodayTimeEntries(profile?.id || '');
-  const { data: workingHours } = useWorkingHours(profile?.id || '', new Date().toISOString().split('T')[0]);
+  const { data: todayEntries, refetch: refetchToday } = useTodayTimeEntries(profile?.id);
+  const { data: workingHours } = useWorkingHours(profile?.id, new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
