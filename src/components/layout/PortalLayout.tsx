@@ -68,11 +68,14 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
                     <img 
                       src={logoSirius} 
                       alt="Sirius Ambiental" 
-                      className="h-10 w-auto"
+                     className="h-12 w-auto"
                     />
                     <div>
-                      <h2 className="font-bold text-slate-900">Sirius Ambiental</h2>
-                      <p className="text-sm text-slate-500">Portal do Colaborador</p>
+                     <div className="flex flex-col">
+                       <h2 className="text-sm font-bold text-slate-900 leading-tight">Sirius</h2>
+                       <h3 className="text-sm font-bold text-slate-900 leading-tight -mt-0.5">Ambiental</h3>
+                       <p className="text-xs text-slate-500 font-medium mt-0.5">Portal do Colaborador</p>
+                     </div>
                     </div>
                   </div>
                 </div>
