@@ -27,6 +27,7 @@ import AdminReports from "./pages/admin/Reports";
 import AdminRegistrations from "./pages/admin/Registrations";
 import AdminIntegrations from "./pages/admin/Integrations";
 import AdminAudit from "./pages/admin/Audit";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -55,13 +56,41 @@ const App = () => (
             <Route path="/portal/justificativas" element={<PortalJustifications />} />
             
             {/* Admin Routes */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/aprovacoes" element={<AdminApprovals />} />
-            <Route path="/admin/relatorios" element={<AdminReports />} />
-            <Route path="/admin/cadastros" element={<AdminRegistrations />} />
-            <Route path="/admin/integracoes" element={<AdminIntegrations />} />
-            <Route path="/admin/auditoria" element={<AdminAudit />} />
+            <Route path="/admin" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/dashboard" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/aprovacoes" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminApprovals />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/relatorios" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminReports />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/cadastros" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminRegistrations />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/integracoes" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminIntegrations />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/auditoria" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminAudit />
+              </ProtectedRoute>
+            } />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

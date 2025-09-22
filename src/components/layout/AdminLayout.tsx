@@ -8,12 +8,14 @@ import {
   FileText,
   LogOut,
   Menu,
-  Bell
+  Bell,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -21,6 +23,7 @@ interface AdminLayoutProps {
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
+  const { profile, signOut } = useAuth();
 
   const navItems = [
     { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -80,7 +83,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                   <NavContent />
                 </nav>
                 <div className="pt-4 border-t">
-                  <Button variant="ghost" className="w-full justify-start text-muted-foreground">
+                  <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={signOut}>
                     <LogOut className="h-5 w-5 mr-3" />
                     Sair
                   </Button>
@@ -93,7 +96,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm">
             <Bell className="h-5 w-5" />
-          </Button>
+            <Badge variant="outline">{profile?.full_name || 'Admin'}</Badge>
           <Badge variant="outline">Admin</Badge>
         </div>
       </header>
@@ -116,14 +119,18 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             <div className="pt-6 border-t space-y-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium">MS</span>
+                  <span className="text-sm font-medium">
+                    {profile?.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'A'}
+                  </span>
                 </div>
                 <div>
-                  <div className="font-medium text-sm">Maria Santos</div>
-                  <div className="text-xs text-muted-foreground">Administrador</div>
+                  <div className="font-medium text-sm">{profile?.full_name || 'Administrador'}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {profile?.role === 'admin' ? 'Administrador' : profile?.role === 'manager' ? 'Gerente' : 'Colaborador'}
+                  </div>
                 </div>
               </div>
-              <Button variant="ghost" className="w-full justify-start text-muted-foreground">
+              <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={signOut}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
               </Button>
