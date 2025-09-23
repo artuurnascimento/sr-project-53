@@ -22,11 +22,9 @@ const FacialRecognition = ({
   const { profile } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isStreamActive, setIsStreamActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<HTMLCanvasElement | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [recognitionResult, setRecognitionResult] = useState<any>(null);
   
   const {
@@ -93,67 +91,12 @@ const FacialRecognition = ({
   };
 
   const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Por favor, selecione uma imagem válida');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Imagem muito grande. Máximo 5MB permitido.');
-      return;
-    }
-
-    setSelectedFile(file);
-    
-    // Preview the selected image
-    const img = new Image();
-    img.onload = () => {
-      if (canvasRef.current) {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        canvas.width = 640;
-        canvas.height = 480;
-        
-        // Calculate aspect ratio to maintain proportions
-        const aspectRatio = img.width / img.height;
-        const canvasAspectRatio = canvas.width / canvas.height;
-        
-        let drawWidth = canvas.width;
-        let drawHeight = canvas.height;
-        let offsetX = 0;
-        let offsetY = 0;
-        
-        if (aspectRatio > canvasAspectRatio) {
-          drawWidth = canvas.height * aspectRatio;
-          offsetX = (canvas.width - drawWidth) / 2;
-        } else {
-          drawHeight = canvas.width / aspectRatio;
-          offsetY = (canvas.height - drawHeight) / 2;
-        }
-        
-        ctx?.clearRect(0, 0, canvas.width, canvas.height);
-        ctx?.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-      }
-    };
-    img.src = URL.createObjectURL(file);
+    // Removed - only camera capture allowed
   };
 
   const processImage = async () => {
-    let imageToProcess: HTMLCanvasElement | null = null;
-    
-    if (capturedImage) {
-      imageToProcess = capturedImage;
-    } else if (selectedFile && canvasRef.current) {
-      imageToProcess = canvasRef.current;
-    }
-    
-    if (!imageToProcess) {
-      toast.error('Nenhuma imagem para processar');
+    if (!capturedImage) {
+      toast.error('Por favor, capture uma foto primeiro');
       return;
     }
 
@@ -163,18 +106,13 @@ const FacialRecognition = ({
         return;
       }
 
-      let fileToUpload: File;
-      if (selectedFile) {
-        fileToUpload = selectedFile;
-      } else {
-        // Convert canvas to file
-        const blob = await new Promise<Blob>((resolve) => {
-          imageToProcess!.toBlob((blob) => {
-            resolve(blob!);
-          }, 'image/jpeg', 0.8);
-        });
-        fileToUpload = new File([blob], `facial-ref-${Date.now()}.jpg`, { type: 'image/jpeg' });
-      }
+      // Convert canvas to file
+      const blob = await new Promise<Blob>((resolve) => {
+        capturedImage.toBlob((blob) => {
+          resolve(blob!);
+        }, 'image/jpeg', 0.8);
+      });
+      const fileToUpload = new File([blob], `facial-ref-${Date.now()}.jpg`, { type: 'image/jpeg' });
 
       const success = await registerFace(fileToUpload, profile.id, profile.user_id);
       if (success && onRegistrationSuccess) {
@@ -183,7 +121,7 @@ const FacialRecognition = ({
       }
     } else {
       // Recognition mode
-      const result = await recognizeFace(imageToProcess);
+      const result = await recognizeFace(capturedImage);
       setRecognitionResult(result);
       
       if (result.success && onRecognitionSuccess) {
@@ -194,18 +132,14 @@ const FacialRecognition = ({
 
   const resetComponent = () => {
     setCapturedImage(null);
-    setSelectedFile(null);
     setRecognitionResult(null);
     if (canvasRef.current) {
       const ctx = canvasRef.current.getContext('2d');
       ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
-  const hasImageToProcess = capturedImage || selectedFile;
+  const hasImageToProcess = capturedImage;
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -227,11 +161,11 @@ const FacialRecognition = ({
           </Alert>
         )}
 
-        {/* Camera or File Input */}
+        {/* Camera Only */}
         <div className="space-y-4">
           <div className="space-y-2">
             <h3 className="font-medium text-center">
-              {mode === 'register' ? 'Use a Câmera para Cadastro' : 'Câmera ou Upload'}
+              {mode === 'register' ? 'Capture sua foto para cadastro' : 'Use a câmera para reconhecimento'}
             </h3>
             <div className="space-y-2">
               {!isStreamActive ? (
@@ -252,35 +186,6 @@ const FacialRecognition = ({
               )}
             </div>
           </div>
-
-          {/* File Upload - Only for recognition mode */}
-          {mode === 'recognize' && (
-            <div className="space-y-2">
-              <h3 className="font-medium text-center">Upload de Imagem</h3>
-              <div className="space-y-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelection}
-                  className="hidden"
-                />
-                <Button 
-                  onClick={() => fileInputRef.current?.click()}
-                  variant="outline" 
-                  className="w-full"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Selecionar Imagem
-                </Button>
-                {selectedFile && (
-                  <p className="text-sm text-muted-foreground">
-                    {selectedFile.name}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Video Stream */}
@@ -365,8 +270,8 @@ const FacialRecognition = ({
         <div className="text-sm text-muted-foreground">
           <p>
             {mode === 'register' 
-              ? 'Capture uma foto clara do seu rosto ou faça upload de uma imagem para cadastrar o reconhecimento facial.'
-              : 'Use a câmera ou faça upload de uma imagem para fazer o reconhecimento facial e bater o ponto.'
+              ? 'Capture uma foto clara do seu rosto usando a câmera para cadastrar o reconhecimento facial.'
+              : 'Use a câmera para capturar sua foto e fazer o reconhecimento facial para bater o ponto.'
             }
           </p>
         </div>
