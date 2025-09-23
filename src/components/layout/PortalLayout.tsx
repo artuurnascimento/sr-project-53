@@ -38,8 +38,8 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
           to={item.path}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
             isActive(item.path)
-              ? 'bg-gradient-to-r from-green-500 to-cyan-600 text-white shadow-lg shadow-green-500/25'
-              : 'text-blue-100 hover:text-white hover:bg-blue-500/20'
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25'
+              : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
           }`}
         >
           <item.icon className="h-5 w-5" />
@@ -50,9 +50,9 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Mobile Header */}
-      <header className="lg:hidden flex items-center justify-between p-4 bg-blue-600/90 backdrop-blur-md border-b border-blue-200/60 sticky top-0 z-50 text-white">
+      <header className="lg:hidden flex items-center justify-between p-4 bg-white/90 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50 text-slate-900">
         <div className="flex items-center gap-3">
           <Sheet>
             <SheetTrigger asChild>
@@ -71,8 +71,8 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
                       className="h-10 w-auto"
                     />
                     <div>
-                      <h2 className="font-bold text-white">Sirius Ambiental</h2>
-                      <p className="text-sm text-blue-100">⚡ PORTAL DO COLABORADOR</p>
+                      <h2 className="font-bold text-slate-800">Sirius Ambiental</h2>
+                      <p className="text-sm text-slate-600">Portal do Colaborador</p>
                     </div>
                   </div>
                 </div>
@@ -103,9 +103,9 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
             />
             <div>
               <div className="flex flex-col">
-                <h1 className="font-bold text-white text-xs leading-tight">Sirius</h1>
-                <h2 className="font-bold text-white text-xs leading-tight -mt-0.5">Ambiental</h2>
-                <p className="text-xs text-blue-100 mt-0.5">⚡ PORTAL</p>
+                <h1 className="font-bold text-slate-800 text-xs leading-tight">Sirius</h1>
+                <h2 className="font-bold text-slate-800 text-xs leading-tight -mt-0.5">Ambiental</h2>
+                <p className="text-xs text-slate-600 mt-0.5">Portal</p>
               </div>
             </div>
           </div>
@@ -150,9 +150,9 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
       <div className="flex">
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex w-80 min-h-screen">
-          <div className="flex flex-col w-full bg-gradient-to-b from-blue-600 to-cyan-700 backdrop-blur-xl border-r border-blue-500/60 shadow-xl text-white">
+          <div className="flex flex-col w-full bg-gradient-to-b from-slate-900 to-slate-800 backdrop-blur-xl border-r border-slate-700/60 shadow-xl text-white">
             {/* Sidebar Header */}
-            <div className="p-8 border-b border-blue-500/60">
+            <div className="p-8 border-b border-slate-700/60">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <img 
@@ -160,11 +160,11 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
                     alt="Sirius Ambiental" 
                     className="h-12 w-auto filter brightness-0 invert"
                   />
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-amber-400 rounded-full border-2 border-white"></div>
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Sirius Ambiental</h2>
-                  <p className="text-sm text-blue-100 font-medium">⚡ PORTAL DO COLABORADOR</p>
+                  <p className="text-sm text-slate-300 font-medium">Portal do Colaborador</p>
                 </div>
               </div>
             </div>
@@ -172,34 +172,34 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
             {/* Navigation */}
             <nav className="flex-1 p-6">
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-4">
-                  ⚡ MEU PAINEL PESSOAL
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                  Menu
                 </p>
                 <NavContent />
               </div>
               
               {/* Quick Stats */}
-              <div className="mt-8 p-4 rounded-xl bg-gradient-to-br from-green-500/20 to-cyan-500/20 border border-green-400/30">
-                <h3 className="text-sm font-semibold text-white mb-3">📊 Hoje</h3>
+              <div className="mt-8 p-4 rounded-xl bg-gradient-to-br from-slate-700/20 to-slate-600/20 border border-slate-600/30">
+                <h3 className="text-sm font-semibold text-white mb-3">Hoje</h3>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-blue-100">Entrada</span>
+                    <span className="text-xs text-slate-300">Entrada</span>
                     <span className="text-sm font-medium text-white">08:00</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-blue-100">Horas trabalhadas</span>
-                    <span className="text-sm font-medium text-green-300">6h 30m</span>
+                    <span className="text-xs text-slate-300">Horas trabalhadas</span>
+                    <span className="text-sm font-medium text-slate-200">6h 30m</span>
                   </div>
                 </div>
               </div>
             </nav>
 
             {/* User Profile Section */}
-            <div className="p-6 border-t border-blue-500/60">
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30">
+            <div className="p-6 border-t border-slate-700/60">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-slate-700/20 to-slate-600/20 border border-slate-600/30">
                 <Avatar className="h-10 w-10 ring-2 ring-white shadow-md">
                   <AvatarImage src={profile?.avatar_url || ''} />
-                  <AvatarFallback className="bg-gradient-to-br from-green-500 to-cyan-600 text-white font-semibold">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
                     {profile?.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'U'}
                   </AvatarFallback>
                 </Avatar>
@@ -207,8 +207,8 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
                   <div className="font-semibold text-white truncate">
                     {profile?.full_name || 'Usuário'}
                   </div>
-                  <div className="text-sm text-blue-100 truncate">
-                    ⚡ {profile?.role === 'admin' ? 'ADMINISTRADOR' : profile?.role === 'manager' ? 'GERENTE' : 'COLABORADOR'}
+                  <div className="text-sm text-slate-300 truncate">
+                    {profile?.role === 'admin' ? 'Administrador' : profile?.role === 'manager' ? 'Gerente' : 'Colaborador'}
                   </div>
                 </div>
                 <DropdownMenu>

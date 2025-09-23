@@ -158,8 +158,8 @@ const PortalHome = () => {
           <div className="max-w-md mx-auto space-y-6">
             {/* Header */}
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-blue-900 mb-2">⚡ Meu Portal Pessoal</h1>
-              <p className="text-blue-700">Registre seu ponto e acompanhe suas atividades</p>
+              <h1 className="text-2xl font-bold text-slate-900 mb-2">Portal do Colaborador</h1>
+              <p className="text-slate-700">Registre seu ponto e acompanhe suas atividades</p>
             </div>
           {/* Status Connection */}
           <div className="flex items-center justify-between">

@@ -88,8 +88,8 @@ const Dashboard = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-red-900">🔧 Central Administrativa</h1>
-              <p className="text-red-700 mt-1">
+              <h1 className="text-3xl font-bold text-slate-900">Dashboard Administrativo</h1>
+              <p className="text-slate-700 mt-1">
                 Painel de controle e gestão do sistema de ponto eletrônico
               </p>
             </div>

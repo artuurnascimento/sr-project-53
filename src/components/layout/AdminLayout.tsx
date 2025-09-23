@@ -38,8 +38,8 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           to={item.path}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
             isActive(item.path)
-              ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-orange-500/25'
-              : 'text-red-100 hover:text-white hover:bg-red-500/20'
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25'
+              : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
           }`}
         >
           <item.icon className="h-5 w-5" />
@@ -50,9 +50,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Mobile Header */}
-      <header className="lg:hidden flex items-center justify-between p-4 bg-red-600/90 backdrop-blur-md border-b border-red-200/60 sticky top-0 z-50 text-white">
+      <header className="lg:hidden flex items-center justify-between p-4 bg-white/90 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50 text-slate-900">
         <div className="flex items-center gap-3">
           <Sheet>
             <SheetTrigger asChild>
@@ -70,10 +70,10 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                       alt="Sirius Ambiental" 
                       className="h-10 w-auto"
                     />
-                  <div>
-                    <h2 className="font-bold text-slate-800">Sirius Ambiental</h2>
-                    <p className="text-sm text-slate-600">Painel Administrativo</p>
-                  </div>
+                    <div>
+                      <h2 className="font-bold text-slate-800">Sirius Ambiental</h2>
+                      <p className="text-sm text-slate-600">Painel Administrativo</p>
+                    </div>
                   </div>
                 </div>
                 
@@ -103,9 +103,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             />
             <div>
               <div className="flex flex-col">
-                <h1 className="font-bold text-white text-xs leading-tight">Sirius</h1>
-                <h2 className="font-bold text-white text-xs leading-tight -mt-0.5">Ambiental</h2>
-                <p className="text-xs text-red-100 mt-0.5">Admin</p>
+                <h1 className="font-bold text-slate-800 text-xs leading-tight">Sirius</h1>
+                <h2 className="font-bold text-slate-800 text-xs leading-tight -mt-0.5">Ambiental</h2>
+                <p className="text-xs text-slate-600 mt-0.5">Admin</p>
               </div>
             </div>
           </div>
@@ -150,9 +150,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       <div className="flex">
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex w-80 min-h-screen">
-          <div className="flex flex-col w-full bg-gradient-to-b from-red-600 to-red-700 backdrop-blur-xl border-r border-red-500/60 shadow-xl text-white">
+          <div className="flex flex-col w-full bg-gradient-to-b from-slate-900 to-slate-800 backdrop-blur-xl border-r border-slate-700/60 shadow-xl text-white">
             {/* Sidebar Header */}
-            <div className="p-8 border-b border-red-500/60">
+            <div className="p-8 border-b border-slate-700/60">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <img 
@@ -164,7 +164,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Sirius Ambiental</h2>
-                  <p className="text-sm text-red-100 font-medium">Painel Administrativo</p>
+                  <p className="text-sm text-slate-300 font-medium">Painel Administrativo</p>
                 </div>
               </div>
             </div>
@@ -172,7 +172,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             {/* Navigation */}
             <nav className="flex-1 p-6">
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-red-200 uppercase tracking-wider mb-4">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
                   Menu
                 </p>
                 <NavContent />
@@ -180,11 +180,11 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             </nav>
 
             {/* User Profile Section */}
-            <div className="p-6 border-t border-red-500/60">
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-red-500/20 to-red-400/20 border border-red-400/30">
+            <div className="p-6 border-t border-slate-700/60">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-slate-700/20 to-slate-600/20 border border-slate-600/30">
                 <Avatar className="h-10 w-10 ring-2 ring-white shadow-md">
                   <AvatarImage src={profile?.avatar_url || ''} />
-                  <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-semibold">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
                     {profile?.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'AD'}
                   </AvatarFallback>
                 </Avatar>
@@ -192,7 +192,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                   <div className="font-semibold text-white truncate">
                     {profile?.full_name || 'Administrador'}
                   </div>
-                  <div className="text-sm text-red-100 truncate">
+                  <div className="text-sm text-slate-300 truncate">
                     {profile?.role === 'admin' ? 'Administrador' : 'Gerente'}
                   </div>
                 </div>
