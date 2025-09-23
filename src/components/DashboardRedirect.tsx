@@ -43,7 +43,7 @@ const DashboardRedirect = () => {
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
                 <Clock className="h-8 w-8 text-white" />
               </div>
-              <CardTitle className="text-xl text-blue-900">⚡ Portal do Colaborador</CardTitle>
+              <CardTitle className="text-xl text-blue-900">Portal do Colaborador</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-blue-700 mb-4">
@@ -63,7 +63,7 @@ const DashboardRedirect = () => {
               <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
                 <Settings className="h-8 w-8 text-white" />
               </div>
-              <CardTitle className="text-xl text-red-900">🔧 Painel Administrativo</CardTitle>
+              <CardTitle className="text-xl text-red-900">Painel Administrativo</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-red-700 mb-4">

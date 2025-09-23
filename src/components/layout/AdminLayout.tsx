@@ -70,10 +70,10 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                       alt="Sirius Ambiental" 
                       className="h-10 w-auto"
                     />
-                    <div>
-                      <h2 className="font-bold text-white">Sirius Ambiental</h2>
-                      <p className="text-sm text-red-100">🔧 PAINEL ADMINISTRATIVO</p>
-                    </div>
+                  <div>
+                    <h2 className="font-bold text-slate-800">Sirius Ambiental</h2>
+                    <p className="text-sm text-slate-600">Painel Administrativo</p>
+                  </div>
                   </div>
                 </div>
                 
@@ -105,7 +105,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
               <div className="flex flex-col">
                 <h1 className="font-bold text-white text-xs leading-tight">Sirius</h1>
                 <h2 className="font-bold text-white text-xs leading-tight -mt-0.5">Ambiental</h2>
-                <p className="text-xs text-red-100 mt-0.5">🔧 ADMIN</p>
+                <p className="text-xs text-red-100 mt-0.5">Admin</p>
               </div>
             </div>
           </div>
@@ -164,7 +164,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Sirius Ambiental</h2>
-                  <p className="text-sm text-red-100 font-medium">🔧 PAINEL ADMINISTRATIVO</p>
+                  <p className="text-sm text-red-100 font-medium">Painel Administrativo</p>
                 </div>
               </div>
             </div>
@@ -173,7 +173,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             <nav className="flex-1 p-6">
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-red-200 uppercase tracking-wider mb-4">
-                  🛠️ FERRAMENTAS ADMINISTRATIVAS
+                  Menu
                 </p>
                 <NavContent />
               </div>
@@ -193,7 +193,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                     {profile?.full_name || 'Administrador'}
                   </div>
                   <div className="text-sm text-red-100 truncate">
-                    🔧 {profile?.role === 'admin' ? 'ADMINISTRADOR' : 'GERENTE'}
+                    {profile?.role === 'admin' ? 'Administrador' : 'Gerente'}
                   </div>
                 </div>
                 <DropdownMenu>
