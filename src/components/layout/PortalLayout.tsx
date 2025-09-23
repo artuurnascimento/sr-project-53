@@ -70,10 +70,6 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
                       alt="Sirius Ambiental" 
                       className="h-10 w-auto"
                     />
-                    <div>
-                      <h2 className="font-bold text-slate-800">Sirius Ambiental</h2>
-                      <p className="text-sm text-slate-600">Portal do Colaborador</p>
-                    </div>
                   </div>
                 </div>
                 
@@ -101,13 +97,6 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
               alt="Sirius Ambiental" 
               className="h-9 w-auto"
             />
-            <div>
-              <div className="flex flex-col">
-                <h1 className="font-bold text-slate-800 text-xs leading-tight">Sirius</h1>
-                <h2 className="font-bold text-slate-800 text-xs leading-tight -mt-0.5">Ambiental</h2>
-                <p className="text-xs text-slate-600 mt-0.5">Portal</p>
-              </div>
-            </div>
           </div>
         </div>
         
@@ -154,18 +143,11 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
             {/* Sidebar Header */}
             <div className="p-8 border-b border-slate-700/60">
               <div className="flex items-center gap-4">
-                <div className="relative">
-                  <img 
-                    src={logoSirius} 
-                    alt="Sirius Ambiental" 
-                    className="h-12 w-auto filter brightness-0 invert"
-                  />
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-amber-400 rounded-full border-2 border-white"></div>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">Sirius Ambiental</h2>
-                  <p className="text-sm text-slate-300 font-medium">Portal do Colaborador</p>
-                </div>
+                <img 
+                  src={logoSirius} 
+                  alt="Sirius Ambiental" 
+                  className="h-12 w-auto filter brightness-0 invert"
+                />
               </div>
             </div>
             
