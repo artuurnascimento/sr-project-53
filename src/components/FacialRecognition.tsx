@@ -158,7 +158,7 @@ const FacialRecognition = ({
     }
 
     if (mode === 'register') {
-      if (!profile?.id) {
+      if (!profile?.id || !profile?.user_id) {
         toast.error('Usuário não autenticado');
         return;
       }
@@ -176,7 +176,7 @@ const FacialRecognition = ({
         fileToUpload = new File([blob], `facial-ref-${Date.now()}.jpg`, { type: 'image/jpeg' });
       }
 
-      const success = await registerFace(fileToUpload, profile.id);
+      const success = await registerFace(fileToUpload, profile.id, profile.user_id);
       if (success && onRegistrationSuccess) {
         onRegistrationSuccess();
         resetComponent();

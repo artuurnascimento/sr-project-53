@@ -99,7 +99,8 @@ export const useFacialRecognition = () => {
   // Register face for user
   const registerFace = useCallback(async (
     imageFile: File,
-    userId: string
+    userId: string,
+    authUserId?: string
   ): Promise<boolean> => {
     setIsProcessing(true);
     try {
@@ -113,7 +114,8 @@ export const useFacialRecognition = () => {
       }
 
       // Upload image to storage
-      const fileName = `${userId}/facial-reference-${Date.now()}.jpg`;
+      const folderId = authUserId ?? userId;
+      const fileName = `${folderId}/facial-reference-${Date.now()}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from('facial-references')
         .upload(fileName, imageFile, { upsert: true });
