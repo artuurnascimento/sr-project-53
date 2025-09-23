@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle } from 'lucide-react';
+import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PortalLayout from '@/components/layout/PortalLayout';
 import FacialRecognition from '@/components/FacialRecognition';
+import LocationMap from '@/components/LocationMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateTimeEntry, useTodayTimeEntries, useWorkingHours } from '@/hooks/useTimeTracking';
 import { toast } from 'sonner';
@@ -17,6 +18,7 @@ const PortalHome = () => {
   const [location, setLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isPunchingIn, setIsPunchingIn] = useState(false);
 
   const createTimeEntry = useCreateTimeEntry();
   const { data: todayEntries, refetch: refetchToday } = useTodayTimeEntries(profile?.id);
@@ -94,19 +96,36 @@ const PortalHome = () => {
   }, []);
 
   const handlePunch = async (type: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT') => {
-    if (!profile || !location) return;
+    if (!profile || !location || isPunchingIn || createTimeEntry.isPending) return;
 
-    const entry = {
-      employee_id: profile.id,
-      punch_type: type,
-      punch_time: new Date().toISOString(),
-      location_lat: location.lat,
-      location_lng: location.lng,
-      location_address: location.address || 'Localização registrada',
-    };
+    setIsPunchingIn(true);
+    
+    try {
+      const entry = {
+        employee_id: profile.id,
+        punch_type: type,
+        punch_time: new Date().toISOString(),
+        location_lat: location.lat,
+        location_lng: location.lng,
+        location_address: location.address || 'Localização registrada',
+      };
 
-    await createTimeEntry.mutateAsync(entry);
-    refetchToday();
+      await createTimeEntry.mutateAsync(entry);
+      refetchToday();
+      
+      const punchNames = {
+        'IN': 'Entrada',
+        'OUT': 'Saída',
+        'BREAK_IN': 'Início do Intervalo',
+        'BREAK_OUT': 'Fim do Intervalo'
+      };
+      
+      toast.success(`${punchNames[type]} registrada com sucesso!`);
+    } catch (error) {
+      toast.error('Erro ao registrar ponto. Tente novamente.');
+    } finally {
+      setIsPunchingIn(false);
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -150,7 +169,7 @@ const PortalHome = () => {
   };
 
   const canPunch = (type: string) => {
-    if (!location || !isOnline) return false;
+    if (!location || !isOnline || isPunchingIn || createTimeEntry.isPending) return false;
     const expected = getNextExpectedPunch();
     return type === expected;
   };
@@ -234,15 +253,30 @@ const PortalHome = () => {
               </AlertDescription>
             </Alert>
           ) : location ? (
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                Localização confirmada - Você pode bater ponto
-                {location.address && (
-                  <div className="text-xs mt-1 opacity-75">{location.address}</div>
-                )}
-              </AlertDescription>
-            </Alert>
+            <div className="space-y-3">
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Localização confirmada - Você pode bater ponto
+                  {location.address && (
+                    <div className="text-xs mt-1 opacity-75">{location.address}</div>
+                  )}
+                </AlertDescription>
+              </Alert>
+              
+              {/* Location Map */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Sua Localização
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3">
+                  <LocationMap location={location} height="180px" zoom={16} />
+                </CardContent>
+              </Card>
+            </div>
           ) : (
             <Alert>
               <AlertCircle className="h-4 w-4" />
@@ -270,12 +304,11 @@ const PortalHome = () => {
                     </p>
                     <FacialRecognition 
                       mode="recognize"
-                      onRecognitionSuccess={async (userId, userName, confidence) => {
-                        if (userId === profile.id) {
+                     onRecognitionSuccess={async (userId, userName, confidence) => {
+                        if (userId === profile.id && !isPunchingIn && !createTimeEntry.isPending) {
                           const expectedType = getNextExpectedPunch();
                           await handlePunch(expectedType as 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT');
-                          toast.success(`Ponto registrado com sucesso! Confiança: ${confidence.toFixed(1)}%`);
-                        } else {
+                        } else if (userId !== profile.id) {
                           toast.error('Face não reconhecida para este usuário');
                         }
                       }}
@@ -298,40 +331,56 @@ const PortalHome = () => {
                     size="lg" 
                     className="h-20 flex flex-col gap-2"
                     onClick={() => handlePunch('IN')}
-                    disabled={!canPunch('IN') || createTimeEntry.isPending}
+                    disabled={!canPunch('IN')}
                     variant={canPunch('IN') ? 'default' : 'outline'}
                   >
-                    <Clock className="h-6 w-6" />
+                    {isPunchingIn && getNextExpectedPunch() === 'IN' ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <Clock className="h-6 w-6" />
+                    )}
                     Entrada
                   </Button>
                   <Button 
                     size="lg" 
                     className="h-20 flex flex-col gap-2"
                     onClick={() => handlePunch('OUT')}
-                    disabled={!canPunch('OUT') || createTimeEntry.isPending}
+                    disabled={!canPunch('OUT')}
                     variant={canPunch('OUT') ? 'default' : 'outline'}
                   >
-                    <Clock className="h-6 w-6" />
+                    {isPunchingIn && getNextExpectedPunch() === 'OUT' ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <Clock className="h-6 w-6" />
+                    )}
                     Saída
                   </Button>
                   <Button 
                     size="lg" 
                     className="h-20 flex flex-col gap-2"
                     onClick={() => handlePunch('BREAK_IN')}
-                    disabled={!canPunch('BREAK_IN') || createTimeEntry.isPending}
+                    disabled={!canPunch('BREAK_IN')}
                     variant={canPunch('BREAK_IN') ? 'secondary' : 'outline'}
                   >
-                    <Clock className="h-6 w-6" />
+                    {isPunchingIn && getNextExpectedPunch() === 'BREAK_IN' ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <Clock className="h-6 w-6" />
+                    )}
                     Início Intervalo
                   </Button>
                   <Button 
                     size="lg" 
                     className="h-20 flex flex-col gap-2"
                     onClick={() => handlePunch('BREAK_OUT')}
-                    disabled={!canPunch('BREAK_OUT') || createTimeEntry.isPending}
+                    disabled={!canPunch('BREAK_OUT')}
                     variant={canPunch('BREAK_OUT') ? 'secondary' : 'outline'}
                   >
-                    <Clock className="h-6 w-6" />
+                    {isPunchingIn && getNextExpectedPunch() === 'BREAK_OUT' ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <Clock className="h-6 w-6" />
+                    )}
                     Fim Intervalo
                   </Button>
                 </div>
