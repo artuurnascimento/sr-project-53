@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PortalLayout from '@/components/layout/PortalLayout';
+import FacialRecognition from '@/components/FacialRecognition';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateTimeEntry, useTodayTimeEntries, useWorkingHours } from '@/hooks/useTimeTracking';
+import { toast } from 'sonner';
 
 const PortalHome = () => {
   const { profile } = useAuth();
@@ -160,6 +162,30 @@ const PortalHome = () => {
             <div className="text-center mb-6">
               <h1 className="text-2xl font-bold text-slate-900 mb-2">Portal do Colaborador</h1>
               <p className="text-slate-700">Registre seu ponto e acompanhe suas atividades</p>
+              
+              {/* Facial Recognition Setup */}
+              {!profile?.facial_reference_url && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <User className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-blue-900">Configure o Reconhecimento Facial</h3>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Cadastre seu rosto para bater ponto com mais facilidade
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => window.location.href = '/portal/cadastro-facial'}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Cadastrar
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           {/* Status Connection */}
           <div className="flex items-center justify-between">
@@ -227,47 +253,83 @@ const PortalHome = () => {
           )}
 
           {/* Punch Buttons */}
-          <div className="grid grid-cols-2 gap-4">
-            <Button 
-              size="lg" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => handlePunch('IN')}
-              disabled={!canPunch('IN') || createTimeEntry.isPending}
-              variant={canPunch('IN') ? 'default' : 'outline'}
-            >
-              <Clock className="h-6 w-6" />
-              Entrada
-            </Button>
-            <Button 
-              size="lg" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => handlePunch('OUT')}
-              disabled={!canPunch('OUT') || createTimeEntry.isPending}
-              variant={canPunch('OUT') ? 'default' : 'outline'}
-            >
-              <Clock className="h-6 w-6" />
-              Saída
-            </Button>
-            <Button 
-              size="lg" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => handlePunch('BREAK_IN')}
-              disabled={!canPunch('BREAK_IN') || createTimeEntry.isPending}
-              variant={canPunch('BREAK_IN') ? 'secondary' : 'outline'}
-            >
-              <Clock className="h-6 w-6" />
-              Início Intervalo
-            </Button>
-            <Button 
-              size="lg" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => handlePunch('BREAK_OUT')}
-              disabled={!canPunch('BREAK_OUT') || createTimeEntry.isPending}
-              variant={canPunch('BREAK_OUT') ? 'secondary' : 'outline'}
-            >
-              <Clock className="h-6 w-6" />
-              Fim Intervalo
-            </Button>
+          <div className="space-y-4">
+            {/* Facial Recognition Option */}
+            {profile?.facial_reference_url && location && (
+              <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <User className="h-5 w-5 text-blue-600" />
+                      <span className="font-medium text-blue-900">Reconhecimento Facial</span>
+                    </div>
+                    <FacialRecognition 
+                      mode="recognize"
+                      onRecognitionSuccess={async (userId, userName, confidence) => {
+                        if (userId === profile.id) {
+                          const expectedType = getNextExpectedPunch();
+                          await handlePunch(expectedType as 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT');
+                          toast.success(`Ponto registrado com sucesso! Confiança: ${confidence.toFixed(1)}%`);
+                        } else {
+                          toast.error('Face não reconhecida para este usuário');
+                        }
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Manual Punch Buttons */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-center text-sm">Registro Manual</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button 
+                    size="lg" 
+                    className="h-20 flex flex-col gap-2"
+                    onClick={() => handlePunch('IN')}
+                    disabled={!canPunch('IN') || createTimeEntry.isPending}
+                    variant={canPunch('IN') ? 'default' : 'outline'}
+                  >
+                    <Clock className="h-6 w-6" />
+                    Entrada
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    className="h-20 flex flex-col gap-2"
+                    onClick={() => handlePunch('OUT')}
+                    disabled={!canPunch('OUT') || createTimeEntry.isPending}
+                    variant={canPunch('OUT') ? 'default' : 'outline'}
+                  >
+                    <Clock className="h-6 w-6" />
+                    Saída
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    className="h-20 flex flex-col gap-2"
+                    onClick={() => handlePunch('BREAK_IN')}
+                    disabled={!canPunch('BREAK_IN') || createTimeEntry.isPending}
+                    variant={canPunch('BREAK_IN') ? 'secondary' : 'outline'}
+                  >
+                    <Clock className="h-6 w-6" />
+                    Início Intervalo
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    className="h-20 flex flex-col gap-2"
+                    onClick={() => handlePunch('BREAK_OUT')}
+                    disabled={!canPunch('BREAK_OUT') || createTimeEntry.isPending}
+                    variant={canPunch('BREAK_OUT') ? 'secondary' : 'outline'}
+                  >
+                    <Clock className="h-6 w-6" />
+                    Fim Intervalo
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Next Expected Action */}

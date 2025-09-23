@@ -28,6 +28,7 @@ import AdminReports from "./pages/admin/Reports";
 import AdminRegistrations from "./pages/admin/Registrations";
 import AdminIntegrations from "./pages/admin/Integrations";
 import AdminAudit from "./pages/admin/Audit";
+import FaceRegistration from "./pages/portal/FaceRegistration";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,11 @@ const App = () => (
             <Route path="/portal/justificativas" element={
               <ProtectedRoute>
                 <PortalJustifications />
+              </ProtectedRoute>
+            } />
+            <Route path="/portal/cadastro-facial" element={
+              <ProtectedRoute>
+                <FaceRegistration />
               </ProtectedRoute>
             } />
             

@@ -13,6 +13,8 @@ interface Profile {
   position?: string;
   role: 'employee' | 'admin' | 'manager';
   avatar_url?: string;
+  facial_reference_url?: string;
+  face_embedding?: string;
   is_active: boolean;
 }
 
