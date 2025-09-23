@@ -58,6 +58,126 @@ export type Database = {
           },
         ]
       }
+      facial_recognition_audit: {
+        Row: {
+          attempt_image_url: string
+          confidence_score: number | null
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          liveness_passed: boolean | null
+          location_data: Json | null
+          profile_id: string | null
+          recognition_result: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          time_entry_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          attempt_image_url: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          liveness_passed?: boolean | null
+          location_data?: Json | null
+          profile_id?: string | null
+          recognition_result: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          time_entry_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          attempt_image_url?: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          liveness_passed?: boolean | null
+          location_data?: Json | null
+          profile_id?: string | null
+          recognition_result?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          time_entry_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      facial_recognition_config: {
+        Row: {
+          created_at: string
+          id: string
+          liveness_required: boolean | null
+          max_images_per_user: number | null
+          min_confidence_score: number | null
+          require_manual_approval: boolean | null
+          similarity_threshold: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          liveness_required?: boolean | null
+          max_images_per_user?: number | null
+          min_confidence_score?: number | null
+          require_manual_approval?: boolean | null
+          similarity_threshold?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          liveness_required?: boolean | null
+          max_images_per_user?: number | null
+          min_confidence_score?: number | null
+          require_manual_approval?: boolean | null
+          similarity_threshold?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      facial_references: {
+        Row: {
+          created_at: string
+          embedding: string | null
+          id: string
+          image_metadata: Json | null
+          image_url: string
+          is_primary: boolean | null
+          profile_id: string
+          quality_score: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          image_metadata?: Json | null
+          image_url: string
+          is_primary?: boolean | null
+          profile_id: string
+          quality_score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          image_metadata?: Json | null
+          image_url?: string
+          is_primary?: boolean | null
+          profile_id?: string
+          quality_score?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       integrations: {
         Row: {
           config: Json
@@ -522,6 +642,17 @@ export type Database = {
         Returns: {
           email: string
           full_name: string
+          profile_id: string
+          similarity_score: number
+        }[]
+      }
+      find_user_by_face_embedding_advanced: {
+        Args: { face_embedding: string; similarity_threshold?: number }
+        Returns: {
+          confidence_level: string
+          email: string
+          full_name: string
+          matched_reference_id: string
           profile_id: string
           similarity_score: number
         }[]
