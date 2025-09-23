@@ -1,8 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { MapPin } from 'lucide-react';
-
-// Dynamic import to avoid SSR issues and context problems
-const DynamicMap = React.lazy(() => import('./DynamicMapComponent'));
+import React from 'react';
 
 interface LocationMapProps {
   location: {
@@ -11,51 +7,44 @@ interface LocationMapProps {
     address?: string;
   };
   height?: string;
-  zoom?: number;
+  zoom?: number; // kept for API compatibility, not used by OSM embed directly
 }
 
-const LocationMap: React.FC<LocationMapProps> = ({ 
-  location, 
-  height = '200px', 
-  zoom = 15 
-}) => {
-  const [isMounted, setIsMounted] = useState(false);
-  
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+const LocationMap: React.FC<LocationMapProps> = ({ location, height = '200px' }) => {
+  const { lat, lng, address } = location;
 
-  if (!isMounted) {
-    return (
-      <div 
-        className="rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center"
-        style={{ height, width: '100%' }}
-      >
-        <div className="text-center text-muted-foreground">
-          <MapPin className="h-8 w-8 mx-auto mb-2" />
-          <div className="text-sm">Carregando mapa...</div>
-        </div>
-      </div>
-    );
-  }
+  // Simple bbox around the point for OSM embed
+  const delta = 0.01; // ~1km box depending on latitude
+  const south = lat - delta;
+  const west = lng - delta;
+  const north = lat + delta;
+  const east = lng + delta;
+
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${west}%2C${south}%2C${east}%2C${north}&layer=mapnik&marker=${lat}%2C${lng}`;
 
   return (
     <div className="rounded-lg overflow-hidden border border-border">
-      <React.Suspense 
-        fallback={
-          <div 
-            className="bg-muted flex items-center justify-center"
-            style={{ height, width: '100%' }}
-          >
-            <div className="text-center text-muted-foreground">
-              <MapPin className="h-8 w-8 mx-auto mb-2" />
-              <div className="text-sm">Carregando mapa...</div>
-            </div>
-          </div>
-        }
-      >
-        <DynamicMap location={location} height={height} zoom={zoom} />
-      </React.Suspense>
+      <iframe
+        title={address ? `Mapa - ${address}` : `Mapa - ${lat.toFixed(6)}, ${lng.toFixed(6)}`}
+        src={src}
+        style={{ border: 0, width: '100%', height }}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        aria-label="Mapa de localização"
+      />
+      <div className="p-2 text-xs text-muted-foreground bg-muted/30">
+        {address ? (
+          <span>{address} • </span>
+        ) : null}
+        <a
+          href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`}
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          Ver no OpenStreetMap
+        </a>
+      </div>
     </div>
   );
 };
