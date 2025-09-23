@@ -1,15 +1,8 @@
-import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { useEffect, useState } from 'react';
+import { MapPin } from 'lucide-react';
 
-// Fix for default markers in React Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+// Dynamic import to avoid SSR issues and context problems
+const DynamicMap = React.lazy(() => import('./DynamicMapComponent'));
 
 interface LocationMapProps {
   location: {
@@ -26,34 +19,43 @@ const LocationMap: React.FC<LocationMapProps> = ({
   height = '200px', 
   zoom = 15 
 }) => {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div 
+        className="rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center"
+        style={{ height, width: '100%' }}
+      >
+        <div className="text-center text-muted-foreground">
+          <MapPin className="h-8 w-8 mx-auto mb-2" />
+          <div className="text-sm">Carregando mapa...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg overflow-hidden border border-border">
-      <MapContainer
-        center={[location.lat, location.lng]}
-        zoom={zoom}
-        style={{ height, width: '100%' }}
-        className="z-0"
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <Marker position={[location.lat, location.lng]}>
-          <Popup>
-            <div className="text-center">
-              <div className="font-medium text-sm">Sua localização</div>
-              {location.address && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  {location.address}
-                </div>
-              )}
-              <div className="text-xs text-muted-foreground mt-1">
-                {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-              </div>
+      <React.Suspense 
+        fallback={
+          <div 
+            className="bg-muted flex items-center justify-center"
+            style={{ height, width: '100%' }}
+          >
+            <div className="text-center text-muted-foreground">
+              <MapPin className="h-8 w-8 mx-auto mb-2" />
+              <div className="text-sm">Carregando mapa...</div>
             </div>
-          </Popup>
-        </Marker>
-      </MapContainer>
+          </div>
+        }
+      >
+        <DynamicMap location={location} height={height} zoom={zoom} />
+      </React.Suspense>
     </div>
   );
 };
