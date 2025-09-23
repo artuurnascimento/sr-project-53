@@ -254,15 +254,20 @@ const PortalHome = () => {
 
           {/* Punch Buttons */}
           <div className="space-y-4">
-            {/* Facial Recognition Option */}
+            {/* Facial Recognition for Users with Face Registered */}
             {profile?.facial_reference_url && location && (
-              <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                <CardHeader>
+                  <CardTitle className="text-center text-green-800 flex items-center justify-center gap-2">
+                    <User className="h-5 w-5" />
+                    Reconhecimento Facial Ativo
+                  </CardTitle>
+                </CardHeader>
                 <CardContent className="p-4">
                   <div className="text-center space-y-3">
-                    <div className="flex items-center justify-center gap-2">
-                      <User className="h-5 w-5 text-blue-600" />
-                      <span className="font-medium text-blue-900">Reconhecimento Facial</span>
-                    </div>
+                    <p className="text-sm text-green-700 mb-4">
+                      Use sua face para bater ponto rapidamente
+                    </p>
                     <FacialRecognition 
                       mode="recognize"
                       onRecognitionSuccess={async (userId, userName, confidence) => {
@@ -280,10 +285,12 @@ const PortalHome = () => {
               </Card>
             )}
 
-            {/* Manual Punch Buttons */}
+            {/* Manual Punch Buttons - Only show if no facial recognition or as backup */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-center text-sm">Registro Manual</CardTitle>
+                <CardTitle className="text-center text-sm">
+                  {profile?.facial_reference_url ? 'Registro Manual (Alternativo)' : 'Registro Manual'}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">

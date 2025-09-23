@@ -228,9 +228,11 @@ const FacialRecognition = ({
         )}
 
         {/* Camera or File Input */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div className="space-y-2">
-            <h3 className="font-medium">Câmera</h3>
+            <h3 className="font-medium text-center">
+              {mode === 'register' ? 'Use a Câmera para Cadastro' : 'Câmera ou Upload'}
+            </h3>
             <div className="space-y-2">
               {!isStreamActive ? (
                 <Button onClick={startCamera} className="w-full">
@@ -241,7 +243,7 @@ const FacialRecognition = ({
                 <>
                   <Button onClick={capturePhoto} className="w-full">
                     <Camera className="h-4 w-4 mr-2" />
-                    Capturar Foto
+                    {mode === 'register' ? 'Capturar para Cadastro' : 'Capturar Foto'}
                   </Button>
                   <Button onClick={stopStream} variant="outline" className="w-full">
                     Parar Câmera
@@ -251,31 +253,34 @@ const FacialRecognition = ({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <h3 className="font-medium">Upload de Imagem</h3>
+          {/* File Upload - Only for recognition mode */}
+          {mode === 'recognize' && (
             <div className="space-y-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelection}
-                className="hidden"
-              />
-              <Button 
-                onClick={() => fileInputRef.current?.click()}
-                variant="outline" 
-                className="w-full"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Selecionar Imagem
-              </Button>
-              {selectedFile && (
-                <p className="text-sm text-muted-foreground">
-                  {selectedFile.name}
-                </p>
-              )}
+              <h3 className="font-medium text-center">Upload de Imagem</h3>
+              <div className="space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelection}
+                  className="hidden"
+                />
+                <Button 
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="outline" 
+                  className="w-full"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Selecionar Imagem
+                </Button>
+                {selectedFile && (
+                  <p className="text-sm text-muted-foreground">
+                    {selectedFile.name}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Video Stream */}
