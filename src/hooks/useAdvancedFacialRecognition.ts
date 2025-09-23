@@ -270,7 +270,7 @@ export const useAdvancedFacialRecognition = () => {
     }
   }, [initializeModels, detectFaces]);
 
-  // Perform liveness detection (simplified version)
+  // Perform liveness detection (improved version)
   const performLivenessCheck = useCallback(async (
     videoElement: HTMLVideoElement
   ): Promise<{ passed: boolean; score: number }> => {
@@ -278,53 +278,110 @@ export const useAdvancedFacialRecognition = () => {
       return { passed: true, score: 1.0 };
     }
 
-    // Simplified liveness check - in production, use more sophisticated methods
     try {
-      // Capture multiple frames and check for movement/changes
-      const frames: ImageData[] = [];
+      console.log('Starting liveness check...');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
-
-      // Capture 5 frames over 2 seconds
-      for (let i = 0; i < 5; i++) {
-        ctx?.drawImage(videoElement, 0, 0);
-        const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height);
-        if (imageData) frames.push(imageData);
-        await new Promise(resolve => setTimeout(resolve, 400));
+      if (!ctx) {
+        console.error('Could not get canvas context');
+        return { passed: false, score: 0 };
       }
 
-      // Basic movement detection
-      let movementScore = 0;
+      canvas.width = videoElement.videoWidth || 640;
+      canvas.height = videoElement.videoHeight || 480;
+      
+      console.log(`Canvas dimensions: ${canvas.width}x${canvas.height}`);
+
+      // Capture frames sequentially with proper async handling
+      const frames: ImageData[] = [];
+      const numFrames = 6;
+      const frameInterval = 500; // 500ms between frames
+
+      for (let i = 0; i < numFrames; i++) {
+        // Draw current video frame to canvas
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        
+        // Get image data
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        frames.push(imageData);
+        
+        console.log(`Captured frame ${i + 1}/${numFrames}`);
+        
+        // Wait before capturing next frame (except for last frame)
+        if (i < numFrames - 1) {
+          await new Promise(resolve => setTimeout(resolve, frameInterval));
+        }
+      }
+
+      // Calculate movement between consecutive frames
+      let totalMovement = 0;
+      let validComparisons = 0;
+
       for (let i = 1; i < frames.length; i++) {
-        const diff = calculateFrameDifference(frames[i-1], frames[i]);
-        if (diff > 0.02) movementScore += 0.25; // Some movement detected
+        const movement = calculateFrameDifference(frames[i-1], frames[i]);
+        console.log(`Movement between frame ${i-1} and ${i}: ${movement.toFixed(4)}`);
+        
+        if (movement > 0.001) { // Minimum threshold to avoid noise
+          totalMovement += movement;
+          validComparisons++;
+        }
       }
 
-      const passed = movementScore >= 0.5; // At least 50% of frames showed movement
-      return { passed, score: movementScore };
+      const averageMovement = validComparisons > 0 ? totalMovement / validComparisons : 0;
+      console.log(`Average movement: ${averageMovement.toFixed(4)}, Valid comparisons: ${validComparisons}`);
+
+      // More lenient scoring system
+      let score = 0;
+      
+      // Base score from average movement
+      if (averageMovement > 0.005) score += 0.4;
+      if (averageMovement > 0.01) score += 0.3;
+      if (averageMovement > 0.02) score += 0.2;
+      
+      // Bonus for having multiple frames with movement
+      if (validComparisons >= 3) score += 0.1;
+
+      // Ensure score is between 0 and 1
+      score = Math.min(1.0, Math.max(0, score));
+      
+      const passed = score >= 0.3; // Lower threshold for passing
+      
+      console.log(`Liveness check result - Score: ${score.toFixed(2)}, Passed: ${passed}`);
+      
+      return { passed, score };
     } catch (error) {
       console.error('Liveness check failed:', error);
       return { passed: false, score: 0 };
     }
   }, [config]);
 
-  // Calculate difference between frames for liveness
+  // Improved frame difference calculation
   const calculateFrameDifference = (frame1: ImageData, frame2: ImageData): number => {
-    let totalDiff = 0;
+    if (!frame1 || !frame2 || frame1.data.length !== frame2.data.length) {
+      return 0;
+    }
+
     const data1 = frame1.data;
     const data2 = frame2.data;
+    let totalDiff = 0;
+    let pixelCount = 0;
     
-    for (let i = 0; i < data1.length; i += 4) {
+    // Sample every 4th pixel for performance (skip some pixels)
+    for (let i = 0; i < data1.length; i += 16) { // Skip 4 pixels at a time
       const r1 = data1[i], g1 = data1[i+1], b1 = data1[i+2];
       const r2 = data2[i], g2 = data2[i+1], b2 = data2[i+2];
       
-      totalDiff += Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+      // Calculate luminance difference (more stable than RGB)
+      const lum1 = 0.299 * r1 + 0.587 * g1 + 0.114 * b1;
+      const lum2 = 0.299 * r2 + 0.587 * g2 + 0.114 * b2;
+      
+      totalDiff += Math.abs(lum1 - lum2);
+      pixelCount++;
     }
     
-    return totalDiff / (data1.length * 255 * 3); // Normalize
+    // Normalize by pixel count and max possible difference (255)
+    return pixelCount > 0 ? totalDiff / (pixelCount * 255) : 0;
   };
 
   // Register multiple facial references
