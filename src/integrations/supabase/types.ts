@@ -233,6 +233,8 @@ export type Database = {
           department: string | null
           email: string
           employee_id: string | null
+          face_embedding: string | null
+          facial_reference_url: string | null
           full_name: string
           id: string
           is_active: boolean | null
@@ -247,6 +249,8 @@ export type Database = {
           department?: string | null
           email: string
           employee_id?: string | null
+          face_embedding?: string | null
+          facial_reference_url?: string | null
           full_name: string
           id?: string
           is_active?: boolean | null
@@ -261,6 +265,8 @@ export type Database = {
           department?: string | null
           email?: string
           employee_id?: string | null
+          face_embedding?: string | null
+          facial_reference_url?: string | null
           full_name?: string
           id?: string
           is_active?: boolean | null
@@ -426,6 +432,7 @@ export type Database = {
           punch_type: string
           status: string
           updated_at: string | null
+          work_location_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -438,6 +445,7 @@ export type Database = {
           punch_type: string
           status?: string
           updated_at?: string | null
+          work_location_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -450,6 +458,7 @@ export type Database = {
           punch_type?: string
           status?: string
           updated_at?: string | null
+          work_location_id?: string | null
         }
         Relationships: [
           {
@@ -459,13 +468,64 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "time_entries_work_location_id_fkey"
+            columns: ["work_location_id"]
+            isOneToOne: false
+            referencedRelation: "work_locations"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      work_locations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      binary_quantize: {
+        Args: { "": string } | { "": unknown }
+        Returns: unknown
+      }
+      compare_face_embeddings: {
+        Args: { embedding1: string; embedding2: string; threshold?: number }
+        Returns: boolean
+      }
+      find_user_by_face_embedding: {
+        Args: { face_embedding: string; similarity_threshold?: number }
+        Returns: {
+          email: string
+          full_name: string
+          profile_id: string
+          similarity_score: number
+        }[]
+      }
       get_current_user_profile_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -474,9 +534,101 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: string
+      }
+      halfvec_avg: {
+        Args: { "": number[] }
+        Returns: unknown
+      }
+      halfvec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      halfvec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      halfvec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      hnsw_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_sparsevec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnswhandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflathandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      l2_norm: {
+        Args: { "": unknown } | { "": unknown }
+        Returns: number
+      }
+      l2_normalize: {
+        Args: { "": string } | { "": unknown } | { "": unknown }
+        Returns: unknown
+      }
       promote_user_to_admin: {
         Args: { user_email: string }
         Returns: Json
+      }
+      sparsevec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      sparsevec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      sparsevec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      vector_avg: {
+        Args: { "": number[] }
+        Returns: string
+      }
+      vector_dims: {
+        Args: { "": string } | { "": unknown }
+        Returns: number
+      }
+      vector_norm: {
+        Args: { "": string }
+        Returns: number
+      }
+      vector_out: {
+        Args: { "": string }
+        Returns: unknown
+      }
+      vector_send: {
+        Args: { "": string }
+        Returns: string
+      }
+      vector_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
       }
     }
     Enums: {
