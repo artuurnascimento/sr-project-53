@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import PortalLayout from '@/components/layout/PortalLayout';
-import FacialRecognition from '@/components/FacialRecognition';
+import AdvancedFacialRecognition from '@/components/AdvancedFacialRecognition';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -99,8 +99,8 @@ const FaceRegistration = () => {
           </CardContent>
         </Card>
 
-        {/* Facial Recognition Component */}
-        <FacialRecognition 
+        {/* Advanced Facial Recognition Component */}
+        <AdvancedFacialRecognition 
           mode="register" 
           onRegistrationSuccess={handleRegistrationSuccess}
         />

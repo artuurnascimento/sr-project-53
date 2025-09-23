@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PortalLayout from '@/components/layout/PortalLayout';
-import FacialRecognition from '@/components/FacialRecognition';
+import AdvancedFacialRecognition from '@/components/AdvancedFacialRecognition';
 import LocationMap from '@/components/LocationMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateTimeEntry, useTodayTimeEntries, useWorkingHours } from '@/hooks/useTimeTracking';
@@ -302,9 +302,9 @@ const PortalHome = () => {
                     <p className="text-sm text-green-700 mb-4">
                       Use sua face para bater ponto rapidamente
                     </p>
-                    <FacialRecognition 
+                    <AdvancedFacialRecognition 
                       mode="recognize"
-                     onRecognitionSuccess={async (userId, userName, confidence) => {
+                     onRecognitionSuccess={async (userId, userName, confidence, auditId) => {
                         if (userId === profile.id && !isPunchingIn && !createTimeEntry.isPending) {
                           const expectedType = getNextExpectedPunch();
                           await handlePunch(expectedType as 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT');
@@ -312,6 +312,7 @@ const PortalHome = () => {
                           toast.error('Face não reconhecida para este usuário');
                         }
                       }}
+                      locationData={location}
                     />
                   </div>
                 </CardContent>
