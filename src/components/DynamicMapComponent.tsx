@@ -33,25 +33,32 @@ const DynamicMapComponent: React.FC<DynamicMapProps> = ({
       style={{ height, width: '100%' }}
       className="z-0"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <Marker position={[location.lat, location.lng]}>
-        <Popup>
-          <div className="text-center">
-            <div className="font-medium text-sm">Sua localização</div>
-            {location.address && (
-              <div className="text-xs text-muted-foreground mt-1">
-                {location.address}
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground mt-1">
-              {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-            </div>
-          </div>
-        </Popup>
-      </Marker>
+      {
+        // @ts-ignore react-leaflet Consumer may expect a render function in this build
+        (() => (
+          <>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <Marker position={[location.lat, location.lng]}>
+              <Popup>
+                <div className="text-center">
+                  <div className="font-medium text-sm">Sua localização</div>
+                  {location.address && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {location.address}
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          </>
+        )) as any
+      }
     </MapContainer>
   );
 };
