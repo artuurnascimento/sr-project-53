@@ -70,6 +70,9 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
                       alt="Sirius Ambiental" 
                       className="h-10 w-auto"
                     />
+                    <div>
+                      <p className="text-sm text-slate-600 font-medium">Portal do Colaborador</p>
+                    </div>
                   </div>
                 </div>
                 
@@ -97,6 +100,9 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
               alt="Sirius Ambiental" 
               className="h-9 w-auto"
             />
+            <div>
+              <p className="text-xs text-slate-600 font-medium">Portal</p>
+            </div>
           </div>
         </div>
         
@@ -148,6 +154,9 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
                   alt="Sirius Ambiental" 
                   className="h-12 w-auto filter brightness-0 invert"
                 />
+                <div>
+                  <p className="text-sm text-slate-300 font-medium">Portal do Colaborador</p>
+                </div>
               </div>
             </div>
             
