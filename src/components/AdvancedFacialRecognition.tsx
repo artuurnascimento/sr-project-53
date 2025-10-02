@@ -188,6 +188,8 @@ const AdvancedFacialRecognition = ({
         imageFile = new File([blob], `facial-ref-${Date.now()}.jpg`, { type: 'image/jpeg' });
       }
 
+      // For now, we'll use a simplified approach
+      // In production, you should use a proper face recognition service
       const result = await recognizeFace(capturedImages[0]);
 
       if (!result.success) {
@@ -201,26 +203,14 @@ const AdvancedFacialRecognition = ({
       }
     } else {
       // Recognition mode
-      let livenessValid = true;
-      if (videoRef.current) {
-        if (manualTestMode) {
-          livenessValid = await performManualLivenessTest();
-        } else {
-          // For now, skip liveness check for recognition mode
-          livenessValid = true;
-        }
-
-        if (!livenessValid) return;
-
-        const result = await recognizeFace(capturedImages[0]);
-        
-        setRecognitionResult(result);
-        
-        if (result.success && onRecognitionSuccess) {
-          onRecognitionSuccess(result.userId!, result.userName!, result.confidence!);
-        } else {
-          toast.error(result.error || 'Face não reconhecida');
-        }
+      const result = await recognizeFace(capturedImages[0]);
+      
+      setRecognitionResult(result);
+      
+      if (result.success && onRecognitionSuccess) {
+        onRecognitionSuccess(result.userId!, result.userName!, result.confidence!);
+      } else {
+        toast.error(result.error || 'Face não reconhecida');
       }
     }
   };
@@ -295,23 +285,21 @@ const AdvancedFacialRecognition = ({
         {showConfig && (
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h4 className="font-medium mb-4">Configuração de Teste</h4>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Modo de Teste</label>
-              <Select 
-                value={manualTestMode ? 'manual' : 'automatic'} 
-                onValueChange={(value) => setManualTestMode(value === 'manual')}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="automatic">Automático</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="manual-test"
+                  checked={manualTestMode}
+                  onChange={(e) => setManualTestMode(e.target.checked)}
+                  className="rounded"
+                />
+                <label htmlFor="manual-test" className="text-sm">
+                  Usar modo de teste manual
+                </label>
+              </div>
             </div>
           </div>
-        </div>
         )}
 
         {/* Camera and File Upload */}
@@ -445,6 +433,8 @@ const AdvancedFacialRecognition = ({
             Dica: Use boa iluminação e mantenha o rosto centralizado para melhores resultados.
           </p>
         </div>
+
+        {renderLivenessFeedback()}
       </CardContent>
     </Card>
   );
