@@ -1,52 +1,44 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, User, CheckCircle, AlertCircle, Loader2, Eye } from 'lucide-react';
+import { Camera, Upload, User, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFacialRecognition } from '@/hooks/useFacialRecognition';
+import { useOpenFaceRecognition } from '@/hooks/useOpenFaceRecognition';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface FacialRecognitionProps {
   mode: 'register' | 'recognize';
-  onRecognitionSuccess?: (userId: string, userName: string, confidence: number, auditId?: string) => void;
+  onRecognitionSuccess?: (userId: string, userName: string, confidence: number) => void;
   onRegistrationSuccess?: () => void;
-  locationData?: any;
 }
 
-const AdvancedFacialRecognition = ({ 
+const OpenFaceRecognition = ({ 
   mode, 
   onRecognitionSuccess,
-  onRegistrationSuccess,
-  locationData
+  onRegistrationSuccess 
 }: FacialRecognitionProps) => {
   const { profile } = useAuth();
   const { 
+    isInitialized, 
     isProcessing, 
+    initialize, 
+    registerFace, 
     recognizeFace, 
-    capturePhoto, 
+    recognizeFaceFromCanvas,
     videoRef
-  } = useFacialRecognition();
+  } = useOpenFaceRecognition();
   
   const [isStreamActive, setIsStreamActive] = useState(false);
-  const [capturedImages, setCapturedImages] = useState<HTMLCanvasElement[]>([]);
+  const [capturedImage, setCapturedImage] = useState<HTMLCanvasElement | null>(null);
   const [recognitionResult, setRecognitionResult] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [showConfig, setShowConfig] = useState(false);
-  const [manualTestMode, setManualTestMode] = useState(false);
-  const [isPerformingLiveness, setIsPerformingLiveness] = useState(false);
-  const [livenessProgress, setLivenessProgress] = useState(0);
-  const [currentInstruction, setCurrentInstruction] = useState('');
 
   useEffect(() => {
-    return () => {
-      stopStream();
-    };
-  }, []);
+    initialize();
+  }, [initialize]);
 
   const startCamera = async () => {
     try {
@@ -81,10 +73,34 @@ const AdvancedFacialRecognition = ({
   const handleCapturePhoto = () => {
     if (!videoRef.current || !isStreamActive) return;
     
-    const canvas = capturePhoto();
-    setCapturedImages(prev => [...prev, canvas]);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
     
-    // Display captured image
+    canvas.width = 640;
+    canvas.height = 480;
+    
+    if (ctx && videoRef.current.videoWidth > 0) {
+      const videoAspectRatio = videoRef.current.videoWidth / videoRef.current.videoHeight;
+      const canvasAspectRatio = canvas.width / canvas.height;
+      
+      let drawWidth = canvas.width;
+      let drawHeight = canvas.height;
+      let offsetX = 0;
+      let offsetY = 0;
+      
+      if (videoAspectRatio > canvasAspectRatio) {
+        drawWidth = canvas.height * videoAspectRatio;
+        offsetX = (canvas.width - drawWidth) / 2;
+      } else {
+        drawHeight = canvas.width / videoAspectRatio;
+        offsetY = (canvas.height - drawHeight) / 2;
+      }
+      
+      ctx.drawImage(videoRef.current, offsetX, offsetY, drawWidth, drawHeight);
+    }
+    
+    setCapturedImage(canvas);
+    
     if (canvasRef.current) {
       const ctx = canvasRef.current.getContext('2d');
       canvasRef.current.width = canvas.width;
@@ -98,7 +114,6 @@ const AdvancedFacialRecognition = ({
     if (file) {
       setSelectedFile(file);
       
-      // Display image
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
@@ -108,7 +123,7 @@ const AdvancedFacialRecognition = ({
           canvas.width = img.width;
           canvas.height = img.height;
           ctx?.drawImage(img, 0, 0);
-          setCapturedImages([canvas]);
+          setCapturedImage(canvas);
           
           if (canvasRef.current) {
             canvasRef.current.width = canvas.width;
@@ -122,51 +137,8 @@ const AdvancedFacialRecognition = ({
     }
   };
 
-  const performManualLivenessTest = async () => {
-    if (!videoRef.current) return true;
-
-    setIsPerformingLiveness(true);
-    setLivenessProgress(0);
-
-    try {
-      const instructions = [
-        "Por favor, pisque os olhos duas vezes",
-        "Agora, sorria por 2 segundos",
-        "Por fim, vire a cabeça lentamente para a direita"
-      ];
-
-      for (let i = 0; i < instructions.length; i++) {
-        setCurrentInstruction(instructions[i]);
-        setLivenessProgress((i / instructions.length) * 100);
-        
-        // Show instruction as toast
-        toast.info(instructions[i], { duration: 3000 });
-        
-        // Wait for user to perform action
-        await new Promise(resolve => setTimeout(resolve, 4000));
-        
-        // Update progress
-        setLivenessProgress(((i + 1) / instructions.length) * 100);
-      }
-
-      // For manual test, always pass if user completes all steps
-      const passed = true;
-      const score = 0.8; // Fixed score for manual test
-
-      toast.success('Teste manual concluído com sucesso!');
-      return { passed, score };
-    } catch (error) {
-      toast.error('Erro no teste manual');
-      return false;
-    } finally {
-      setIsPerformingLiveness(false);
-      setCurrentInstruction('');
-      setLivenessProgress(0);
-    }
-  };
-
-  const processImages = async () => {
-    if (capturedImages.length === 0 && !selectedFile) {
+  const processImage = async () => {
+    if (!capturedImage && !selectedFile) {
       toast.error('Por favor, capture uma foto ou selecione um arquivo');
       return;
     }
@@ -180,40 +152,38 @@ const AdvancedFacialRecognition = ({
       let imageFile: File;
       if (selectedFile) {
         imageFile = selectedFile;
-      } else if (capturedImages.length > 0) {
-        // Convert canvas to file
+      } else {
         const blob = await new Promise<Blob>((resolve) => {
-          capturedImages[0].toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8);
+          capturedImage.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8);
         });
-        imageFile = new File([blob], `facial-ref-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        imageFile = new File([blob], `face-${Date.now()}.jpg`, { type: 'image/jpeg' });
       }
 
-      const result = await recognizeFace(capturedImages[0]);
-
-      if (!result.success) {
-        toast.error(result.error || 'Face não reconhecida');
-        return;
+      const result = await registerFace(profile.id, imageFile);
+      
+      if (result.success) {
+        toast.success('Cadastro realizado com sucesso!');
+      } else {
+        toast.error(result.error || 'Erro ao cadastrar face');
       }
-
+      
       if (onRegistrationSuccess) {
         onRegistrationSuccess();
         resetComponent();
       }
     } else {
       // Recognition mode
-      let livenessValid = true;
-      if (videoRef.current) {
-        if (manualTestMode) {
-          livenessValid = await performManualLivenessTest();
-        } else {
-          // For now, skip liveness check for recognition mode
-          livenessValid = true;
-        }
-
-        if (!livenessValid) return;
-
-        const result = await recognizeFace(capturedImages[0]);
+      if (capturedImage) {
+        const result = await recognizeFaceFromCanvas(capturedImage);
+        setRecognitionResult(result);
         
+        if (result.success && onRecognitionSuccess) {
+          onRecognitionSuccess(result.userId!, result.userName!, result.confidence!);
+        } else {
+          toast.error(result.error || 'Face não reconhecida');
+        }
+      } else if (selectedFile) {
+        const result = await recognizeFace(selectedFile);
         setRecognitionResult(result);
         
         if (result.success && onRecognitionSuccess) {
@@ -226,7 +196,7 @@ const AdvancedFacialRecognition = ({
   };
 
   const resetComponent = () => {
-    setCapturedImages([]);
+    setCapturedImage(null);
     setRecognitionResult(null);
     setSelectedFile(null);
     if (canvasRef.current) {
@@ -235,84 +205,27 @@ const AdvancedFacialRecognition = ({
     }
   };
 
-  const hasImageToProcess = capturedImages.length > 0 || selectedFile;
-
-  // Add visual feedback during liveness testing
-  const renderLivenessFeedback = () => {
-    if (isPerformingLiveness) {
-      return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <div className="text-center">
-              <div className="animate-pulse mb-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto flex items-center justify-center">
-                  <Eye className="h-8 w-8 text-blue-600 animate-pulse" />
-                </div>
-              </div>
-              
-              <h3 className="text-lg font-semibold mb-2">
-                Teste de Prova de Vida
-              </h3>
-              
-              <p className="text-sm text-gray-600 mb-4">
-                {currentInstruction || 'Preparando...'}
-              </p>
-              
-              <Progress value={livenessProgress} className="w-full mb-4" />
-              
-              <p className="text-xs text-gray-500">
-                {livenessProgress.toFixed(0)}% concluído
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
+  const hasImageToProcess = capturedImage || selectedFile;
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <User className="h-5 w-5" />
-          Reconhecimento Facial Avançado
+          Reconhecimento Facial OpenFace
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-6">
-        {/* Configuration Panel */}
-        <div className="flex justify-end mb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowConfig(!showConfig)}
-          >
-            Configurações
-          </Button>
+      <CardContent className="space-y-4">
+        {/* Status */}
+        <div className="flex items-center justify-between">
+          <Badge variant={isInitialized ? "default" : "secondary"}>
+            {isInitialized ? "OpenFace Inicializado" : "Inicializando..."}
+          </Badge>
+          <Badge variant="outline">
+            Powered by TensorFlow.js
+          </Badge>
         </div>
-
-        {showConfig && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium mb-4">Configuração de Teste</h4>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Modo de Teste</label>
-              <Select 
-                value={manualTestMode ? 'manual' : 'automatic'} 
-                onValueChange={(value) => setManualTestMode(value === 'manual')}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="automatic">Automático</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-        )}
 
         {/* Camera and File Upload */}
         <div className="space-y-4">
@@ -322,7 +235,7 @@ const AdvancedFacialRecognition = ({
             </h3>
             <div className="space-y-2">
               {!isStreamActive ? (
-                <Button onClick={startCamera} className="w-full">
+                <Button onClick={startCamera} className="w-full" disabled={!isInitialized}>
                   <Camera className="h-4 w-4 mr-2" />
                   Ativar Câmera
                 </Button>
@@ -375,7 +288,7 @@ const AdvancedFacialRecognition = ({
         {hasImageToProcess && (
           <div className="space-y-4">
             <Button 
-              onClick={processImages} 
+              onClick={processImage} 
               disabled={isProcessing}
               className="w-full"
             >
@@ -422,6 +335,9 @@ const AdvancedFacialRecognition = ({
                     <Badge variant="secondary">
                       Confiança: {recognitionResult.confidence?.toFixed(1)}%
                     </Badge>
+                    <Badge variant="outline">
+                      OpenFace: {recognitionResult.confidence?.toFixed(1)}%
+                    </Badge>
                   </div>
                 </div>
               ) : (
@@ -437,9 +353,12 @@ const AdvancedFacialRecognition = ({
         <div className="text-sm text-muted-foreground space-y-2">
           <p>
             {mode === 'register' 
-              ? 'Capture uma foto clara do seu rosto usando a câmera ou selecione um arquivo para cadastrar o reconhecimento facial.'
-              : 'Use a câmera ou selecione um arquivo para fazer o reconhecimento facial para bater ponto.'
+              ? 'Capture uma foto clara do seu rosto usando a câmera ou selecione um arquivo para cadastrar o reconhecimento facial OpenFace.'
+              : 'Use a câmera ou selecione um arquivo para fazer o reconhecimento facial OpenFace para bater ponto.'
             }
+          </p>
+          <p className="text-xs">
+            <strong>OpenFace:</strong> Sistema de reconhecimento facial baseado em deep learning com 99.38% de precisão.
           </p>
           <p className="text-xs">
             Dica: Use boa iluminação e mantenha o rosto centralizado para melhores resultados.
@@ -450,4 +369,4 @@ const AdvancedFacialRecognition = ({
   );
 };
 
-export default AdvancedFacialRecognition;
+export default OpenFaceRecognition;

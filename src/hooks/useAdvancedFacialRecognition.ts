@@ -141,40 +141,6 @@ const performLivenessCheck = useCallback(async (
   }
 }, []);
 
-// Add configuration options
-const renderConfigurationPanel = (config: LivenessConfig, setConfig: (config: LivenessConfig) => void) => {
-  return (
-    <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-      <h4 className="font-medium">Configuração de Teste</h4>
-      
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Sensibilidade</label>
-        <select 
-          value={config.sensitivity} 
-          onChange={(e) => setConfig(prev => ({ ...prev, sensitivity: e.target.value as LivenessConfig['sensitivity'] }))}
-          className="w-full p-2 border rounded"
-        >
-          <option value="low">Baixa</option>
-          <option value="medium">Média</option>
-          <option value="high">Alta</option>
-        </select>
-      </div>
-      
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Modo de Teste</label>
-        <select 
-          value={config.testMode} 
-          onChange={(e) => setConfig(prev => ({ ...prev, testMode: e.target.value as LivenessConfig['testMode'] }))}
-          className="w-full p-2 border rounded"
-        >
-          <option value="automatic">Automático</option>
-          <option value="manual">Manual</option>
-        </select>
-      </div>
-    </div>
-  );
-};
-
 export const useAdvancedFacialRecognition = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -329,7 +295,6 @@ export const useAdvancedFacialRecognition = () => {
     livenessProgress,
     currentInstruction,
     livenessConfig,
-    setLivenessConfig,
-    renderConfigurationPanel
+    setLivenessConfig
   };
 };
