@@ -24,10 +24,12 @@ const AdvancedFacialRecognition = ({
   locationData
 }: FacialRecognitionProps) => {
   const { profile } = useAuth();
-  const { 
-    isProcessing, 
-    recognizeFace, 
-    capturePhoto, 
+  const {
+    isProcessing,
+    modelsLoaded,
+    recognizeFace,
+    registerFace,
+    capturePhoto,
     videoRef
   } = useFacialRecognition();
   
@@ -171,42 +173,35 @@ const AdvancedFacialRecognition = ({
       return;
     }
 
+    if (!modelsLoaded) {
+      toast.error('Modelos de reconhecimento ainda não carregados. Aguarde...');
+      return;
+    }
+
     if (mode === 'register') {
       if (!profile?.id) {
         toast.error('Usuário não autenticado');
         return;
       }
 
-      let imageFile: File;
-      if (selectedFile) {
-        imageFile = selectedFile;
-      } else if (capturedImages.length > 0) {
-        // Convert canvas to file
-        const blob = await new Promise<Blob>((resolve) => {
-          capturedImages[0].toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8);
-        });
-        imageFile = new File([blob], `facial-ref-${Date.now()}.jpg`, { type: 'image/jpeg' });
-      }
-
-      // For now, we'll use a simplified approach
-      // In production, you should use a proper face recognition service
-      const result = await recognizeFace(capturedImages[0]);
+      const result = await registerFace(capturedImages[0], profile.id);
 
       if (!result.success) {
-        toast.error(result.error || 'Face não reconhecida');
+        toast.error(result.error || 'Erro no cadastro facial');
         return;
       }
+
+      toast.success('Cadastro facial realizado com sucesso!');
 
       if (onRegistrationSuccess) {
         onRegistrationSuccess();
         resetComponent();
       }
     } else {
-      // Recognition mode
       const result = await recognizeFace(capturedImages[0]);
-      
+
       setRecognitionResult(result);
-      
+
       if (result.success && onRecognitionSuccess) {
         onRecognitionSuccess(result.userId!, result.userName!, result.confidence!);
       } else {
@@ -264,12 +259,26 @@ const AdvancedFacialRecognition = ({
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <User className="h-5 w-5" />
-          Reconhecimento Facial Avançado
+        <CardTitle className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Reconhecimento Facial Avançado
+          </div>
+          {!modelsLoaded && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Carregando modelos...
+            </Badge>
+          )}
+          {modelsLoaded && (
+            <Badge variant="default" className="flex items-center gap-1">
+              <CheckCircle className="h-3 w-3" />
+              Pronto
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="space-y-6">
         {/* Configuration Panel */}
         <div className="flex justify-end mb-4">

@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import * as faceapi from 'face-api.js';
 
 interface FacialRecognitionResult {
   userId?: string;
@@ -12,36 +13,61 @@ interface FacialRecognitionResult {
 
 export const useFacialRecognition = () => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Simplified face recognition using direct database search
+  useEffect(() => {
+    loadModels();
+  }, []);
+
+  const loadModels = async () => {
+    try {
+      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+      ]);
+
+      setModelsLoaded(true);
+      console.log('Face-api models loaded successfully');
+    } catch (error) {
+      console.error('Error loading face-api models:', error);
+      toast.error('Erro ao carregar modelos de reconhecimento facial');
+    }
+  };
+
   const recognizeFace = useCallback(async (
     imageElement: HTMLImageElement | HTMLCanvasElement
   ): Promise<FacialRecognitionResult> => {
     setIsProcessing(true);
-    
+
     try {
-      // Convert image to base64
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      if (imageElement instanceof HTMLCanvasElement) {
-        canvas.width = imageElement.width;
-        canvas.height = imageElement.height;
-        ctx?.drawImage(imageElement, 0, 0);
-      } else {
-        canvas.width = imageElement.naturalWidth || imageElement.width;
-        canvas.height = imageElement.naturalHeight || imageElement.height;
-        ctx?.drawImage(imageElement, 0, 0);
+      if (!modelsLoaded) {
+        return {
+          success: false,
+          error: 'Modelos de reconhecimento ainda não foram carregados'
+        };
       }
-      
-      const base64Image = canvas.toDataURL('image/jpeg', 0.8);
-      
-      // For now, we'll use a simplified approach
-      // In production, you should use a proper face recognition service
+
+      const detections = await faceapi
+        .detectSingleFace(imageElement, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (!detections) {
+        return {
+          success: false,
+          error: 'Nenhuma face detectada na imagem'
+        };
+      }
+
+      const descriptor = Array.from(detections.descriptor);
+
       const { data, error } = await supabase.rpc('find_user_by_face_embedding', {
-        face_embedding: base64Image, // Simplified - in production use actual embedding
-        similarity_threshold: 0.7
+        face_embedding: descriptor,
+        similarity_threshold: 0.6
       });
 
       if (error) {
@@ -76,7 +102,7 @@ export const useFacialRecognition = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  }, [modelsLoaded]);
 
   const capturePhoto = useCallback(() => {
     if (!videoRef.current) return null;
@@ -111,9 +137,68 @@ export const useFacialRecognition = () => {
     return canvas;
   }, []);
 
+  const registerFace = useCallback(async (
+    imageElement: HTMLImageElement | HTMLCanvasElement,
+    userId: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    setIsProcessing(true);
+
+    try {
+      if (!modelsLoaded) {
+        return {
+          success: false,
+          error: 'Modelos de reconhecimento ainda não foram carregados'
+        };
+      }
+
+      const detections = await faceapi
+        .detectSingleFace(imageElement, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (!detections) {
+        return {
+          success: false,
+          error: 'Nenhuma face detectada na imagem'
+        };
+      }
+
+      const descriptor = Array.from(detections.descriptor);
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          face_embedding: descriptor,
+          facial_reference_url: 'registered'
+        })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Face registration error:', error);
+        return {
+          success: false,
+          error: 'Erro ao salvar dados faciais'
+        };
+      }
+
+      return { success: true };
+
+    } catch (error) {
+      console.error('Face registration error:', error);
+      return {
+        success: false,
+        error: 'Erro no processamento da imagem'
+      };
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [modelsLoaded]);
+
   return {
     isProcessing,
+    modelsLoaded,
     recognizeFace,
+    registerFace,
     capturePhoto,
     videoRef
   };
