@@ -35,10 +35,14 @@ export const useReportData = (startDate?: string, endDate?: string) => {
 
       if (profilesError) throw profilesError;
 
-      // Mock today's time entries (would be from time_entries table)
-      const todayEntries = [];
+      // Get today's time entries from database
+      const { data: todayEntries, error: entriesError } = await supabase
+        .from('time_entries')
+        .select('*')
+        .gte('punch_time', `${today}T00:00:00`)
+        .lte('punch_time', `${today}T23:59:59`);
 
-      // No need to check error for mock data
+      if (entriesError) throw entriesError;
 
       // Get pending justifications
       const { data: pendingJustifications, error: justificationsError } = await supabase
@@ -48,16 +52,41 @@ export const useReportData = (startDate?: string, endDate?: string) => {
 
       if (justificationsError) throw justificationsError;
 
+      // Get monthly time entries for overtime calculation
+      const { data: monthlyEntries, error: monthlyError } = await supabase
+        .from('time_entries')
+        .select('*')
+        .gte('punch_time', `${startOfMonth}T00:00:00`);
+
+      if (monthlyError) throw monthlyError;
+
       // Calculate stats
       const totalEmployees = profiles?.length || 0;
       const activeEmployees = profiles?.filter(p => p.is_active)?.length || 0;
       const todayPunches = todayEntries?.length || 0;
       const pendingApprovals = pendingJustifications?.length || 0;
 
-      // Mock data for other stats (would be calculated from real data)
-      const lateArrivals = Math.floor(Math.random() * 5);
-      const overtime = Math.floor(Math.random() * 20);
-      const monthlyHours = Math.floor(Math.random() * 2000) + 1500;
+      // Calculate late arrivals (entries after 8:30 AM)
+      const lateArrivals = todayEntries?.filter(entry => {
+        const entryTime = new Date(entry.punch_time);
+        const entryHour = entryTime.getHours();
+        const entryMinute = entryTime.getMinutes();
+        return entry.punch_type === 'IN' && (entryHour > 8 || (entryHour === 8 && entryMinute > 30));
+      }).length || 0;
+
+      // Calculate overtime hours for the month
+      const overtimeHours = monthlyEntries?.reduce((total, entry) => {
+        const entryTime = new Date(entry.punch_time);
+        const entryHour = entryTime.getHours();
+        // Count hours after 18:00 as overtime
+        if (entry.punch_type === 'OUT' && entryHour >= 18) {
+          return total + (entryHour - 18);
+        }
+        return total;
+      }, 0) || 0;
+
+      // Calculate total monthly hours
+      const monthlyHours = monthlyEntries?.length ? monthlyEntries.length * 8 : 0;
 
       const departmentStats = [
         { department: 'Operações', employees: 15, avgHours: 168 },
@@ -82,7 +111,7 @@ export const useReportData = (startDate?: string, endDate?: string) => {
         todayPunches,
         pendingApprovals,
         lateArrivals,
-        overtime,
+        overtime: overtimeHours,
         monthlyHours,
         departmentStats,
         dailyStats,
