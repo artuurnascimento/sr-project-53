@@ -105,6 +105,12 @@ const PortalHome = () => {
       return;
     }
 
+    // Verificar se tem face cadastrada - OBRIGATÓRIO
+    if (!profile?.face_embedding && !profile?.facial_reference_url) {
+      toast.error('Cadastro facial obrigatório! Registre sua face antes de bater o ponto.');
+      return;
+    }
+
     setPendingPunchType(type);
     setShowFacialModal(true);
   };
@@ -207,6 +213,8 @@ const PortalHome = () => {
   };
 
   const canPunch = (type: string) => {
+    // Bloquear se não tem face cadastrada
+    if (!profile?.face_embedding && !profile?.facial_reference_url) return false;
     if (!location || !isOnline || isPunchingIn || createTimeEntry.isPending) return false;
     // Check if this punch type was already used
     if (usedPunchTypes.has(type)) return false;
@@ -334,19 +342,21 @@ const PortalHome = () => {
           </Button>
         </div>
 
-        {/* Facial Recognition Setup Banner */}
-        {!profile?.facial_reference_url && (
-          <Alert className="bg-blue-50 border-blue-200">
-            <User className="h-4 w-4 text-blue-600" />
+        {/* Facial Recognition Setup Banner - OBRIGATÓRIO */}
+        {!profile?.face_embedding && !profile?.facial_reference_url && (
+          <Alert className="bg-red-50 border-red-200">
+            <AlertCircle className="h-5 w-5 text-red-600" />
             <AlertDescription className="flex items-center justify-between">
-              <span className="text-sm text-blue-800">Configure reconhecimento facial para registros mais rápidos</span>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-800">⚠️ Cadastro facial obrigatório</p>
+                <p className="text-xs text-red-700 mt-1">Você precisa cadastrar sua face antes de registrar ponto</p>
+              </div>
               <Button 
                 onClick={() => window.location.href = '/portal/cadastro-facial'}
                 size="sm"
-                variant="outline"
-                className="border-blue-300 hover:bg-blue-100"
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
-                Cadastrar
+                Cadastrar Agora
               </Button>
             </AlertDescription>
           </Alert>
