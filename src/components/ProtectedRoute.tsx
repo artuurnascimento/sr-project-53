@@ -12,7 +12,8 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRouteProps) => {
   const { user, profile, loading } = useAuth();
 
-  if (loading) {
+  // Wait for profile to be loaded before checking role
+  if (loading || (user && !profile)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
