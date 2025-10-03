@@ -85,7 +85,7 @@ const Profile = () => {
   };
 
   const handlePasswordChange = async () => {
-    if (!newPassword || !confirmPassword) {
+    if (!currentPassword || !newPassword || !confirmPassword) {
       toast.error('Preencha todos os campos');
       return;
     }
@@ -103,6 +103,18 @@ const Profile = () => {
     setIsChangingPassword(true);
 
     try {
+      // Validate current password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: profile!.email,
+        password: currentPassword
+      });
+
+      if (signInError) {
+        toast.error('Senha atual incorreta');
+        return;
+      }
+
+      // Update to new password
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -273,6 +285,17 @@ const Profile = () => {
           <CardContent>
             <div className="space-y-4">
               <div>
+                <Label htmlFor="current-password">Senha Atual</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  placeholder="Digite sua senha atual"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
                 <Label htmlFor="new-password">Nova Senha</Label>
                 <Input
                   id="new-password"
@@ -296,7 +319,7 @@ const Profile = () => {
               </div>
               <Button
                 onClick={handlePasswordChange}
-                disabled={isChangingPassword || !newPassword || !confirmPassword}
+                disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
                 className="w-full"
               >
                 {isChangingPassword ? (
