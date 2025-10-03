@@ -158,7 +158,7 @@ const PortalHome = () => {
           .from('facial_recognition_audit')
           .insert({
             profile_id: profile.id,
-            attempt_image_url: `backfill/${result.id}.jpg`,
+            attempt_image_url: `placeholder://time-entry/${result.id}`,
             recognition_result: {
               success: true,
               source: 'fallback_from_time_entry',

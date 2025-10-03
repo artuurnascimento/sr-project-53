@@ -90,20 +90,26 @@ export const useTimeEntries = (employeeId?: string, date?: string) => {
                   console.warn('Could not find marker in URL:', url);
                 }
               } else {
-                // Already a storage key: sign directly
+                // Already a storage key or placeholder marker
                 const key = url.startsWith('facial-audit/') ? url.replace('facial-audit/', '') : url;
-                const { data: signed, error: signError } = await supabase
-                  .storage
-                  .from('facial-audit')
-                  .createSignedUrl(key, 60 * 60);
-                if (signError) {
-                  console.error('Error creating signed URL from key:', signError);
-                } else if (signed?.signedUrl) {
-                  console.log('Generated signed URL:', signed.signedUrl);
-                  signedFacialData = [{
-                    ...facialData[0],
-                    attempt_image_url: signed.signedUrl,
-                  }];
+
+                // Skip signing for placeholders or backfill markers
+                if (key.startsWith('backfill/') || key.startsWith('placeholder://')) {
+                  console.info('No evidence image to sign (placeholder/backfill).');
+                } else {
+                  const { data: signed, error: signError } = await supabase
+                    .storage
+                    .from('facial-audit')
+                    .createSignedUrl(key, 60 * 60);
+                  if (signError) {
+                    console.error('Error creating signed URL from key:', signError);
+                  } else if (signed?.signedUrl) {
+                    console.log('Generated signed URL:', signed.signedUrl);
+                    signedFacialData = [{
+                      ...facialData[0],
+                      attempt_image_url: signed.signedUrl,
+                    }];
+                  }
                 }
               }
             } catch (e) {

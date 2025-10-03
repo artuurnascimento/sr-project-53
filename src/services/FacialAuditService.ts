@@ -80,6 +80,11 @@ export class FacialAuditService {
         key = urlOrKey.substring(idx + marker.length);
       }
       if (key.startsWith('facial-audit/')) key = key.replace('facial-audit/', '');
+      // Skip signing for placeholders or backfill markers (no actual file in storage)
+      if (key.startsWith('backfill/') || key.startsWith('placeholder://')) {
+        console.info('FacialAuditService.signUrl: placeholder/backfill key, skipping sign');
+        return null;
+      }
       const { data, error } = await supabase.storage
         .from('facial-audit')
         .createSignedUrl(key, 60 * 60);
