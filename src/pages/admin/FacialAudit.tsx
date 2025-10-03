@@ -35,6 +35,7 @@ const FacialAudit = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('');
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null);
+  const [hasPrivilegedAccess, setHasPrivilegedAccess] = useState(false);
 
   useEffect(() => {
     loadAuditRecords();
@@ -74,6 +75,7 @@ const FacialAudit = () => {
       }
 
       const isPrivileged = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'manager');
+      setHasPrivilegedAccess(!!isPrivileged);
 
       // 1) Load audits depending on role
       let query = supabase
@@ -346,9 +348,17 @@ const FacialAudit = () => {
             <TestTube className="h-4 w-4 mr-2" />
             Criar Registro de Teste
           </Button>
-        </div>
+          </div>
 
-        {/* Stats */}
+          {!hasPrivilegedAccess && (
+            <Alert className="mb-4">
+              <AlertDescription>
+                Você está vendo apenas seus próprios registros. Para ver todos, acesse com um usuário administrador ou gerente.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
