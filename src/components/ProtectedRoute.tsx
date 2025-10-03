@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -46,12 +46,12 @@ const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRoutePr
             >
               Voltar
             </button>
-            <a 
-              href="/dashboard-redirect" 
+            <Link 
+              to="/dashboard-redirect" 
               className="px-4 py-2 text-sm bg-primary text-white hover:bg-primary/90 rounded"
             >
               Ir para Início
-            </a>
+            </Link>
           </div>
         </div>
       </div>

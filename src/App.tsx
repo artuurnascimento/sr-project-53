@@ -81,12 +81,12 @@ const App = () => (
             
             {/* Admin Routes - accessible to admin and manager roles */}
             <Route path="/admin" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="manager">
                 <AdminDashboard />
               </ProtectedRoute>
             } />
             <Route path="/admin/dashboard" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="manager">
                 <AdminDashboard />
               </ProtectedRoute>
             } />
