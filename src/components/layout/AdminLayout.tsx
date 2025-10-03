@@ -22,7 +22,6 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const { profile, signOut } = useAuth();
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingJustifications, setPendingJustifications] = useState<any[]>([]);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   // Load pending justifications count
   useEffect(() => {
@@ -183,7 +182,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         </div>
         
         <div className="flex items-center gap-3">
-          <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+          <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-5 w-5" />
@@ -207,10 +206,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                     {pendingJustifications.map((justification) => (
                       <button
                         key={justification.id}
-                        onClick={() => {
-                          navigate('/admin/aprovacoes');
-                          setIsNotificationsOpen(false);
-                        }}
+                        onClick={() => navigate('/admin/aprovacoes')}
                         className="w-full p-3 rounded-lg hover:bg-slate-50 transition-colors text-left mb-1"
                       >
                         <div className="flex items-start gap-2">
@@ -242,10 +238,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                     variant="ghost"
                     size="sm"
                     className="w-full"
-                    onClick={() => {
-                      navigate('/admin/aprovacoes');
-                      setIsNotificationsOpen(false);
-                    }}
+                    onClick={() => navigate('/admin/aprovacoes')}
                   >
                     Ver todas as aprovações
                   </Button>
@@ -362,7 +355,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         <main className="flex-1 p-6 lg:p-8">
           {/* Desktop Header with Notifications */}
           <div className="hidden lg:flex items-center justify-end mb-6 gap-3">
-            <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+            <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="relative">
                   <Bell className="h-5 w-5" />
@@ -386,10 +379,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                       {pendingJustifications.map((justification) => (
                         <button
                           key={justification.id}
-                          onClick={() => {
-                            navigate('/admin/aprovacoes');
-                            setIsNotificationsOpen(false);
-                          }}
+                          onClick={() => navigate('/admin/aprovacoes')}
                           className="w-full p-3 rounded-lg hover:bg-slate-50 transition-colors text-left mb-1"
                         >
                           <div className="flex items-start gap-2">
@@ -421,10 +411,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                       variant="ghost"
                       size="sm"
                       className="w-full"
-                      onClick={() => {
-                        navigate('/admin/aprovacoes');
-                        setIsNotificationsOpen(false);
-                      }}
+                      onClick={() => navigate('/admin/aprovacoes')}
                     >
                       Ver todas as aprovações
                     </Button>
