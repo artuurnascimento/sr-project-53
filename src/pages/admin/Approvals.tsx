@@ -30,6 +30,7 @@ const Approvals = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Generate signed URLs for attachments when selected justification changes
   useEffect(() => {
@@ -328,12 +329,13 @@ const Approvals = () => {
                                       <h4 className="font-medium mb-2">Anexos:</h4>
                                       <div className="grid grid-cols-2 gap-4">
                                         {selectedJustification.attachments.map((attachment: any, idx: number) => (
-                                          <div key={idx} className="border rounded-lg overflow-hidden">
+                                          <div key={idx} className="border rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
                                             {attachmentUrls[attachment.path] && (
                                               <img
                                                 src={attachmentUrls[attachment.path]}
                                                 alt={attachment.name}
                                                 className="w-full h-48 object-cover"
+                                                onClick={() => setSelectedImage(attachmentUrls[attachment.path])}
                                                 onError={(e) => {
                                                   (e.target as HTMLImageElement).src = '/placeholder.svg';
                                                 }}
@@ -341,6 +343,7 @@ const Approvals = () => {
                                             )}
                                             <div className="p-2 bg-muted">
                                               <p className="text-xs truncate">{attachment.name}</p>
+                                              <p className="text-xs text-muted-foreground">Clique para ampliar</p>
                                             </div>
                                           </div>
                                         ))}
@@ -457,6 +460,24 @@ const Approvals = () => {
             </Card>
           )}
         </div>
+
+        {/* Image Viewer Dialog */}
+        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Visualizar Imagem</DialogTitle>
+            </DialogHeader>
+            {selectedImage && (
+              <div className="flex items-center justify-center bg-muted rounded-lg p-4">
+                <img
+                  src={selectedImage}
+                  alt="Anexo"
+                  className="max-w-full max-h-[70vh] object-contain"
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
     </AdminLayout>
   );
 };
