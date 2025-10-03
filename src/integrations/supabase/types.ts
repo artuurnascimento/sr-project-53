@@ -696,6 +696,10 @@ export type Database = {
         Args: { embedding1: string; embedding2: string; threshold?: number }
         Returns: boolean
       }
+      create_facial_references_bucket: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       find_user_by_face_embedding: {
         Args: { face_embedding: string; similarity_threshold?: number }
         Returns: {
