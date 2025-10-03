@@ -49,13 +49,7 @@ const FacialAudit = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('facial_recognition_audit')
-        .select(`
-          *,
-          profiles:profile_id (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
