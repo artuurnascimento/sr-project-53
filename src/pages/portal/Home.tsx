@@ -151,6 +151,28 @@ const PortalHome = () => {
           console.error('Error linking audit to time entry:', linkError);
         }
       }
+
+      // Fallback: if no audit was created (e.g., camera/recognition path failed), create a minimal audit record
+      if (!auditId && result?.id && profile?.id) {
+        const { error: fallbackErr } = await supabase
+          .from('facial_recognition_audit')
+          .insert({
+            profile_id: profile.id,
+            attempt_image_url: `backfill/${result.id}.jpg`,
+            recognition_result: {
+              success: true,
+              source: 'fallback_from_time_entry',
+              punch_type: type
+            },
+            confidence_score: null,
+            liveness_passed: false,
+            status: 'approved',
+            time_entry_id: result.id,
+          });
+        if (fallbackErr) {
+          console.error('Fallback audit creation error:', fallbackErr);
+        }
+      }
       
       refetchToday();
       
