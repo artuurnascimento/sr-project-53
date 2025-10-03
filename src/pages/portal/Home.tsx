@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PortalLayout from '@/components/layout/PortalLayout';
-import AdvancedFacialRecognition from '@/components/AdvancedFacialRecognition';
+import FacialRecognitionModal from '@/components/FacialRecognitionModal';
 import LocationMap from '@/components/LocationMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateTimeEntry, useTodayTimeEntries, useWorkingHours } from '@/hooks/useTimeTracking';
@@ -20,8 +20,9 @@ const PortalHome = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isPunchingIn, setIsPunchingIn] = useState(false);
-  const [isFaciallyRecognized, setIsFaciallyRecognized] = useState(false);
   const [usedPunchTypes, setUsedPunchTypes] = useState<Set<string>>(new Set());
+  const [showFacialModal, setShowFacialModal] = useState(false);
+  const [pendingPunchType, setPendingPunchType] = useState<'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT' | null>(null);
 
   const createTimeEntry = useCreateTimeEntry();
   const { data: todayEntries, refetch: refetchToday } = useTodayTimeEntries(profile?.id);
@@ -97,6 +98,30 @@ const PortalHome = () => {
   useEffect(() => {
     getLocation();
   }, []);
+
+  const handlePunchClick = (type: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT') => {
+    if (!location || !isOnline) {
+      toast.error('Verifique sua localização e conexão');
+      return;
+    }
+
+    // If user has facial reference, open modal for recognition
+    if (profile?.facial_reference_url) {
+      setPendingPunchType(type);
+      setShowFacialModal(true);
+    } else {
+      // Direct punch without facial recognition
+      handlePunch(type);
+    }
+  };
+
+  const handleFacialSuccess = async (userId: string, userName: string, confidence: number, auditId?: string) => {
+    if (pendingPunchType) {
+      await handlePunch(pendingPunchType, auditId);
+      setPendingPunchType(null);
+    }
+    setShowFacialModal(false);
+  };
 
   const handlePunch = async (type: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT', auditId?: string) => {
     if (!profile || !location || isPunchingIn || createTimeEntry.isPending) return;
@@ -185,8 +210,6 @@ const PortalHome = () => {
 
   const canPunch = (type: string) => {
     if (!location || !isOnline || isPunchingIn || createTimeEntry.isPending) return false;
-    // Check if user has been facially recognized (only if they have facial reference)
-    if (profile?.facial_reference_url && !isFaciallyRecognized) return false;
     // Check if this punch type was already used
     if (usedPunchTypes.has(type)) return false;
     return true;
@@ -194,286 +217,201 @@ const PortalHome = () => {
 
   return (
     <PortalLayout>
-          <div className="max-w-md mx-auto space-y-6">
-            {/* Header */}
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-slate-900 mb-2">Portal do Colaborador</h1>
-              <p className="text-slate-700">Registre seu ponto e acompanhe suas atividades</p>
-              
-              {/* Facial Recognition Setup */}
-              {!profile?.facial_reference_url && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <User className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-blue-900">Configure o Reconhecimento Facial</h3>
-                      <p className="text-sm text-blue-700 mt-1">
-                        Cadastre seu rosto para bater ponto com mais facilidade
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={() => window.location.href = '/portal/cadastro-facial'}
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Cadastrar
-                    </Button>
-                  </div>
-                </div>
-              )}
+      <div className="max-w-2xl mx-auto space-y-6 p-4">
+        {/* Header - Minimal */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-slate-900">Registro de Ponto</h1>
+          <p className="text-slate-600 mt-1">Registre sua jornada de trabalho</p>
+        </div>
+        {/* Status Bar */}
+        <div className="flex items-center justify-between text-sm">
+          <Badge variant={isOnline ? "default" : "destructive"} className="flex items-center gap-2">
+            {isOnline ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+            {isOnline ? 'Online' : 'Offline'}
+          </Badge>
+          <Badge variant="outline" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            {profile?.full_name?.split(' ').slice(0, 2).join(' ') || 'Usuário'}
+          </Badge>
+        </div>
+
+        {/* Clock Card - Clean & Minimal */}
+        <Card className="text-center bg-white shadow-sm">
+          <CardContent className="pt-6 pb-6">
+            <div className="text-5xl font-mono font-bold text-slate-900 mb-2">
+              {formatTime(currentTime)}
             </div>
-          {/* Status Connection */}
-          <div className="flex items-center justify-between">
-            <Badge variant={isOnline ? "default" : "destructive"} className="flex items-center gap-2">
-              {isOnline ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
-              {isOnline ? 'Online' : 'Offline'}
-            </Badge>
-            <Badge variant="outline" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              {profile?.full_name || 'Usuário'}
-            </Badge>
-          </div>
+            <p className="text-sm text-slate-500">{formatDate(currentTime)}</p>
+          </CardContent>
+        </Card>
 
-          {/* Clock */}
-          <Card className="text-center">
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">
-                {formatDate(currentTime)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-mono font-bold text-primary mb-4">
-                {formatTime(currentTime)}
-              </div>
-              <Badge variant={isWorkingTime() ? "default" : "secondary"} className="text-sm">
-                {isWorkingTime() ? 'Horário de Trabalho' : 'Fora do Horário'}
-              </Badge>
-            </CardContent>
-          </Card>
+        {/* Location Status - Compact */}
+        {locationError ? (
+          <Alert variant="destructive" className="text-sm">
+            <MapPin className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>{locationError}</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={getLocation}
+                disabled={isGettingLocation}
+              >
+                {isGettingLocation ? 'Obtendo...' : 'Tentar'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : location ? (
+          <Alert className="text-sm border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              Localização confirmada
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {isGettingLocation ? 'Obtendo localização...' : 'Localização necessária'}
+            </AlertDescription>
+          </Alert>
+        )}
 
-          {/* Location Status */}
-          {locationError ? (
-            <Alert variant="destructive">
-              <MapPin className="h-4 w-4" />
-              <AlertDescription>
-                {locationError}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="ml-2"
-                  onClick={getLocation}
-                  disabled={isGettingLocation}
-                >
-                  {isGettingLocation ? 'Obtendo...' : 'Tentar Novamente'}
-                </Button>
-              </AlertDescription>
-            </Alert>
-          ) : location ? (
-            <div className="space-y-3">
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Localização confirmada - Você pode bater ponto
-                  {location.address && (
-                    <div className="text-xs mt-1 opacity-75">{location.address}</div>
-                  )}
-                </AlertDescription>
-              </Alert>
-              
-              {/* Location Map */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Sua Localização
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3">
-                  <LocationMap location={location} height="180px" zoom={16} />
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {isGettingLocation ? 'Obtendo sua localização...' : 'Localização necessária para bater ponto'}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Punch Buttons */}
-          <div className="space-y-4">
-            {/* Facial Recognition for Users with Face Registered */}
-            {profile?.facial_reference_url && location && (
-              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-                <CardHeader>
-                  <CardTitle className="text-center text-green-800 flex items-center justify-center gap-2">
-                    <User className="h-5 w-5" />
-                    Reconhecimento Facial Ativo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="text-center space-y-3">
-                    <p className="text-sm text-green-700 mb-4">
-                      Use sua face para bater ponto rapidamente
-                    </p>
-                    <AdvancedFacialRecognition 
-                      mode="recognize"
-                     onRecognitionSuccess={async (userId, userName, confidence, auditId) => {
-                        if (userId === profile.id) {
-                          setIsFaciallyRecognized(true);
-                          toast.success(`Reconhecimento facial confirmado (${(confidence * 100).toFixed(1)}%)! Agora você pode registrar seu ponto.`);
-                        } else {
-                          toast.error('Face não reconhecida para este usuário');
-                        }
-                      }}
-                      locationData={location}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+        {/* Punch Buttons - Large & Clean */}
+        <div className="grid grid-cols-2 gap-4">
+          <Button 
+            size="lg" 
+            className="h-32 flex flex-col gap-3 text-lg font-semibold bg-green-600 hover:bg-green-700"
+            onClick={() => handlePunchClick('IN')}
+            disabled={!canPunch('IN')}
+          >
+            {isPunchingIn && pendingPunchType === 'IN' ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : (
+              <Clock className="h-8 w-8" />
             )}
+            Entrada
+          </Button>
 
-            {/* Manual Punch Buttons */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-center text-sm">
-                  Registro Manual
-                  {profile?.facial_reference_url && !isFaciallyRecognized && (
-                    <p className="text-xs text-muted-foreground font-normal mt-1">
-                      Faça o reconhecimento facial acima para habilitar
-                    </p>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button 
-                    size="lg" 
-                    className="h-20 flex flex-col gap-2"
-                    onClick={() => handlePunch('IN')}
-                    disabled={!canPunch('IN')}
-                    variant={canPunch('IN') ? 'default' : 'outline'}
-                  >
-                    {isPunchingIn && getNextExpectedPunch() === 'IN' ? (
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : (
-                      <Clock className="h-6 w-6" />
-                    )}
-                    Entrada
-                  </Button>
-                  <Button 
-                    size="lg" 
-                    className="h-20 flex flex-col gap-2"
-                    onClick={() => handlePunch('OUT')}
-                    disabled={!canPunch('OUT')}
-                    variant={canPunch('OUT') ? 'default' : 'outline'}
-                  >
-                    {isPunchingIn && getNextExpectedPunch() === 'OUT' ? (
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : (
-                      <Clock className="h-6 w-6" />
-                    )}
-                    Saída
-                  </Button>
-                  <Button 
-                    size="lg" 
-                    className="h-20 flex flex-col gap-2"
-                    onClick={() => handlePunch('BREAK_IN')}
-                    disabled={!canPunch('BREAK_IN')}
-                    variant={canPunch('BREAK_IN') ? 'secondary' : 'outline'}
-                  >
-                    {isPunchingIn && getNextExpectedPunch() === 'BREAK_IN' ? (
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : (
-                      <Clock className="h-6 w-6" />
-                    )}
-                    Início Intervalo
-                  </Button>
-                  <Button 
-                    size="lg" 
-                    className="h-20 flex flex-col gap-2"
-                    onClick={() => handlePunch('BREAK_OUT')}
-                    disabled={!canPunch('BREAK_OUT')}
-                    variant={canPunch('BREAK_OUT') ? 'secondary' : 'outline'}
-                  >
-                    {isPunchingIn && getNextExpectedPunch() === 'BREAK_OUT' ? (
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : (
-                      <Clock className="h-6 w-6" />
-                    )}
-                    Fim Intervalo
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <Button 
+            size="lg" 
+            className="h-32 flex flex-col gap-3 text-lg font-semibold bg-red-600 hover:bg-red-700"
+            onClick={() => handlePunchClick('OUT')}
+            disabled={!canPunch('OUT')}
+          >
+            {isPunchingIn && pendingPunchType === 'OUT' ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : (
+              <Clock className="h-8 w-8" />
+            )}
+            Saída
+          </Button>
 
-          {/* Next Expected Action */}
-          {location && (
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-4 text-center">
-                <p className="text-sm text-blue-800">
-                  Próxima ação esperada: <strong>{getNextExpectedPunch() === 'IN' ? 'Entrada' : 
-                    getNextExpectedPunch() === 'OUT' ? 'Saída' :
-                    getNextExpectedPunch() === 'BREAK_IN' ? 'Início do Intervalo' : 'Fim do Intervalo'}</strong>
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          <Button 
+            size="lg" 
+            className="h-32 flex flex-col gap-3 text-lg font-semibold bg-orange-600 hover:bg-orange-700"
+            onClick={() => handlePunchClick('BREAK_IN')}
+            disabled={!canPunch('BREAK_IN')}
+          >
+            {isPunchingIn && pendingPunchType === 'BREAK_IN' ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : (
+              <Clock className="h-8 w-8" />
+            )}
+            Início Intervalo
+          </Button>
 
-          {/* Today Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Resumo do Dia</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {todayEntries && todayEntries.length > 0 ? (
-                <>
-                  {todayEntries.slice().reverse().map((entry, index) => (
-                    <div key={entry.id} className="flex justify-between items-center">
-                      <span className="text-muted-foreground">
+          <Button 
+            size="lg" 
+            className="h-32 flex flex-col gap-3 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
+            onClick={() => handlePunchClick('BREAK_OUT')}
+            disabled={!canPunch('BREAK_OUT')}
+          >
+            {isPunchingIn && pendingPunchType === 'BREAK_OUT' ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : (
+              <Clock className="h-8 w-8" />
+            )}
+            Fim Intervalo
+          </Button>
+        </div>
+
+        {/* Facial Recognition Setup Banner */}
+        {!profile?.facial_reference_url && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <User className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="flex items-center justify-between">
+              <span className="text-sm text-blue-800">Configure reconhecimento facial para registros mais rápidos</span>
+              <Button 
+                onClick={() => window.location.href = '/portal/cadastro-facial'}
+                size="sm"
+                variant="outline"
+                className="border-blue-300 hover:bg-blue-100"
+              >
+                Cadastrar
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Today Summary - Compact */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Resumo do Dia</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {todayEntries && todayEntries.length > 0 ? (
+              <>
+                {todayEntries.slice().reverse().map((entry) => (
+                  <div key={entry.id} className="flex justify-between items-center py-2 border-b last:border-0">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
                         {entry.punch_type === 'IN' ? 'Entrada' :
                          entry.punch_type === 'OUT' ? 'Saída' :
-                         entry.punch_type === 'BREAK_IN' ? 'Início Intervalo' : 'Fim Intervalo'}:
+                         entry.punch_type === 'BREAK_IN' ? 'Início' : 'Fim'}
+                      </Badge>
+                      <span className="font-medium text-sm">
+                        {new Date(entry.punch_time).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">
-                          {new Date(entry.punch_time).toLocaleTimeString('pt-BR', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                        {entry.status === 'approved' ? (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        ) : entry.status === 'pending' ? (
-                          <AlertCircle className="h-4 w-4 text-yellow-500" />
-                        ) : (
-                          <AlertCircle className="h-4 w-4 text-red-500" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  <div className="border-t pt-3 mt-3">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Horas trabalhadas:</span>
-                      <span className="font-medium text-primary">
-                        {workingHours?.totalHours || '0h 0m'}
-                      </span>
-                    </div>
+                     </div>
+                     {entry.status === 'approved' ? (
+                       <CheckCircle className="h-4 w-4 text-green-500" />
+                     ) : (
+                       <AlertCircle className="h-4 w-4 text-yellow-500" />
+                     )}
+                   </div>
+                 ))}
+                <div className="pt-3 mt-3 border-t">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-slate-700">Total Trabalhado:</span>
+                    <span className="text-xl font-bold text-slate-900">
+                      {workingHours?.totalHours || '00:00'}
+                    </span>
                   </div>
-                </>
-              ) : (
-                <p className="text-muted-foreground text-center">
-                  Nenhum registro de ponto hoje
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum registro hoje
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Facial Recognition Modal */}
+        <FacialRecognitionModal 
+          isOpen={showFacialModal}
+          onClose={() => {
+            setShowFacialModal(false);
+            setPendingPunchType(null);
+          }}
+          onSuccess={handleFacialSuccess}
+          expectedUserId={profile?.id}
+        />
+      </div>
     </PortalLayout>
   );
 };
