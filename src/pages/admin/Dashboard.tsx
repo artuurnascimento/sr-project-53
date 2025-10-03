@@ -1,8 +1,9 @@
-import { Users, Clock, AlertTriangle, CheckCircle, MapPin, TrendingUp, Calendar, Activity, BarChart3 } from 'lucide-react';
+import { Users, Clock, AlertTriangle, CheckCircle, MapPin, TrendingUp, Calendar, Activity, BarChart3, Image as ImageIcon, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useReportData } from '@/hooks/useReports';
 import { useTimeEntries } from '@/hooks/useTimeTracking';
@@ -10,6 +11,8 @@ import { useJustifications, useUpdateJustification } from '@/hooks/useJustificat
 import { useProfiles } from '@/hooks/useProfiles';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -18,6 +21,43 @@ const Dashboard = () => {
   const { data: pendingJustifications, refetch: refetchJustifications } = useJustifications();
   const { data: profiles } = useProfiles();
   const updateJustification = useUpdateJustification();
+  
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
+  const [selectedJustification, setSelectedJustification] = useState<any>(null);
+
+  // Load attachment URLs for pending justifications
+  useEffect(() => {
+    const loadAttachmentUrls = async () => {
+      if (!pendingJustifications) return;
+      
+      const urls: Record<string, string> = {};
+      const pendingWithAttachments = pendingJustifications.filter(
+        j => j.status === 'pending' && j.attachments?.length > 0
+      );
+
+      for (const justification of pendingWithAttachments) {
+        for (const attachment of justification.attachments) {
+          if (attachment.path && !urls[attachment.path]) {
+            try {
+              const { data } = await supabase.storage
+                .from('justification-attachments')
+                .createSignedUrl(attachment.path, 60 * 60);
+              
+              if (data?.signedUrl) {
+                urls[attachment.path] = data.signedUrl;
+              }
+            } catch (error) {
+              console.error('Error loading attachment URL:', error);
+            }
+          }
+        }
+      }
+      setAttachmentUrls(urls);
+    };
+
+    loadAttachmentUrls();
+  }, [pendingJustifications]);
 
   const handleApproveJustification = async (id: string) => {
     try {
@@ -360,17 +400,70 @@ const Dashboard = () => {
                             {new Date(justification.created_at).toLocaleDateString('pt-BR')}
                           </div>
                         </div>
-                        <Badge variant="outline" className="bg-white/50">
-                          {justification.request_type === 'absence' ? 'Falta' :
-                           justification.request_type === 'overtime' ? 'Hora Extra' :
-                           justification.request_type === 'vacation' ? 'Férias' :
-                           justification.request_type === 'expense' ? 'Despesa' : 'Outro'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {justification.attachments?.length > 0 && (
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                              <ImageIcon className="h-3 w-3" />
+                              {justification.attachments.length}
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="bg-white/50">
+                            {justification.request_type === 'absence' ? 'Falta' :
+                             justification.request_type === 'overtime' ? 'Hora Extra' :
+                             justification.request_type === 'vacation' ? 'Férias' :
+                             justification.request_type === 'expense' ? 'Despesa' : 'Outro'}
+                          </Badge>
+                        </div>
                       </div>
                       <p className="text-sm text-slate-600 mb-3 line-clamp-2">
                         {justification.description}
                       </p>
+                      
+                      {/* Attachments Preview */}
+                      {justification.attachments?.length > 0 && (
+                        <div className="flex gap-2 mb-3">
+                          {justification.attachments.slice(0, 3).map((attachment: any, idx: number) => (
+                            attachmentUrls[attachment.path] && (
+                              <img
+                                key={idx}
+                                src={attachmentUrls[attachment.path]}
+                                alt="Anexo"
+                                className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => {
+                                  setSelectedJustification(justification);
+                                  setSelectedImage(attachmentUrls[attachment.path]);
+                                }}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                }}
+                              />
+                            )
+                          ))}
+                          {justification.attachments.length > 3 && (
+                            <div className="w-16 h-16 bg-slate-200 rounded border flex items-center justify-center text-xs text-slate-600">
+                              +{justification.attachments.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="flex gap-2">
+                        {justification.attachments?.length > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7"
+                            onClick={() => {
+                              setSelectedJustification(justification);
+                              if (justification.attachments[0]?.path && attachmentUrls[justification.attachments[0].path]) {
+                                setSelectedImage(attachmentUrls[justification.attachments[0].path]);
+                              }
+                            }}
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Ver Anexos
+                          </Button>
+                        )}
                         <Button 
                           size="sm" 
                           className="text-xs h-7 bg-green-500 hover:bg-green-600 text-white"
@@ -488,6 +581,62 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Image Viewer Dialog */}
+        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedJustification ? `Anexo - ${getDisplayName(selectedJustification.profiles)}` : 'Visualizar Anexo'}
+              </DialogTitle>
+            </DialogHeader>
+            {selectedImage && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-center bg-muted rounded-lg p-4">
+                  <img
+                    src={selectedImage}
+                    alt="Anexo"
+                    className="max-w-full max-h-[70vh] object-contain"
+                  />
+                </div>
+                
+                {selectedJustification && (
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <h4 className="font-medium mb-2">{selectedJustification.title}</h4>
+                    <p className="text-sm text-slate-600 mb-3">{selectedJustification.description}</p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-green-500 hover:bg-green-600"
+                        onClick={() => {
+                          handleApproveJustification(selectedJustification.id);
+                          setSelectedImage(null);
+                          setSelectedJustification(null);
+                        }}
+                        disabled={updateJustification.isPending}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Aprovar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          handleRejectJustification(selectedJustification.id);
+                          setSelectedImage(null);
+                          setSelectedJustification(null);
+                        }}
+                        disabled={updateJustification.isPending}
+                      >
+                        Rejeitar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
     </AdminLayout>
   );
 };
