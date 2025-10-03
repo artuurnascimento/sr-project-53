@@ -132,7 +132,7 @@ const Dashboard = () => {
                 Painel de controle e gestão do sistema de ponto eletrônico
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3">
               <Button 
                 variant="outline" 
                 size="sm" 
