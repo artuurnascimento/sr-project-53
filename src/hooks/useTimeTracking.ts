@@ -49,7 +49,7 @@ export const useTimeEntries = (employeeId?: string, date?: string) => {
 
       if (error) throw error;
       
-      // Get facial recognition data separately for each entry
+      // Get facial recognition data separately for each entry and generate signed URL
       const entriesWithFacialData = await Promise.all(
         (data || []).map(async (entry) => {
           const { data: facialData } = await supabase
@@ -58,10 +58,34 @@ export const useTimeEntries = (employeeId?: string, date?: string) => {
             .eq('time_entry_id', entry.id)
             .order('created_at', { ascending: false })
             .limit(1);
+
+          let signedFacialData = facialData || [];
+          try {
+            if (facialData && facialData[0]?.attempt_image_url) {
+              const url: string = facialData[0].attempt_image_url;
+              const marker = '/facial-audit/';
+              const idx = url.indexOf(marker);
+              if (idx !== -1) {
+                const key = url.substring(idx + marker.length);
+                const { data: signed } = await supabase
+                  .storage
+                  .from('facial-audit')
+                  .createSignedUrl(key, 60 * 60); // 1h
+                if (signed?.signedUrl) {
+                  signedFacialData = [{
+                    ...facialData[0],
+                    attempt_image_url: signed.signedUrl,
+                  }];
+                }
+              }
+            }
+          } catch (e) {
+            // Fallback to original URL if signing fails
+          }
           
           return {
             ...entry,
-            facial_recognition_audit: facialData || []
+            facial_recognition_audit: signedFacialData
           };
         })
       );

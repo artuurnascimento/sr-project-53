@@ -58,9 +58,32 @@ const FacialAudit = () => {
         `)
         .order('created_at', { ascending: false })
         .limit(100);
-
+      
       if (error) throw error;
-      setAuditRecords((data as any) || []);
+
+      // Generate signed URLs for private bucket images
+      const records = (data as any) || [];
+      const marker = '/facial-audit/';
+      const withSignedUrls = await Promise.all(records.map(async (r: any) => {
+        try {
+          if (r?.attempt_image_url) {
+            const idx = r.attempt_image_url.indexOf(marker);
+            if (idx !== -1) {
+              const key = r.attempt_image_url.substring(idx + marker.length);
+              const { data: signed } = await supabase
+                .storage
+                .from('facial-audit')
+                .createSignedUrl(key, 60 * 60);
+              if (signed?.signedUrl) {
+                r.attempt_image_url = signed.signedUrl;
+              }
+            }
+          }
+        } catch {}
+        return r;
+      }));
+
+      setAuditRecords(withSignedUrls);
     } catch (error) {
       console.error('Error loading audit records:', error);
       toast.error('Erro ao carregar registros de auditoria');
