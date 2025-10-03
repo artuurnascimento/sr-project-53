@@ -127,6 +127,13 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                 </div>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <NavLink to="/portal/perfil" className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  Meu Perfil
+                </NavLink>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Sair
@@ -185,6 +192,13 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem asChild>
+                      <NavLink to="/portal/perfil" className="cursor-pointer">
+                        <User className="mr-2 h-4 w-4" />
+                        Meu Perfil
+                      </NavLink>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Sair

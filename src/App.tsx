@@ -20,6 +20,7 @@ import DashboardRedirect from "./components/DashboardRedirect";
 import PortalHome from "./pages/portal/Home";
 import PortalHistory from "./pages/portal/History";
 import PortalJustifications from "./pages/portal/Justifications";
+import PortalProfile from "./pages/portal/Profile";
 
 // Admin pages  
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -76,6 +77,11 @@ const App = () => (
             <Route path="/portal/cadastro-facial" element={
               <ProtectedRoute>
                 <FaceRegistration />
+              </ProtectedRoute>
+            } />
+            <Route path="/portal/perfil" element={
+              <ProtectedRoute>
+                <PortalProfile />
               </ProtectedRoute>
             } />
             
