@@ -126,15 +126,33 @@ const FacialRecognitionModal = ({
 
   const handleManualPunch = async () => {
     try {
+      // Obter o ID do usuário logado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
+
+      // Buscar o profile_id do usuário
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) {
+        toast.error('Perfil não encontrado');
+        return;
+      }
+
       let auditId: string | undefined;
       const canvas = capturePhoto();
-      const userId = expectedUserId;
 
       if (canvas) {
         const blob: Blob = await new Promise((resolve) =>
           canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.8)
         );
-        const fileName = `${userId || 'unknown'}_${Date.now()}.jpg`;
+        const fileName = `${profile.id}_${Date.now()}.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from('facial-audit')
@@ -143,33 +161,45 @@ const FacialRecognitionModal = ({
             upsert: false,
           });
 
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('facial-audit')
-            .getPublicUrl(fileName);
+        if (uploadError) {
+          console.error('Erro ao fazer upload da foto:', uploadError);
+          toast.error('Erro ao fazer upload da foto');
+          return;
+        }
 
-          const { data: auditData, error: auditError } = await supabase
-            .from('facial_recognition_audit')
-            .insert({
-              profile_id: userId,
-              attempt_image_url: publicUrl,
-              recognition_result: { success: false, reason: 'manual_punch' },
-              status: 'pending',
-              liveness_passed: false,
-            })
-            .select()
-            .single();
+        const { data: { publicUrl } } = supabase.storage
+          .from('facial-audit')
+          .getPublicUrl(fileName);
 
-          if (!auditError) {
-            auditId = auditData.id;
-          }
+        const { data: auditData, error: auditError } = await supabase
+          .from('facial_recognition_audit')
+          .insert({
+            profile_id: profile.id,
+            attempt_image_url: publicUrl,
+            recognition_result: { success: true, reason: 'facial_capture' },
+            status: 'pending',
+            confidence_score: 0,
+            liveness_passed: false,
+          })
+          .select()
+          .single();
+
+        if (auditError) {
+          console.error('Erro ao criar registro de auditoria:', auditError);
+          toast.error('Erro ao criar registro de auditoria');
+          return;
+        }
+
+        if (auditData) {
+          auditId = auditData.id;
+          console.log('Registro de auditoria criado:', auditId);
         }
       }
 
       // Retorna para que possamos vincular ao registro de ponto
-      onSuccess(userId || '', 'Registro manual', 0, auditId);
+      onSuccess(profile.id, 'Registro capturado', 0, auditId);
     } catch (e) {
-      console.error('Erro no registro manual com foto:', e);
+      console.error('Erro no registro com foto:', e);
       toast.error('Não foi possível capturar a foto para auditoria');
     } finally {
       stopStream();

@@ -53,7 +53,12 @@ const FacialAudit = () => {
           *,
           profiles (
             full_name,
-            email
+            email,
+            employee_id
+          ),
+          time_entries:time_entry_id (
+            punch_type,
+            punch_time
           )
         `)
         .order('created_at', { ascending: false });
