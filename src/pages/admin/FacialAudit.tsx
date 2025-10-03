@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, CheckCircle, X, Clock, Search, Filter, Calendar } from 'lucide-react';
+import { Eye, CheckCircle, X, Clock, Search, Filter, Calendar, TestTube } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -163,6 +163,93 @@ const FacialAudit = () => {
     setFilteredRecords(filtered);
   };
 
+  const createTestRecord = async () => {
+    try {
+      setLoading(true);
+      
+      // Get current user profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) {
+        toast.error('Perfil não encontrado');
+        return;
+      }
+
+      // Create a test image (1x1 pixel red)
+      const canvas = document.createElement('canvas');
+      canvas.width = 100;
+      canvas.height = 100;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#FF0000';
+        ctx.fillRect(0, 0, 100, 100);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '12px Arial';
+        ctx.fillText('TEST', 30, 55);
+      }
+
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.8);
+      });
+
+      // Upload test image
+      const testFileName = `test_${profile.id}_${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('facial-audit')
+        .upload(testFileName, blob, {
+          contentType: 'image/jpeg',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast.error('Erro ao fazer upload da imagem de teste');
+        return;
+      }
+
+      // Create audit record
+      const { error: insertError } = await supabase
+        .from('facial_recognition_audit')
+        .insert({
+          profile_id: profile.id,
+          attempt_image_url: testFileName,
+          recognition_result: {
+            success: true,
+            userName: profile.full_name,
+            confidence: 0.95,
+            testRecord: true
+          },
+          confidence_score: 0.95,
+          liveness_passed: true,
+          status: 'pending',
+        });
+
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        toast.error('Erro ao criar registro de teste');
+        return;
+      }
+
+      toast.success('Registro de teste criado com sucesso!');
+      await loadAuditRecords();
+    } catch (error) {
+      console.error('Error creating test record:', error);
+      toast.error('Erro ao criar registro de teste');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateAuditStatus = async (id: string, status: 'approved' | 'rejected') => {
     try {
       const { error } = await supabase
@@ -227,11 +314,22 @@ const FacialAudit = () => {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Auditoria Facial</h1>
-          <p className="text-muted-foreground">
-            Monitore e aprove tentativas de reconhecimento facial
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Auditoria Facial</h1>
+            <p className="text-muted-foreground">
+              Monitore e aprove tentativas de reconhecimento facial
+            </p>
+          </div>
+          <Button 
+            onClick={createTestRecord} 
+            disabled={loading}
+            variant="outline"
+            size="sm"
+          >
+            <TestTube className="h-4 w-4 mr-2" />
+            Criar Registro de Teste
+          </Button>
         </div>
 
         {/* Stats */}
