@@ -27,7 +27,7 @@ import AdminApprovals from "./pages/admin/Approvals";
 import AdminReports from "./pages/admin/Reports";
 import AdminRegistrations from "./pages/admin/Registrations";
 import AdminIntegrations from "./pages/admin/Integrations";
-import AdminAudit from "./pages/admin/Audit";
+import FacialAudit from "./pages/admin/FacialAudit";
 import FaceRegistration from "./pages/portal/FaceRegistration";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -112,7 +112,7 @@ const App = () => (
             } />
             <Route path="/admin/auditoria" element={
               <ProtectedRoute requiredRole="admin">
-                <AdminAudit />
+                <FacialAudit />
               </ProtectedRoute>
             } />
             

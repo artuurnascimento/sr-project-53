@@ -24,11 +24,9 @@ export const useActivityLogs = (userId?: string) => {
       let query = supabase
         .from('activity_logs')
         .select(`
-          *,
-          profiles!user_id(full_name, email)
+          *
         `)
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .order('created_at', { ascending: false });
 
       if (userId) {
         query = query.eq('user_id', userId);
