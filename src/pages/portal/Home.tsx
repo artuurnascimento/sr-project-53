@@ -19,6 +19,8 @@ const PortalHome = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isPunchingIn, setIsPunchingIn] = useState(false);
+  const [isFaciallyRecognized, setIsFaciallyRecognized] = useState(false);
+  const [usedPunchTypes, setUsedPunchTypes] = useState<Set<string>>(new Set());
 
   const createTimeEntry = useCreateTimeEntry();
   const { data: todayEntries, refetch: refetchToday } = useTodayTimeEntries(profile?.id);
@@ -120,6 +122,9 @@ const PortalHome = () => {
         'BREAK_OUT': 'Fim do Intervalo'
       };
       
+      // Mark this punch type as used
+      setUsedPunchTypes(prev => new Set(prev).add(type));
+      
       toast.success(`${punchNames[type]} registrada com sucesso!`);
     } catch (error) {
       toast.error('Erro ao registrar ponto. Tente novamente.');
@@ -170,8 +175,11 @@ const PortalHome = () => {
 
   const canPunch = (type: string) => {
     if (!location || !isOnline || isPunchingIn || createTimeEntry.isPending) return false;
-    const expected = getNextExpectedPunch();
-    return type === expected;
+    // Check if user has been facially recognized (only if they have facial reference)
+    if (profile?.facial_reference_url && !isFaciallyRecognized) return false;
+    // Check if this punch type was already used
+    if (usedPunchTypes.has(type)) return false;
+    return true;
   };
 
   return (
@@ -305,17 +313,10 @@ const PortalHome = () => {
                     <AdvancedFacialRecognition 
                       mode="recognize"
                      onRecognitionSuccess={async (userId, userName, confidence, auditId) => {
-                        if (userId === profile.id && !isPunchingIn && !createTimeEntry.isPending) {
-                          const expectedType = getNextExpectedPunch();
-                          const punchNames = {
-                            'IN': 'Entrada',
-                            'OUT': 'Saída',
-                            'BREAK_IN': 'Início do Intervalo',
-                            'BREAK_OUT': 'Fim do Intervalo'
-                          };
-                          toast.info(`Reconhecimento facial confirmado! Registrando ${punchNames[expectedType]}...`);
-                          await handlePunch(expectedType as 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT');
-                        } else if (userId !== profile.id) {
+                        if (userId === profile.id) {
+                          setIsFaciallyRecognized(true);
+                          toast.success(`Reconhecimento facial confirmado! Agora você pode registrar seu ponto.`);
+                        } else {
                           toast.error('Face não reconhecida para este usuário');
                         }
                       }}
@@ -326,11 +327,16 @@ const PortalHome = () => {
               </Card>
             )}
 
-            {/* Manual Punch Buttons - Only show if no facial recognition or as backup */}
+            {/* Manual Punch Buttons */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-center text-sm">
-                  {profile?.facial_reference_url ? 'Registro Manual (Alternativo)' : 'Registro Manual'}
+                  Registro Manual
+                  {profile?.facial_reference_url && !isFaciallyRecognized && (
+                    <p className="text-xs text-muted-foreground font-normal mt-1">
+                      Faça o reconhecimento facial acima para habilitar
+                    </p>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
