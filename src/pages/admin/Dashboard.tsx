@@ -6,14 +6,44 @@ import { Progress } from '@/components/ui/progress';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useReportData } from '@/hooks/useReports';
 import { useTimeEntries } from '@/hooks/useTimeTracking';
-import { useJustifications } from '@/hooks/useJustifications';
+import { useJustifications, useUpdateJustification } from '@/hooks/useJustifications';
 import { useProfiles } from '@/hooks/useProfiles';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { data: reportData, isLoading: reportLoading } = useReportData();
   const { data: recentEntries } = useTimeEntries();
-  const { data: pendingJustifications } = useJustifications();
+  const { data: pendingJustifications, refetch: refetchJustifications } = useJustifications();
   const { data: profiles } = useProfiles();
+  const updateJustification = useUpdateJustification();
+
+  const handleApproveJustification = async (id: string) => {
+    try {
+      await updateJustification.mutateAsync({
+        id,
+        updates: { status: 'approved' }
+      });
+      toast.success('Justificativa aprovada com sucesso!');
+      refetchJustifications();
+    } catch (error) {
+      toast.error('Erro ao aprovar justificativa');
+    }
+  };
+
+  const handleRejectJustification = async (id: string) => {
+    try {
+      await updateJustification.mutateAsync({
+        id,
+        updates: { status: 'rejected' }
+      });
+      toast.success('Justificativa rejeitada');
+      refetchJustifications();
+    } catch (error) {
+      toast.error('Erro ao rejeitar justificativa');
+    }
+  };
 
   const getEventTypeLabel = (type: string) => {
     const labels = {
@@ -94,11 +124,20 @@ const Dashboard = () => {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" size="sm" className="shadow-sm">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="shadow-sm"
+                onClick={() => navigate('/admin/relatorios')}
+              >
                 <Calendar className="h-4 w-4 mr-2" />
                 Relatório Mensal
               </Button>
-              <Button size="sm" className="shadow-sm">
+              <Button 
+                size="sm" 
+                className="shadow-sm"
+                onClick={() => navigate('/admin/relatorios')}
+              >
                 <TrendingUp className="h-4 w-4 mr-2" />
                 Exportar Dados
               </Button>
@@ -230,7 +269,11 @@ const Dashboard = () => {
                     </p>
                   )}
                 </div>
-                <Button variant="outline" className="w-full mt-4 shadow-sm">
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4 shadow-sm"
+                  onClick={() => navigate('/admin/auditoria')}
+                >
                   Ver Todos os Registros
                 </Button>
               </CardContent>
@@ -270,10 +313,21 @@ const Dashboard = () => {
                         {justification.description}
                       </p>
                       <div className="flex gap-2">
-                        <Button size="sm" className="text-xs h-7 bg-green-500 hover:bg-green-600 text-white">
+                        <Button 
+                          size="sm" 
+                          className="text-xs h-7 bg-green-500 hover:bg-green-600 text-white"
+                          onClick={() => handleApproveJustification(justification.id)}
+                          disabled={updateJustification.isPending}
+                        >
                           Aprovar
                         </Button>
-                        <Button size="sm" variant="outline" className="text-xs h-7">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs h-7"
+                          onClick={() => handleRejectJustification(justification.id)}
+                          disabled={updateJustification.isPending}
+                        >
                           Rejeitar
                         </Button>
                       </div>
@@ -284,7 +338,11 @@ const Dashboard = () => {
                     </p>
                   )}
                 </div>
-                <Button variant="outline" className="w-full mt-4 shadow-sm">
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4 shadow-sm"
+                  onClick={() => navigate('/admin/aprovacoes')}
+                >
                   Ver Todas as Aprovações
                 </Button>
               </CardContent>
@@ -328,25 +386,41 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button variant="outline" className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all">
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all"
+                  onClick={() => navigate('/admin/cadastros')}
+                >
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <Users className="h-6 w-6 text-blue-600" />
                   </div>
                   <span className="font-medium text-slate-700">Gerenciar Usuários</span>
                 </Button>
-                <Button variant="outline" className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all">
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all"
+                  onClick={() => navigate('/admin/aprovacoes')}
+                >
                   <div className="p-2 bg-orange-100 rounded-lg">
                     <AlertTriangle className="h-6 w-6 text-orange-600" />
                   </div>
                   <span className="font-medium text-slate-700">Aprovar Pendências</span>
                 </Button>
-                <Button variant="outline" className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all">
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all"
+                  onClick={() => navigate('/admin/relatorios')}
+                >
                   <div className="p-2 bg-green-100 rounded-lg">
                     <TrendingUp className="h-6 w-6 text-green-600" />
                   </div>
                   <span className="font-medium text-slate-700">Gerar Relatório</span>
                 </Button>
-                <Button variant="outline" className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all">
+                <Button 
+                  variant="outline" 
+                  className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all"
+                  onClick={() => navigate('/admin/integracoes')}
+                >
                   <div className="p-2 bg-purple-100 rounded-lg">
                     <Calendar className="h-6 w-6 text-purple-600" />
                   </div>
