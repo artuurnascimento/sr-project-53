@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Calendar, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Upload, X as XIcon, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,12 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import PortalLayout from '@/components/layout/PortalLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useJustifications, useCreateJustification } from '@/hooks/useJustifications';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Justifications = () => {
   const { profile } = useAuth();
   const { data: justifications, isLoading } = useJustifications(profile?.id);
   const createJustification = useCreateJustification();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     request_type: '',
     title: '',
@@ -26,31 +31,104 @@ const Justifications = () => {
     amount: '',
   });
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Tipo de arquivo inválido. Use JPG, PNG ou WEBP.');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Tamanho máximo: 10MB.');
+      return;
+    }
+
+    setSelectedFile(file);
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
-    
-    const payload = {
-      employee_id: profile.id,
-      request_type: formData.request_type as any,
-      title: formData.title,
-      description: formData.description,
-      start_date: formData.start_date || undefined,
-      end_date: formData.end_date || undefined,
-      amount: formData.amount ? parseFloat(formData.amount) : undefined,
-      attachments: [],
-    };
 
-    await createJustification.mutateAsync(payload);
-    setIsDialogOpen(false);
-    setFormData({
-      request_type: '',
-      title: '',
-      description: '',
-      start_date: '',
-      end_date: '',
-      amount: '',
-    });
+    try {
+      setUploading(true);
+      let attachments: any[] = [];
+
+      // Upload file if selected
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${profile.user_id}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('justification-attachments')
+          .upload(fileName, selectedFile);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error('Erro ao fazer upload da imagem');
+          return;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('justification-attachments')
+          .getPublicUrl(fileName);
+
+        attachments.push({
+          name: selectedFile.name,
+          url: publicUrl,
+          path: fileName,
+          type: selectedFile.type,
+          size: selectedFile.size,
+        });
+      }
+
+      const payload = {
+        employee_id: profile.id,
+        request_type: formData.request_type as any,
+        title: formData.title,
+        description: formData.description,
+        start_date: formData.start_date || undefined,
+        end_date: formData.end_date || undefined,
+        amount: formData.amount ? parseFloat(formData.amount) : undefined,
+        attachments,
+      };
+
+      await createJustification.mutateAsync(payload);
+      
+      setIsDialogOpen(false);
+      handleRemoveFile();
+      setFormData({
+        request_type: '',
+        title: '',
+        description: '',
+        start_date: '',
+        end_date: '',
+        amount: '',
+      });
+      
+      toast.success('Justificativa enviada com sucesso!');
+    } catch (error) {
+      console.error('Error submitting justification:', error);
+      toast.error('Erro ao enviar justificativa');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -150,9 +228,53 @@ const Justifications = () => {
                       required
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="attachment">Anexar Imagem (opcional)</Label>
+                    {!selectedFile ? (
+                      <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+                        <input
+                          id="attachment"
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/webp"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                        <label htmlFor="attachment" className="cursor-pointer">
+                          <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            Clique para selecionar uma imagem
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            JPG, PNG ou WEBP (máx. 10MB)
+                          </p>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="relative border rounded-lg p-4">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={handleRemoveFile}
+                        >
+                          <XIcon className="h-4 w-4" />
+                        </Button>
+                        {previewUrl && (
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="w-full h-48 object-cover rounded"
+                          />
+                        )}
+                        <p className="text-sm mt-2 truncate">{selectedFile.name}</p>
+                      </div>
+                    )}
+                  </div>
                   
-                  <Button type="submit" className="w-full" disabled={createJustification.isPending}>
-                    {createJustification.isPending ? 'Criando...' : 'Criar Justificativa'}
+                  <Button type="submit" className="w-full" disabled={uploading || createJustification.isPending}>
+                    {uploading || createJustification.isPending ? 'Enviando...' : 'Criar Justificativa'}
                   </Button>
                 </form>
               </DialogContent>

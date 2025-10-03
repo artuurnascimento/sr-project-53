@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Check, X, Eye, Filter, Clock, User, Calendar, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Check, X, Eye, Filter, Clock, User, Calendar, FileText, Image as ImageIcon } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,34 @@ const Approvals = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
+
+  // Generate signed URLs for attachments when selected justification changes
+  useEffect(() => {
+    const loadAttachmentUrls = async () => {
+      if (!selectedJustification?.attachments?.length) return;
+      
+      const urls: Record<string, string> = {};
+      for (const attachment of selectedJustification.attachments) {
+        if (attachment.path) {
+          try {
+            const { data } = await supabase.storage
+              .from('justification-attachments')
+              .createSignedUrl(attachment.path, 60 * 60); // 1 hour
+            
+            if (data?.signedUrl) {
+              urls[attachment.path] = data.signedUrl;
+            }
+          } catch (error) {
+            console.error('Error loading attachment URL:', error);
+          }
+        }
+      }
+      setAttachmentUrls(urls);
+    };
+
+    loadAttachmentUrls();
+  }, [selectedJustification]);
 
   const getTypeLabel = (type: string) => {
     const labels = {
@@ -246,6 +275,15 @@ const Approvals = () => {
                         </div>
                       )}
 
+                      {justification.attachments?.length > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">
+                            {justification.attachments.length} anexo(s)
+                          </span>
+                        </div>
+                      )}
+
                       {justification.rejection_reason && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                           <h5 className="font-medium text-red-800 mb-1">Motivo da Rejeição:</h5>
@@ -284,6 +322,31 @@ const Approvals = () => {
                                       </p>
                                     </div>
                                   </div>
+
+                                  {selectedJustification.attachments?.length > 0 && (
+                                    <div>
+                                      <h4 className="font-medium mb-2">Anexos:</h4>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        {selectedJustification.attachments.map((attachment: any, idx: number) => (
+                                          <div key={idx} className="border rounded-lg overflow-hidden">
+                                            {attachmentUrls[attachment.path] && (
+                                              <img
+                                                src={attachmentUrls[attachment.path]}
+                                                alt={attachment.name}
+                                                className="w-full h-48 object-cover"
+                                                onError={(e) => {
+                                                  (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                                }}
+                                              />
+                                            )}
+                                            <div className="p-2 bg-muted">
+                                              <p className="text-xs truncate">{attachment.name}</p>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                   
                                   <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div>
