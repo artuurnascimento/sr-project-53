@@ -263,15 +263,15 @@ const Dashboard = () => {
                           </div>
                         )}
                         
-                        <div className="flex flex-col">
+                        <div className="flex flex-col flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <div className={`w-3 h-3 rounded-full ${
+                            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
                               entry.punch_type === 'IN' ? 'bg-green-500' :
                               entry.punch_type === 'OUT' ? 'bg-red-500' :
                               entry.punch_type === 'BREAK_IN' ? 'bg-orange-500' : 'bg-blue-500'
                             }`}></div>
-                            <span className="font-semibold text-slate-900">
-                              {entry.profiles?.full_name || 'Usuário'}
+                            <span className="font-semibold text-slate-900 truncate">
+                              {entry.profiles?.full_name?.split(' ').slice(0, 2).join(' ') || 'Usuário'}
                             </span>
                           </div>
                           <span className="text-sm text-slate-500">
@@ -329,9 +329,9 @@ const Dashboard = () => {
                   {pendingJustifications?.filter(j => j.status === 'pending').slice(0, 5).map((justification) => (
                     <div key={justification.id} className="p-4 rounded-xl bg-slate-50/50 border border-slate-200/50 hover:bg-slate-100/50 transition-colors">
                       <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <span className="font-semibold text-slate-900">
-                            {justification.profiles?.full_name || 'Usuário'}
+                        <div className="min-w-0 flex-1 mr-2">
+                          <span className="font-semibold text-slate-900 block truncate">
+                            {justification.profiles?.full_name?.split(' ').slice(0, 2).join(' ') || 'Usuário'}
                           </span>
                           <div className="text-sm text-slate-500">
                             {new Date(justification.created_at).toLocaleDateString('pt-BR')}
