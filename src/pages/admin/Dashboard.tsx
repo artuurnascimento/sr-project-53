@@ -109,6 +109,27 @@ const Dashboard = () => {
     return date.toLocaleString('pt-BR');
   };
 
+  // Helpers for display formatting
+  const maskEmail = (email: string) => {
+    if (!email) return '';
+    const [user, domain] = email.split('@');
+    if (!domain) return email;
+    const visible = Math.min(4, user.length);
+    return `${user.slice(0, visible)}…@${domain}`;
+  };
+
+  const firstAndLast = (fullName: string) => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length <= 1) return parts[0] || '';
+    return `${parts[0]} ${parts[parts.length - 1]}`;
+  };
+
+  const getDisplayName = (profile?: { full_name?: string }) => {
+    const name = profile?.full_name || '';
+    return name.includes('@') ? maskEmail(name) : firstAndLast(name);
+  };
+
   if (reportLoading) {
     return (
       <AdminLayout>
@@ -271,7 +292,7 @@ const Dashboard = () => {
                               entry.punch_type === 'BREAK_IN' ? 'bg-orange-500' : 'bg-blue-500'
                             }`}></div>
                             <span className="font-semibold text-slate-900 truncate">
-                              {entry.profiles?.full_name?.split(' ').slice(0, 2).join(' ') || 'Usuário'}
+                              {getDisplayName(entry.profiles) || 'Usuário'}
                             </span>
                           </div>
                           <span className="text-sm text-slate-500">
@@ -296,7 +317,9 @@ const Dashboard = () => {
                           )}
                         </div>
                       </div>
-                      {getStatusBadge(entry.status)}
+                      <div className="flex-shrink-0 ml-2 self-center">
+                        {getStatusBadge(entry.status)}
+                      </div>
                     </div>
                   )) || (
                     <p className="text-muted-foreground text-center py-4">
@@ -331,7 +354,7 @@ const Dashboard = () => {
                       <div className="flex items-start justify-between mb-2">
                         <div className="min-w-0 flex-1 mr-2">
                           <span className="font-semibold text-slate-900 block truncate">
-                            {justification.profiles?.full_name?.split(' ').slice(0, 2).join(' ') || 'Usuário'}
+                            {getDisplayName(justification.profiles) || 'Usuário'}
                           </span>
                           <div className="text-sm text-slate-500">
                             {new Date(justification.created_at).toLocaleDateString('pt-BR')}
