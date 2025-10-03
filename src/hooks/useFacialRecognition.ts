@@ -184,7 +184,7 @@ export const useFacialRecognition = () => {
     if (!videoRef.current) return null;
     
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     
     canvas.width = 640;
     canvas.height = 480;
