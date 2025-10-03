@@ -167,16 +167,13 @@ const FacialRecognitionModal = ({
           return;
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('facial-audit')
-          .getPublicUrl(fileName);
-
+        // Salvar apenas a storage key (fileName), não a URL pública
         const { data: auditData, error: auditError } = await supabase
           .from('facial_recognition_audit')
           .insert({
             profile_id: profile.id,
-            attempt_image_url: publicUrl,
-            recognition_result: { success: true, reason: 'facial_capture' },
+            attempt_image_url: fileName, // Apenas storage key
+            recognition_result: { success: true, reason: 'manual_capture' },
             status: 'pending',
             confidence_score: 0,
             liveness_passed: false,
