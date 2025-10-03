@@ -60,27 +60,40 @@ export const useTimeEntries = (employeeId?: string, date?: string) => {
             .limit(1);
 
           let signedFacialData = facialData || [];
-          try {
-            if (facialData && facialData[0]?.attempt_image_url) {
+          
+          if (facialData && facialData[0]?.attempt_image_url) {
+            try {
               const url: string = facialData[0].attempt_image_url;
+              console.log('Original facial URL:', url);
+              
+              // Extract the file path from the public URL
               const marker = '/facial-audit/';
               const idx = url.indexOf(marker);
+              
               if (idx !== -1) {
                 const key = url.substring(idx + marker.length);
-                const { data: signed } = await supabase
+                console.log('Extracted file key:', key);
+                
+                const { data: signed, error: signError } = await supabase
                   .storage
                   .from('facial-audit')
-                  .createSignedUrl(key, 60 * 60); // 1h
-                if (signed?.signedUrl) {
+                  .createSignedUrl(key, 60 * 60); // 1 hour
+                
+                if (signError) {
+                  console.error('Error creating signed URL:', signError);
+                } else if (signed?.signedUrl) {
+                  console.log('Generated signed URL:', signed.signedUrl);
                   signedFacialData = [{
                     ...facialData[0],
                     attempt_image_url: signed.signedUrl,
                   }];
                 }
+              } else {
+                console.warn('Could not find marker in URL:', url);
               }
+            } catch (e) {
+              console.error('Error processing facial image URL:', e);
             }
-          } catch (e) {
-            // Fallback to original URL if signing fails
           }
           
           return {

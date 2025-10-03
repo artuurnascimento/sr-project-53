@@ -439,7 +439,7 @@ const Reports = () => {
                     </div>
                   </div>
 
-                  {/* Facial Recognition */}
+                   {/* Facial Recognition */}
                   {selectedEntry.facial_recognition_audit && selectedEntry.facial_recognition_audit.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
@@ -452,6 +452,13 @@ const Reports = () => {
                             src={selectedEntry.facial_recognition_audit[0].attempt_image_url}
                             alt="Foto de reconhecimento facial"
                             className="w-full h-full object-contain"
+                            onError={(e) => {
+                              console.error('Erro ao carregar imagem:', selectedEntry.facial_recognition_audit[0].attempt_image_url);
+                              (e.target as HTMLImageElement).src = '/placeholder.svg';
+                            }}
+                            onLoad={() => {
+                              console.log('Imagem carregada com sucesso');
+                            }}
                           />
                         </div>
                         <div className="flex items-center justify-between text-sm">
