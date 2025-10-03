@@ -784,6 +784,10 @@ export type Database = {
         Args: { "": string } | { "": unknown } | { "": unknown }
         Returns: unknown
       }
+      link_audit_to_time_entry: {
+        Args: { _audit_id: string; _time_entry_id: string }
+        Returns: Json
+      }
       promote_user_to_admin: {
         Args: { user_email: string }
         Returns: Json

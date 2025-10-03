@@ -140,12 +140,16 @@ const PortalHome = () => {
 
       const result = await createTimeEntry.mutateAsync(entry);
       
-      // If we have an audit ID, link it to the time entry
+      // If we have an audit ID, link it to the time entry using secure function
       if (auditId && result?.id) {
-        await supabase
-          .from('facial_recognition_audit')
-          .update({ time_entry_id: result.id })
-          .eq('id', auditId);
+        const { error: linkError } = await supabase.rpc('link_audit_to_time_entry', {
+          _audit_id: auditId,
+          _time_entry_id: result.id
+        });
+        
+        if (linkError) {
+          console.error('Error linking audit to time entry:', linkError);
+        }
       }
       
       refetchToday();
