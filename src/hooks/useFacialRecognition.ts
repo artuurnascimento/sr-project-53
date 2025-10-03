@@ -9,6 +9,7 @@ interface FacialRecognitionResult {
   confidence?: number;
   success: boolean;
   error?: string;
+  auditId?: string;
 }
 
 export const useFacialRecognition = () => {
@@ -86,11 +87,76 @@ export const useFacialRecognition = () => {
       }
 
       const match = data[0];
+      
+      // Upload captured image to storage and create audit record
+      let auditId: string | undefined;
+      try {
+        // Convert canvas to blob
+        const blob = await new Promise<Blob>((resolve) => {
+          if (imageElement instanceof HTMLCanvasElement) {
+            imageElement.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8);
+          } else {
+            // Convert image to canvas first
+            const canvas = document.createElement('canvas');
+            canvas.width = imageElement.naturalWidth || imageElement.width;
+            canvas.height = imageElement.naturalHeight || imageElement.height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(imageElement, 0, 0);
+            canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8);
+          }
+        });
+
+        // Upload to storage
+        const fileName = `${match.profile_id}_${Date.now()}.jpg`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('facial-audit')
+          .upload(fileName, blob, {
+            contentType: 'image/jpeg',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Error uploading audit image:', uploadError);
+        } else {
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('facial-audit')
+            .getPublicUrl(fileName);
+
+          // Create audit record
+          const { data: auditData, error: auditError } = await supabase
+            .from('facial_recognition_audit')
+            .insert({
+              profile_id: match.profile_id,
+              attempt_image_url: publicUrl,
+              recognition_result: {
+                success: true,
+                userName: match.full_name,
+                confidence: match.similarity_score
+              },
+              confidence_score: match.similarity_score,
+              status: 'approved',
+              liveness_passed: true
+            })
+            .select()
+            .single();
+
+          if (auditError) {
+            console.error('Error creating audit record:', auditError);
+          } else {
+            auditId = auditData.id;
+          }
+        }
+      } catch (uploadError) {
+        console.error('Error in audit process:', uploadError);
+      }
+
       return {
         success: true,
         userId: match.profile_id,
         userName: match.full_name,
-        confidence: match.similarity_score * 100
+        confidence: match.similarity_score * 100,
+        auditId
       };
 
     } catch (error) {

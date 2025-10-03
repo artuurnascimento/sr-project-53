@@ -103,7 +103,7 @@ const FacialRecognitionModal = ({
         
         // Wait a moment to show success, then call onSuccess
         setTimeout(() => {
-          onSuccess(result.userId!, result.userName!, result.confidence!);
+          onSuccess(result.userId!, result.userName!, result.confidence!, result.auditId);
           stopStream();
           onClose();
         }, 1500);
