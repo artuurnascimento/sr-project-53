@@ -105,8 +105,10 @@ const PortalHome = () => {
       return;
     }
 
-    // If user has facial reference, open modal for recognition
-    if (profile?.facial_reference_url) {
+    // If user has facial reference with valid URL, open modal for recognition
+    if (profile?.facial_reference_url && 
+        profile.facial_reference_url !== 'registered' && 
+        profile.facial_reference_url.startsWith('http')) {
       setPendingPunchType(type);
       setShowFacialModal(true);
     } else {
@@ -341,7 +343,9 @@ const PortalHome = () => {
         </div>
 
         {/* Facial Recognition Setup Banner */}
-        {!profile?.facial_reference_url && (
+        {(!profile?.facial_reference_url || 
+          profile.facial_reference_url === 'registered' || 
+          !profile.facial_reference_url.startsWith('http')) && (
           <Alert className="bg-blue-50 border-blue-200">
             <User className="h-4 w-4 text-blue-600" />
             <AlertDescription className="flex items-center justify-between">
