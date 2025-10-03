@@ -40,6 +40,11 @@ const FacialRecognitionModal = ({
       stopStream();
       resetState();
     }
+    
+    // Cleanup: sempre desligar câmera ao desmontar
+    return () => {
+      stopStream();
+    };
   }, [isOpen]);
 
   const resetState = () => {
@@ -102,10 +107,12 @@ const FacialRecognitionModal = ({
         setRecognitionState('success');
         toast.success(`Reconhecido: ${result.userName} (${(result.confidence! * 100).toFixed(1)}%)`);
         
+        // Desligar câmera imediatamente
+        stopStream();
+        
         // Wait a moment to show success, then call onSuccess
         setTimeout(() => {
           onSuccess(result.userId!, result.userName!, result.confidence!, result.auditId);
-          stopStream();
           onClose();
         }, 1500);
       } else {
@@ -204,7 +211,12 @@ const FacialRecognitionModal = ({
     }
   };
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        stopStream();
+        onClose();
+      }
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center">
