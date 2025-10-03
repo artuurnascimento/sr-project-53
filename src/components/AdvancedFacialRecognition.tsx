@@ -280,42 +280,11 @@ const AdvancedFacialRecognition = ({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Configuration Panel */}
-        <div className="flex justify-end mb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowConfig(!showConfig)}
-          >
-            Configurações
-          </Button>
-        </div>
-
-        {showConfig && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium mb-4">Configuração de Teste</h4>
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="manual-test"
-                  checked={manualTestMode}
-                  onChange={(e) => setManualTestMode(e.target.checked)}
-                  className="rounded"
-                />
-                <label htmlFor="manual-test" className="text-sm">
-                  Usar modo de teste manual
-                </label>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Camera and File Upload */}
+        {/* Camera Controls */}
         <div className="space-y-4">
           <div className="space-y-2">
             <h3 className="font-medium text-center">
-              {mode === 'register' ? 'Capture sua foto para cadastro' : 'Use a câmera ou selecione um arquivo'}
+              {mode === 'register' ? 'Capture sua foto para cadastro' : 'Use a câmera'}
             </h3>
             <div className="space-y-2">
               {!isStreamActive ? (
@@ -335,19 +304,6 @@ const AdvancedFacialRecognition = ({
                 </>
               )}
             </div>
-          </div>
-
-          <div className="relative">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelection}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <Button variant="outline" className="w-full">
-              <Upload className="h-4 w-4 mr-2" />
-              Selecionar Arquivo
-            </Button>
           </div>
         </div>
 
