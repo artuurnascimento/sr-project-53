@@ -47,51 +47,82 @@ const FacialAudit = () => {
   const loadAuditRecords = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('facial_recognition_audit')
-        .select(`
-          *,
-          profiles (
-            full_name,
-            email,
-            employee_id
-          )
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
 
-      // Generate signed URLs for private bucket images
-      const records = (data as any) || [];
-      const marker = '/facial-audit/';
-      const withSignedUrls = await Promise.all(records.map(async (r: any) => {
+      // 1) Load audits without joins (avoids relationship errors)
+      const { data: audits, error: auditError } = await supabase
+        .from('facial_recognition_audit')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (auditError) throw auditError;
+
+      const records = (audits as any[]) ?? [];
+
+      // 2) Build profile map
+      const profileIds = Array.from(new Set(records.map(r => r.profile_id).filter(Boolean)));
+      let profileMap: Record<string, { full_name: string; email: string }> = {};
+      if (profileIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', profileIds as string[]);
+        if (profilesError) {
+          console.warn('Could not load profiles for audits:', profilesError);
+        } else {
+          profileMap = (profilesData || []).reduce((acc: any, p: any) => {
+            acc[p.id] = { full_name: p.full_name, email: p.email };
+            return acc;
+          }, {});
+        }
+      }
+
+      // Helper to extract storage key for private bucket facial-audit
+      const toFacialAuditKey = (urlOrPath: string): string | null => {
+        if (!urlOrPath) return null;
         try {
-          if (r?.attempt_image_url) {
-            const idx = r.attempt_image_url.indexOf(marker);
-            if (idx !== -1) {
-              const key = r.attempt_image_url.substring(idx + marker.length);
-              const { data: signed } = await supabase
-                .storage
+          if (urlOrPath.startsWith('http')) {
+            const marker = '/facial-audit/';
+            const idx = urlOrPath.indexOf(marker);
+            if (idx !== -1) return urlOrPath.substring(idx + marker.length);
+            return null;
+          }
+          // Path may be "facial-audit/<key>" or just "<key>"
+          if (urlOrPath.startsWith('facial-audit/')) return urlOrPath.replace('facial-audit/', '');
+          return urlOrPath;
+        } catch {
+          return null;
+        }
+      };
+
+      // 3) Sign image URLs and attach profile info
+      const withSignedUrls = await Promise.all(
+        records.map(async (r) => {
+          const key = toFacialAuditKey(r.attempt_image_url);
+          if (key) {
+            try {
+              const { data: signed } = await supabase.storage
                 .from('facial-audit')
                 .createSignedUrl(key, 60 * 60);
               if (signed?.signedUrl) {
                 r.attempt_image_url = signed.signedUrl;
               }
+            } catch (e) {
+              console.warn('Could not sign image URL for audit', r.id, e);
             }
           }
-        } catch {}
-        return r;
-      }));
+          r.profiles = r.profile_id ? profileMap[r.profile_id] ?? null : null;
+          return r;
+        })
+      );
 
       setAuditRecords(withSignedUrls);
-    } catch (error) {
-      console.error('Error loading audit records:', error);
+    } catch (error: any) {
+      console.error('Error loading audit records:', error?.message || error);
       toast.error('Erro ao carregar registros de auditoria');
     } finally {
       setLoading(false);
     }
   };
-
   const filterRecords = () => {
     let filtered = auditRecords;
 
