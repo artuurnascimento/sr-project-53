@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BarChart3, Download, Calendar, Users, Clock, TrendingUp, Filter } from 'lucide-react';
+import { BarChart3, Download, Calendar, Users, Clock, TrendingUp, Filter, MapPin, Camera, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useReportData } from '@/hooks/useReports';
-import { useTimeEntries } from '@/hooks/useTimeTracking';
+import { useTimeEntries, type TimeEntry } from '@/hooks/useTimeTracking';
 import { useProfiles } from '@/hooks/useProfiles';
 
 const Reports = () => {
@@ -24,6 +25,8 @@ const Reports = () => {
     return date.toISOString().split('T')[0];
   });
   const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const { data: reportData, isLoading } = useReportData(startDate, endDate);
   const { data: timeEntries } = useTimeEntries();
@@ -225,26 +228,50 @@ const Reports = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {timeEntries?.slice(0, 10).map((entry) => (
-                      <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg border">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <div 
+                        key={entry.id} 
+                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/5 cursor-pointer transition-colors"
+                        onClick={() => {
+                          setSelectedEntry(entry);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                             <Clock className="h-4 w-4 text-primary" />
                           </div>
-                          <div>
-                            <div className="font-medium">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">
                               {entry.profiles?.full_name || 'Usuário'}
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground truncate">
                               {entry.punch_type === 'IN' ? 'Entrada' :
                                entry.punch_type === 'OUT' ? 'Saída' :
                                entry.punch_type === 'BREAK_IN' ? 'Início Intervalo' : 'Fim Intervalo'} - {' '}
                               {new Date(entry.punch_time).toLocaleString('pt-BR')}
                             </div>
+                            <div className="flex gap-2 mt-1">
+                              {entry.facial_recognition_audit && entry.facial_recognition_audit.length > 0 && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Camera className="h-3 w-3" />
+                                  <span>Foto</span>
+                                </div>
+                              )}
+                              {entry.location_address && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <MapPin className="h-3 w-3" />
+                                  <span>Local</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <Badge variant={entry.status === 'approved' ? 'default' : 'secondary'}>
-                          {entry.status === 'approved' ? 'Aprovado' : 'Pendente'}
-                        </Badge>
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                          <Badge variant={entry.status === 'approved' ? 'default' : 'secondary'}>
+                            {entry.status === 'approved' ? 'Aprovado' : 'Pendente'}
+                          </Badge>
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        </div>
                       </div>
                     )) || (
                       <p className="text-muted-foreground text-center py-4">
@@ -370,6 +397,110 @@ const Reports = () => {
               </Card>
             </TabsContent>
           </Tabs>
+
+          {/* Details Dialog */}
+          <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Detalhes do Registro</DialogTitle>
+              </DialogHeader>
+              {selectedEntry && (
+                <div className="space-y-6">
+                  {/* Employee Info */}
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">{selectedEntry.profiles?.full_name || 'Usuário'}</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Tipo:</span>
+                        <p className="font-medium">
+                          {selectedEntry.punch_type === 'IN' ? 'Entrada' :
+                           selectedEntry.punch_type === 'OUT' ? 'Saída' :
+                           selectedEntry.punch_type === 'BREAK_IN' ? 'Início Intervalo' : 'Fim Intervalo'}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Horário:</span>
+                        <p className="font-medium">
+                          {new Date(selectedEntry.punch_time).toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Status:</span>
+                        <p className="font-medium">
+                          <Badge variant={selectedEntry.status === 'approved' ? 'default' : 'secondary'}>
+                            {selectedEntry.status === 'approved' ? 'Aprovado' : 'Pendente'}
+                          </Badge>
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Departamento:</span>
+                        <p className="font-medium">{selectedEntry.profiles?.department || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Facial Recognition */}
+                  {selectedEntry.facial_recognition_audit && selectedEntry.facial_recognition_audit.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-5 w-5 text-primary" />
+                        <h4 className="font-semibold">Reconhecimento Facial</h4>
+                      </div>
+                      <div className="border rounded-lg p-4 space-y-3">
+                        <div className="relative w-full aspect-video bg-muted rounded-lg overflow-hidden">
+                          <img 
+                            src={selectedEntry.facial_recognition_audit[0].attempt_image_url}
+                            alt="Foto de reconhecimento facial"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Confiança:</span>
+                          <Badge variant={
+                            selectedEntry.facial_recognition_audit[0].confidence_score >= 0.9 ? 'default' :
+                            selectedEntry.facial_recognition_audit[0].confidence_score >= 0.7 ? 'secondary' : 'destructive'
+                          }>
+                            {(selectedEntry.facial_recognition_audit[0].confidence_score * 100).toFixed(1)}%
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Location */}
+                  {selectedEntry.location_address && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5 text-primary" />
+                        <h4 className="font-semibold">Localização</h4>
+                      </div>
+                      <div className="border rounded-lg p-4 space-y-3">
+                        <div className="text-sm">
+                          <p className="font-medium">{selectedEntry.location_address}</p>
+                          {selectedEntry.location_lat && selectedEntry.location_lng && (
+                            <p className="text-muted-foreground mt-2">
+                              Coordenadas: {selectedEntry.location_lat.toFixed(6)}, {selectedEntry.location_lng.toFixed(6)}
+                            </p>
+                          )}
+                        </div>
+                        {selectedEntry.location_lat && selectedEntry.location_lng && (
+                          <a
+                            href={`https://www.google.com/maps?q=${selectedEntry.location_lat},${selectedEntry.location_lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                          >
+                            <MapPin className="h-4 w-4" />
+                            Ver no Google Maps
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
     </AdminLayout>
   );
