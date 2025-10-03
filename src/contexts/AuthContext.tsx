@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface Profile {
   id: string;
@@ -108,26 +108,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
       
       if (error) {
-        toast({
-          title: "Erro ao fazer login",
-          description: error.message,
-          variant: "destructive",
-        });
+        toast.error('Erro ao fazer login: ' + error.message);
         return { error };
       } else {
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Redirecionando para seu painel...",
-        });
+        toast.success('Login realizado com sucesso!');
       }
       
       return { error };
     } catch (error: any) {
-      toast({
-        title: "Erro ao fazer login",
-        description: "Ocorreu um erro inesperado",
-        variant: "destructive",
-      });
+      toast.error('Erro ao fazer login: Ocorreu um erro inesperado');
       return { error };
     }
   };
@@ -138,15 +127,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(null);
       setSession(null);
       setProfile(null);
-      toast({
-        title: "Logout realizado com sucesso",
-      });
+      toast.success('Logout realizado com sucesso');
     } catch (error: any) {
-      toast({
-        title: "Erro ao fazer logout",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error('Erro ao fazer logout: ' + error.message);
     }
   };
 
@@ -164,17 +147,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (error) throw error;
       
       setProfile(data as Profile);
-      toast({
-        title: "Perfil atualizado com sucesso!",
-      });
+      toast.success('Perfil atualizado com sucesso!');
       
       return { error: null };
     } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar perfil",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error('Erro ao atualizar perfil: ' + error.message);
       return { error };
     }
   };
