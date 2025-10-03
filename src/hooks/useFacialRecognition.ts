@@ -66,7 +66,7 @@ export const useFacialRecognition = () => {
       const descriptor = Array.from(detections.descriptor);
 
       const { data, error } = await supabase.rpc('find_user_by_face_embedding', {
-        face_embedding: descriptor,
+        face_embedding: JSON.stringify(descriptor),
         similarity_threshold: 0.6
       });
 
@@ -168,7 +168,7 @@ export const useFacialRecognition = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
-          face_embedding: descriptor,
+          face_embedding: JSON.stringify(descriptor),
           facial_reference_url: 'registered'
         })
         .eq('id', userId);

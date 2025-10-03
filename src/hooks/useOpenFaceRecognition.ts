@@ -137,9 +137,12 @@ export const useOpenFaceRecognition = () => {
       } else {
         toast.error(result.error || 'Erro ao registrar face');
       }
+      
+      return result;
     } catch (error) {
       console.error('Face registration error:', error);
       toast.error('Erro no registro facial');
+      return { success: false, error: 'Erro no registro facial' };
     } finally {
       setIsProcessing(false);
     }
@@ -163,9 +166,12 @@ export const useOpenFaceRecognition = () => {
       } else {
         toast.error(result.error || 'Face não reconhecida');
       }
+      
+      return result;
     } catch (error) {
       console.error('Face recognition error:', error);
       toast.error('Erro no reconhecimento facial');
+      return { success: false, error: 'Erro no reconhecimento facial' };
     } finally {
       setIsProcessing(false);
     }
@@ -185,9 +191,12 @@ export const useOpenFaceRecognition = () => {
       } else {
         toast.error(result.error || 'Face não reconhecida');
       }
+      
+      return result;
     } catch (error) {
       console.error('Canvas recognition error:', error);
       toast.error('Erro no reconhecimento facial');
+      return { success: false, error: 'Erro no reconhecimento facial' };
     } finally {
       setIsProcessing(false);
     }
