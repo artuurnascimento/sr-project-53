@@ -20,7 +20,8 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
   const navItems = [
     { path: '/portal', icon: Home, label: 'Início' },
     { path: '/portal/historico', icon: History, label: 'Histórico' },
-    { path: '/portal/justificativas', icon: FileText, label: 'Justificativas' }
+    { path: '/portal/justificativas', icon: FileText, label: 'Justificativas' },
+    { path: '/portal/perfil', icon: User, label: 'Meu Perfil' }
   ];
 
   const isActive = (path: string) => {
