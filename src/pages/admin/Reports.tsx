@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { BarChart3, Download, Calendar, Users, Clock, TrendingUp, Filter, MapPin, Camera, Eye } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -51,19 +54,93 @@ const Reports = () => {
           new Date(entry.punch_time).toLocaleTimeString('pt-BR'),
           entry.profiles?.full_name || 'N/A',
           entry.profiles?.department || 'N/A',
-          entry.punch_type,
-          entry.status,
+          entry.punch_type === 'IN' ? 'Entrada' : entry.punch_type === 'OUT' ? 'Saída' : entry.punch_type === 'BREAK_IN' ? 'Início Intervalo' : 'Fim Intervalo',
+          entry.status === 'approved' ? 'Aprovado' : 'Pendente',
           entry.location_address || 'N/A'
         ].join(','))
       ].join('\n');
 
-      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `relatorio-ponto-${startDate}-${endDate}.csv`;
       a.click();
       URL.revokeObjectURL(url);
+    } else if (format === 'excel') {
+      const data = filteredEntries.map(entry => ({
+        'Data': new Date(entry.punch_time).toLocaleDateString('pt-BR'),
+        'Hora': new Date(entry.punch_time).toLocaleTimeString('pt-BR'),
+        'Colaborador': entry.profiles?.full_name || 'N/A',
+        'Departamento': entry.profiles?.department || 'N/A',
+        'Tipo': entry.punch_type === 'IN' ? 'Entrada' : entry.punch_type === 'OUT' ? 'Saída' : entry.punch_type === 'BREAK_IN' ? 'Início Intervalo' : 'Fim Intervalo',
+        'Status': entry.status === 'approved' ? 'Aprovado' : 'Pendente',
+        'Localização': entry.location_address || 'N/A'
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Relatório de Ponto');
+      
+      // Auto-size columns
+      const maxWidth = data.reduce((w, r) => Math.max(w, r.Colaborador?.length || 0), 10);
+      ws['!cols'] = [
+        { wch: 12 }, // Data
+        { wch: 10 }, // Hora
+        { wch: maxWidth + 2 }, // Colaborador
+        { wch: 15 }, // Departamento
+        { wch: 15 }, // Tipo
+        { wch: 10 }, // Status
+        { wch: 30 }  // Localização
+      ];
+      
+      XLSX.writeFile(wb, `relatorio-ponto-${startDate}-${endDate}.xlsx`);
+    } else if (format === 'pdf') {
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFontSize(16);
+      doc.text('Relatório de Ponto', 14, 15);
+      
+      // Período
+      doc.setFontSize(10);
+      doc.text(`Período: ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`, 14, 22);
+      
+      if (selectedDepartment !== 'all') {
+        doc.text(`Departamento: ${selectedDepartment}`, 14, 27);
+      }
+      
+      // Estatísticas
+      doc.text(`Total de Registros: ${filteredEntries.length}`, 14, selectedDepartment !== 'all' ? 32 : 27);
+      
+      // Tabela
+      const tableData = filteredEntries.map(entry => [
+        new Date(entry.punch_time).toLocaleDateString('pt-BR'),
+        new Date(entry.punch_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        entry.profiles?.full_name || 'N/A',
+        entry.profiles?.department || 'N/A',
+        entry.punch_type === 'IN' ? 'Entrada' : entry.punch_type === 'OUT' ? 'Saída' : entry.punch_type === 'BREAK_IN' ? 'Início Int.' : 'Fim Int.',
+        entry.status === 'approved' ? 'Aprovado' : 'Pendente'
+      ]);
+
+      autoTable(doc, {
+        head: [['Data', 'Hora', 'Colaborador', 'Depto', 'Tipo', 'Status']],
+        body: tableData,
+        startY: selectedDepartment !== 'all' ? 37 : 32,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+        columnStyles: {
+          0: { cellWidth: 22 },
+          1: { cellWidth: 18 },
+          2: { cellWidth: 45 },
+          3: { cellWidth: 30 },
+          4: { cellWidth: 25 },
+          5: { cellWidth: 22 }
+        }
+      });
+      
+      doc.save(`relatorio-ponto-${startDate}-${endDate}.pdf`);
     }
   };
 
