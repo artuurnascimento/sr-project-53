@@ -307,6 +307,13 @@ const PortalHome = () => {
                      onRecognitionSuccess={async (userId, userName, confidence, auditId) => {
                         if (userId === profile.id && !isPunchingIn && !createTimeEntry.isPending) {
                           const expectedType = getNextExpectedPunch();
+                          const punchNames = {
+                            'IN': 'Entrada',
+                            'OUT': 'Saída',
+                            'BREAK_IN': 'Início do Intervalo',
+                            'BREAK_OUT': 'Fim do Intervalo'
+                          };
+                          toast.info(`Reconhecimento facial confirmado! Registrando ${punchNames[expectedType]}...`);
                           await handlePunch(expectedType as 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT');
                         } else if (userId !== profile.id) {
                           toast.error('Face não reconhecida para este usuário');
