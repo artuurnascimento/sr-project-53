@@ -105,7 +105,7 @@ const FacialRecognitionModal = ({
         }
 
         setRecognitionState('success');
-        toast.success(`Reconhecido: ${result.userName} (${(result.confidence! * 100).toFixed(1)}%)`);
+        toast.success(`Reconhecido: ${result.userName} (${(result.confidence!).toFixed(1)}%)`);
         
         // Desligar câmera imediatamente
         stopStream();

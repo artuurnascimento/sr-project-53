@@ -155,25 +155,30 @@ export const useFacialRecognition = () => {
         const { error: uploadError } = await supabase.storage
           .from('facial-audit')
           .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false });
-        if (!uploadError) {
-          const storageKey = fileName;
-          const { data: auditData, error: auditError } = await supabase
-            .from('facial_recognition_audit')
-            .insert({
-              profile_id: match.profile_id,
-              attempt_image_url: storageKey,
-              recognition_result: {
-                success: true,
-                userName: match.full_name,
-                confidence: match.similarity_score,
-              },
-              confidence_score: match.similarity_score,
-              status: 'approved',
-              liveness_passed: true,
-            })
-            .select()
-            .single();
-          if (!auditError) auditId = auditData?.id;
+        if (uploadError) {
+          console.warn('Upload for audit evidence failed, proceeding to insert audit anyway:', uploadError);
+        }
+        const storageKey = fileName;
+        const { data: auditData, error: auditError } = await supabase
+          .from('facial_recognition_audit')
+          .insert({
+            profile_id: match.profile_id,
+            attempt_image_url: storageKey, // always store storage key
+            recognition_result: {
+              success: true,
+              userName: match.full_name,
+              confidence: match.similarity_score,
+            },
+            confidence_score: match.similarity_score,
+            status: 'approved',
+            liveness_passed: true,
+          })
+          .select()
+          .single();
+        if (auditError) {
+          console.error('Audit insert error:', auditError);
+        } else {
+          auditId = auditData?.id;
         }
       } catch (uploadError) {
         console.error('Error in audit process:', uploadError);
