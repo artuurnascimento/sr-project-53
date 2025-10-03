@@ -1,12 +1,15 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Home, CheckCircle, FileText, UserPlus, Settings, Search, LogOut, Menu, Bell, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import logoSirius from '@/assets/logo-sirius-oficial.png';
 
 interface AdminLayoutProps {
@@ -15,7 +18,86 @@ interface AdminLayoutProps {
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingJustifications, setPendingJustifications] = useState<any[]>([]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  // Load pending justifications count
+  useEffect(() => {
+    const loadPendingCount = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('justifications')
+          .select(`
+            *,
+            profiles:employee_id (
+              full_name,
+              email
+            )
+          `)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (error) throw error;
+        
+        setPendingJustifications(data || []);
+        setPendingCount(data?.length || 0);
+      } catch (error) {
+        console.error('Error loading pending count:', error);
+      }
+    };
+
+    loadPendingCount();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('justifications-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'justifications',
+          filter: 'status=eq.pending'
+        },
+        () => {
+          loadPendingCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const formatTimeAgo = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'agora';
+    if (diffMins < 60) return `${diffMins}m atrás`;
+    if (diffHours < 24) return `${diffHours}h atrás`;
+    return `${diffDays}d atrás`;
+  };
+
+  const getTypeLabel = (type: string) => {
+    const labels = {
+      'absence': 'Falta',
+      'overtime': 'Hora Extra',
+      'vacation': 'Férias',
+      'expense': 'Despesa',
+      'other': 'Outro'
+    };
+    return labels[type as keyof typeof labels] || type;
+  };
 
   const navItems = [
     { path: '/admin/dashboard', icon: Home, label: 'Dashboard' },
@@ -101,10 +183,76 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         </div>
         
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="relative">
-            <Bell className="h-5 w-5" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">3</Badge>
-          </Button>
+          <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="h-5 w-5" />
+                {pendingCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-orange-500 hover:bg-orange-600">
+                    {pendingCount}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0" align="end">
+              <div className="p-4 border-b">
+                <h3 className="font-semibold text-sm">Notificações</h3>
+                <p className="text-xs text-muted-foreground">
+                  {pendingCount} aprovação(ões) pendente(s)
+                </p>
+              </div>
+              <ScrollArea className="h-80">
+                {pendingJustifications.length > 0 ? (
+                  <div className="p-2">
+                    {pendingJustifications.map((justification) => (
+                      <button
+                        key={justification.id}
+                        onClick={() => {
+                          navigate('/admin/aprovacoes');
+                          setIsNotificationsOpen(false);
+                        }}
+                        className="w-full p-3 rounded-lg hover:bg-slate-50 transition-colors text-left mb-1"
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {justification.profiles?.full_name || 'Usuário'}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {getTypeLabel(justification.request_type)} - {justification.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {formatTimeAgo(justification.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    Nenhuma notificação pendente
+                  </div>
+                )}
+              </ScrollArea>
+              {pendingCount > 0 && (
+                <div className="p-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      navigate('/admin/aprovacoes');
+                      setIsNotificationsOpen(false);
+                    }}
+                  >
+                    Ver todas as aprovações
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -212,6 +360,80 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
         {/* Main Content */}
         <main className="flex-1 p-6 lg:p-8">
+          {/* Desktop Header with Notifications */}
+          <div className="hidden lg:flex items-center justify-end mb-6 gap-3">
+            <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {pendingCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-orange-500 hover:bg-orange-600">
+                      {pendingCount}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold text-sm">Notificações</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {pendingCount} aprovação(ões) pendente(s)
+                  </p>
+                </div>
+                <ScrollArea className="h-80">
+                  {pendingJustifications.length > 0 ? (
+                    <div className="p-2">
+                      {pendingJustifications.map((justification) => (
+                        <button
+                          key={justification.id}
+                          onClick={() => {
+                            navigate('/admin/aprovacoes');
+                            setIsNotificationsOpen(false);
+                          }}
+                          className="w-full p-3 rounded-lg hover:bg-slate-50 transition-colors text-left mb-1"
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {justification.profiles?.full_name || 'Usuário'}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {getTypeLabel(justification.request_type)} - {justification.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatTimeAgo(justification.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center text-sm text-muted-foreground">
+                      Nenhuma notificação pendente
+                    </div>
+                  )}
+                </ScrollArea>
+                {pendingCount > 0 && (
+                  <div className="p-2 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        navigate('/admin/aprovacoes');
+                        setIsNotificationsOpen(false);
+                      }}
+                    >
+                      Ver todas as aprovações
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+
           <div className="max-w-7xl mx-auto">
             {children}
           </div>
