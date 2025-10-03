@@ -130,15 +130,20 @@ const FacialAudit = () => {
         records.map(async (r) => {
           const key = toFacialAuditKey(r.attempt_image_url);
           if (key) {
-            try {
-              const { data: signed } = await supabase.storage
-                .from('facial-audit')
-                .createSignedUrl(key, 60 * 60);
-              if (signed?.signedUrl) {
-                r.attempt_image_url = signed.signedUrl;
+            // Skip signing for placeholders or backfill markers (no actual file in storage)
+            if (key.startsWith('backfill/') || key.startsWith('placeholder://')) {
+              console.info('FacialAudit: placeholder/backfill key, skipping sign for', r.id);
+            } else {
+              try {
+                const { data: signed } = await supabase.storage
+                  .from('facial-audit')
+                  .createSignedUrl(key, 60 * 60);
+                if (signed?.signedUrl) {
+                  r.attempt_image_url = signed.signedUrl;
+                }
+              } catch (e) {
+                console.warn('Could not sign image URL for audit', r.id, e);
               }
-            } catch (e) {
-              console.warn('Could not sign image URL for audit', r.id, e);
             }
           }
           r.profiles = r.profile_id ? profileMap[r.profile_id] ?? null : null;
