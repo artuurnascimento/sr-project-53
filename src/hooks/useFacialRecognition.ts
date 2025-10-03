@@ -106,47 +106,45 @@ export const useFacialRecognition = () => {
           }
         });
 
-        // Upload to storage
-        const fileName = `${match.profile_id}_${Date.now()}.jpg`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('facial-audit')
-          .upload(fileName, blob, {
-            contentType: 'image/jpeg',
-            upsert: false
-          });
+      // Upload to storage
+      const fileName = `${match.profile_id}_${Date.now()}.jpg`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('facial-audit')
+        .upload(fileName, blob, {
+          contentType: 'image/jpeg',
+          upsert: false
+        });
 
-        if (uploadError) {
-          console.error('Error uploading audit image:', uploadError);
+      if (uploadError) {
+        console.error('Error uploading audit image:', uploadError);
+      } else {
+        // Store only the storage key; UI will sign it when displaying
+        const storageKey = fileName;
+
+        // Create audit record
+        const { data: auditData, error: auditError } = await supabase
+          .from('facial_recognition_audit')
+          .insert({
+            profile_id: match.profile_id,
+            attempt_image_url: storageKey,
+            recognition_result: {
+              success: true,
+              userName: match.full_name,
+              confidence: match.similarity_score
+            },
+            confidence_score: match.similarity_score,
+            status: 'approved',
+            liveness_passed: true
+          })
+          .select()
+          .single();
+
+        if (auditError) {
+          console.error('Error creating audit record:', auditError);
         } else {
-          // Get public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('facial-audit')
-            .getPublicUrl(fileName);
-
-          // Create audit record
-          const { data: auditData, error: auditError } = await supabase
-            .from('facial_recognition_audit')
-            .insert({
-              profile_id: match.profile_id,
-              attempt_image_url: publicUrl,
-              recognition_result: {
-                success: true,
-                userName: match.full_name,
-                confidence: match.similarity_score
-              },
-              confidence_score: match.similarity_score,
-              status: 'approved',
-              liveness_passed: true
-            })
-            .select()
-            .single();
-
-          if (auditError) {
-            console.error('Error creating audit record:', auditError);
-          } else {
-            auditId = auditData.id;
-          }
+          auditId = auditData.id;
         }
+      }
       } catch (uploadError) {
         console.error('Error in audit process:', uploadError);
       }
