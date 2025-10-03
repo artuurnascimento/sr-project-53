@@ -105,14 +105,8 @@ const PortalHome = () => {
       return;
     }
 
-    // Se o usuário tem referência facial cadastrada, abre o modal de reconhecimento
-    if (profile?.facial_reference_url) {
-      setPendingPunchType(type);
-      setShowFacialModal(true);
-    } else {
-      // Direct punch without facial recognition
-      handlePunch(type);
-    }
+    setPendingPunchType(type);
+    setShowFacialModal(true);
   };
 
   const handleFacialSuccess = async (userId: string, userName: string, confidence: number, auditId?: string) => {

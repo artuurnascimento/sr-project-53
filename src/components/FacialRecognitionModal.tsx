@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useFacialRecognition } from '@/hooks/useFacialRecognition';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FacialRecognitionModalProps {
   isOpen: boolean;
@@ -33,13 +34,13 @@ const FacialRecognitionModal = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (isOpen && modelsLoaded) {
+    if (isOpen) {
       startCamera();
-    } else if (!isOpen) {
+    } else {
       stopStream();
       resetState();
     }
-  }, [isOpen, modelsLoaded]);
+  }, [isOpen]);
 
   const resetState = () => {
     setRecognitionState('idle');
@@ -123,12 +124,58 @@ const FacialRecognitionModal = ({
     resetState();
   };
 
-  const handleManualPunch = () => {
-    stopStream();
-    onClose();
-    toast.info('Use os botões de registro manual');
-  };
+  const handleManualPunch = async () => {
+    try {
+      let auditId: string | undefined;
+      const canvas = capturePhoto();
+      const userId = expectedUserId;
 
+      if (canvas) {
+        const blob: Blob = await new Promise((resolve) =>
+          canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.8)
+        );
+        const fileName = `${userId || 'unknown'}_${Date.now()}.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('facial-audit')
+          .upload(fileName, blob, {
+            contentType: 'image/jpeg',
+            upsert: false,
+          });
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('facial-audit')
+            .getPublicUrl(fileName);
+
+          const { data: auditData, error: auditError } = await supabase
+            .from('facial_recognition_audit')
+            .insert({
+              profile_id: userId,
+              attempt_image_url: publicUrl,
+              recognition_result: { success: false, reason: 'manual_punch' },
+              status: 'pending',
+              liveness_passed: false,
+            })
+            .select()
+            .single();
+
+          if (!auditError) {
+            auditId = auditData.id;
+          }
+        }
+      }
+
+      // Retorna para que possamos vincular ao registro de ponto
+      onSuccess(userId || '', 'Registro manual', 0, auditId);
+    } catch (e) {
+      console.error('Erro no registro manual com foto:', e);
+      toast.error('Não foi possível capturar a foto para auditoria');
+    } finally {
+      stopStream();
+      onClose();
+    }
+  };
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
