@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { data: reportData, isLoading: reportLoading } = useReportData();
-  const { data: recentEntries } = useTimeEntries();
+  const { data: recentEntries, refetch: refetchEntries } = useTimeEntries();
   const { data: pendingJustifications, refetch: refetchJustifications } = useJustifications();
   const { data: profiles } = useProfiles();
   const updateJustification = useUpdateJustification();
@@ -23,10 +23,15 @@ const Dashboard = () => {
     try {
       await updateJustification.mutateAsync({
         id,
-        updates: { status: 'approved' }
+        updates: { 
+          status: 'approved',
+          approved_by: profiles?.find(p => p.role === 'admin')?.id,
+          approved_at: new Date().toISOString()
+        }
       });
       toast.success('Justificativa aprovada com sucesso!');
-      refetchJustifications();
+      await refetchJustifications();
+      await refetchEntries();
     } catch (error) {
       toast.error('Erro ao aprovar justificativa');
     }
@@ -36,10 +41,14 @@ const Dashboard = () => {
     try {
       await updateJustification.mutateAsync({
         id,
-        updates: { status: 'rejected' }
+        updates: { 
+          status: 'rejected',
+          approved_by: profiles?.find(p => p.role === 'admin')?.id,
+          rejection_reason: 'Rejeitado pelo administrador'
+        }
       });
       toast.success('Justificativa rejeitada');
-      refetchJustifications();
+      await refetchJustifications();
     } catch (error) {
       toast.error('Erro ao rejeitar justificativa');
     }
@@ -233,17 +242,38 @@ const Dashboard = () => {
               <CardContent>
                 <div className="space-y-4">
                   {recentEntries?.slice(0, 5).map((entry) => (
-                    <div key={entry.id} className="flex items-center justify-between p-4 rounded-xl bg-slate-50/50 border border-slate-200/50 hover:bg-slate-100/50 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          entry.punch_type === 'IN' ? 'bg-green-500' :
-                          entry.punch_type === 'OUT' ? 'bg-red-500' :
-                          entry.punch_type === 'BREAK_IN' ? 'bg-orange-500' : 'bg-blue-500'
-                        }`}></div>
+                    <div key={entry.id} className="flex items-start justify-between p-4 rounded-xl bg-slate-50/50 border border-slate-200/50 hover:bg-slate-100/50 transition-colors">
+                      <div className="flex items-start gap-3">
+                        {/* Foto do reconhecimento facial ou avatar */}
+                        {entry.facial_recognition_audit?.[0]?.attempt_image_url ? (
+                          <img 
+                            src={entry.facial_recognition_audit[0].attempt_image_url}
+                            alt="Foto do registro"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
+                          />
+                        ) : entry.profiles?.avatar_url ? (
+                          <img 
+                            src={entry.profiles.avatar_url}
+                            alt="Avatar"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                            <Users className="h-6 w-6 text-slate-400" />
+                          </div>
+                        )}
+                        
                         <div className="flex flex-col">
-                          <span className="font-semibold text-slate-900">
-                            {entry.profiles?.full_name || 'Usuário'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${
+                              entry.punch_type === 'IN' ? 'bg-green-500' :
+                              entry.punch_type === 'OUT' ? 'bg-red-500' :
+                              entry.punch_type === 'BREAK_IN' ? 'bg-orange-500' : 'bg-blue-500'
+                            }`}></div>
+                            <span className="font-semibold text-slate-900">
+                              {entry.profiles?.full_name || 'Usuário'}
+                            </span>
+                          </div>
                           <span className="text-sm text-slate-500">
                             {getEventTypeLabel(entry.punch_type)} - {' '}
                             {new Date(entry.punch_time).toLocaleTimeString('pt-BR', {
@@ -251,6 +281,11 @@ const Dashboard = () => {
                               minute: '2-digit'
                             })}
                           </span>
+                          {entry.facial_recognition_audit?.[0]?.confidence_score && (
+                            <span className="text-xs text-slate-400 mt-1">
+                              Confiança: {(entry.facial_recognition_audit[0].confidence_score * 100).toFixed(1)}%
+                            </span>
+                          )}
                           {entry.location_address && (
                             <div className="flex items-center gap-1 mt-1">
                               <MapPin className="h-3 w-3 text-slate-400" />
@@ -291,7 +326,7 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {pendingJustifications?.slice(0, 5).map((justification) => (
+                  {pendingJustifications?.filter(j => j.status === 'pending').slice(0, 5).map((justification) => (
                     <div key={justification.id} className="p-4 rounded-xl bg-slate-50/50 border border-slate-200/50 hover:bg-slate-100/50 transition-colors">
                       <div className="flex items-start justify-between mb-2">
                         <div>

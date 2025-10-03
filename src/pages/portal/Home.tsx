@@ -9,6 +9,7 @@ import AdvancedFacialRecognition from '@/components/AdvancedFacialRecognition';
 import LocationMap from '@/components/LocationMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateTimeEntry, useTodayTimeEntries, useWorkingHours } from '@/hooks/useTimeTracking';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const PortalHome = () => {
@@ -97,7 +98,7 @@ const PortalHome = () => {
     getLocation();
   }, []);
 
-  const handlePunch = async (type: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT') => {
+  const handlePunch = async (type: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT', auditId?: string) => {
     if (!profile || !location || isPunchingIn || createTimeEntry.isPending) return;
 
     setIsPunchingIn(true);
@@ -112,7 +113,16 @@ const PortalHome = () => {
         location_address: location.address || 'Localização registrada',
       };
 
-      await createTimeEntry.mutateAsync(entry);
+      const result = await createTimeEntry.mutateAsync(entry);
+      
+      // If we have an audit ID, link it to the time entry
+      if (auditId && result?.id) {
+        await supabase
+          .from('facial_recognition_audit')
+          .update({ time_entry_id: result.id })
+          .eq('id', auditId);
+      }
+      
       refetchToday();
       
       const punchNames = {
@@ -315,7 +325,7 @@ const PortalHome = () => {
                      onRecognitionSuccess={async (userId, userName, confidence, auditId) => {
                         if (userId === profile.id) {
                           setIsFaciallyRecognized(true);
-                          toast.success(`Reconhecimento facial confirmado! Agora você pode registrar seu ponto.`);
+                          toast.success(`Reconhecimento facial confirmado (${(confidence * 100).toFixed(1)}%)! Agora você pode registrar seu ponto.`);
                         } else {
                           toast.error('Face não reconhecida para este usuário');
                         }

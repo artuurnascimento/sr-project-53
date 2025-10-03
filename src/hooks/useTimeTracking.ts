@@ -15,16 +15,58 @@ export interface TimeEntry {
   profiles?: {
     full_name: string;
     department?: string;
+    avatar_url?: string;
   };
+  facial_recognition_audit?: {
+    attempt_image_url: string;
+    confidence_score: number;
+  }[];
 }
 
 export const useTimeEntries = (employeeId?: string, date?: string) => {
   return useQuery({
     queryKey: ['time_entries', employeeId, date],
-    enabled: false, // Disabled until time_entries table is properly configured
     queryFn: async () => {
-      // Mock data for now
-      return [] as TimeEntry[];
+      let query = supabase
+        .from('time_entries')
+        .select(`
+          *,
+          profiles:employee_id(full_name, department, avatar_url)
+        `)
+        .order('punch_time', { ascending: false });
+
+      if (employeeId) {
+        query = query.eq('employee_id', employeeId);
+      }
+
+      if (date) {
+        const startOfDay = `${date}T00:00:00`;
+        const endOfDay = `${date}T23:59:59`;
+        query = query.gte('punch_time', startOfDay).lte('punch_time', endOfDay);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      
+      // Get facial recognition data separately for each entry
+      const entriesWithFacialData = await Promise.all(
+        (data || []).map(async (entry) => {
+          const { data: facialData } = await supabase
+            .from('facial_recognition_audit')
+            .select('attempt_image_url, confidence_score')
+            .eq('time_entry_id', entry.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          return {
+            ...entry,
+            facial_recognition_audit: facialData || []
+          };
+        })
+      );
+      
+      return entriesWithFacialData as TimeEntry[];
     },
   });
 };
@@ -33,9 +75,23 @@ export const useCreateTimeEntry = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (entry: Omit<TimeEntry, 'id' | 'created_at' | 'status' | 'profiles'>) => {
-      // Mock implementation for now
-      return { id: 'mock', ...entry, status: 'approved', created_at: new Date().toISOString() };
+    mutationFn: async (entry: Omit<TimeEntry, 'id' | 'created_at' | 'status' | 'profiles' | 'facial_recognition_audit'>) => {
+      const { data, error } = await supabase
+        .from('time_entries')
+        .insert([{
+          employee_id: entry.employee_id,
+          punch_type: entry.punch_type,
+          punch_time: entry.punch_time,
+          location_lat: entry.location_lat,
+          location_lng: entry.location_lng,
+          location_address: entry.location_address,
+          status: 'approved'
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['time_entries'] });
@@ -61,13 +117,47 @@ export const useTodayTimeEntries = (employeeId?: string) => {
 export const useWorkingHours = (employeeId?: string, date?: string) => {
   return useQuery({
     queryKey: ['working_hours', employeeId, date],
-    enabled: false, // Disabled until time_entries table is properly configured
     queryFn: async () => {
-      // Mock implementation
+      if (!employeeId || !date) {
+        return { totalHours: '0h 0m', totalMinutes: 0, entries: [] };
+      }
+
+      const startOfDay = `${date}T00:00:00`;
+      const endOfDay = `${date}T23:59:59`;
+
+      const { data: entries, error } = await supabase
+        .from('time_entries')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .gte('punch_time', startOfDay)
+        .lte('punch_time', endOfDay)
+        .order('punch_time', { ascending: true });
+
+      if (error) throw error;
+
+      // Calculate working hours
+      let totalMinutes = 0;
+      let lastIn: Date | null = null;
+
+      entries?.forEach((entry) => {
+        const punchTime = new Date(entry.punch_time);
+        
+        if (entry.punch_type === 'IN') {
+          lastIn = punchTime;
+        } else if (entry.punch_type === 'OUT' && lastIn) {
+          const diff = punchTime.getTime() - lastIn.getTime();
+          totalMinutes += Math.floor(diff / 60000);
+          lastIn = null;
+        }
+      });
+
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
       return {
-        totalHours: '8h 0m',
-        totalMinutes: 480,
-        entries: []
+        totalHours: `${hours}h ${minutes}m`,
+        totalMinutes,
+        entries: entries || []
       };
     },
   });
