@@ -61,17 +61,36 @@ const FacialAudit = () => {
     try {
       setLoading(true);
 
-      // 1) Load audits without joins (avoids relationship errors)
-      const { data: audits, error: auditError } = await supabase
+      // Get current user profile and role
+      const { data: { user } } = await supabase.auth.getUser();
+      let currentProfile: { id: string; role?: string } | null = null;
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (profileData) currentProfile = profileData as any;
+      }
+
+      const isPrivileged = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'manager');
+
+      // 1) Load audits depending on role
+      let query = supabase
         .from('facial_recognition_audit')
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (!isPrivileged && currentProfile?.id) {
+        query = query.eq('profile_id', currentProfile.id);
+      }
+
+      const { data: audits, error: auditError } = await query;
       if (auditError) throw auditError;
 
       const records = (audits as any[]) ?? [];
 
-      // 2) Build profile map
+      // 2) Build profile map for display
       const profileIds = Array.from(new Set(records.map(r => r.profile_id).filter(Boolean)));
       let profileMap: Record<string, { full_name: string; email: string }> = {};
       if (profileIds.length > 0) {
@@ -79,10 +98,8 @@ const FacialAudit = () => {
           .from('profiles')
           .select('id, full_name, email')
           .in('id', profileIds as string[]);
-        if (profilesError) {
-          console.warn('Could not load profiles for audits:', profilesError);
-        } else {
-          profileMap = (profilesData || []).reduce((acc: any, p: any) => {
+        if (!profilesError && profilesData) {
+          profileMap = profilesData.reduce((acc: any, p: any) => {
             acc[p.id] = { full_name: p.full_name, email: p.email };
             return acc;
           }, {});
@@ -99,7 +116,6 @@ const FacialAudit = () => {
             if (idx !== -1) return urlOrPath.substring(idx + marker.length);
             return null;
           }
-          // Path may be "facial-audit/<key>" or just "<key>"
           if (urlOrPath.startsWith('facial-audit/')) return urlOrPath.replace('facial-audit/', '');
           return urlOrPath;
         } catch {

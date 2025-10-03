@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { useFacialRecognition } from '@/hooks/useFacialRecognition';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { FacialAuditService } from '@/services/FacialAuditService';
 
 interface FacialRecognitionModalProps {
   isOpen: boolean;
@@ -159,43 +160,17 @@ const FacialRecognitionModal = ({
         const blob: Blob = await new Promise((resolve) =>
           canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.8)
         );
-        const fileName = `${profile.id}_${Date.now()}.jpg`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('facial-audit')
-          .upload(fileName, blob, {
-            contentType: 'image/jpeg',
-            upsert: false,
-          });
+        const { auditId } = await FacialAuditService.logAttempt({
+          blob,
+          profileId: profile.id,
+          recognitionResult: { success: true, reason: 'manual_capture' },
+          status: 'pending',
+          confidenceScore: 0,
+          livenessPassed: false,
+        });
 
-        if (uploadError) {
-          console.error('Erro ao fazer upload da foto:', uploadError);
-          toast.error('Erro ao fazer upload da foto');
-          return;
-        }
-
-        // Salvar apenas a storage key (fileName), não a URL pública
-        const { data: auditData, error: auditError } = await supabase
-          .from('facial_recognition_audit')
-          .insert({
-            profile_id: profile.id,
-            attempt_image_url: fileName, // Apenas storage key
-            recognition_result: { success: true, reason: 'manual_capture' },
-            status: 'pending',
-            confidence_score: 0,
-            liveness_passed: false,
-          })
-          .select()
-          .single();
-
-        if (auditError) {
-          console.error('Erro ao criar registro de auditoria:', auditError);
-          toast.error('Erro ao criar registro de auditoria');
-          return;
-        }
-
-        if (auditData) {
-          auditId = auditData.id;
+        if (auditId) {
           console.log('Registro de auditoria criado:', auditId);
         }
       }
