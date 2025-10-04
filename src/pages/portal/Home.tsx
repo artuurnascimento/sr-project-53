@@ -245,11 +245,11 @@ const PortalHome = () => {
 
   return (
     <PortalLayout>
-      <div className="max-w-2xl mx-auto space-y-6 p-4">
+      <div className="max-w-2xl mx-auto space-y-4 md:space-y-6 p-4">
         {/* Header - Minimal */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-slate-900">Registro de Ponto</h1>
-          <p className="text-slate-600 mt-1">Registre sua jornada de trabalho</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Registro de Ponto</h1>
+          <p className="text-sm md:text-base text-slate-600 mt-1">Registre sua jornada de trabalho</p>
         </div>
         {/* Status Bar */}
         <div className="flex items-center justify-between text-sm">

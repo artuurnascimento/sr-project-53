@@ -172,11 +172,11 @@ const Justifications = () => {
 
   return (
     <PortalLayout>
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
+        <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold">Justificativas</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-xl md:text-3xl font-bold">Justificativas</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
                 Gerencie suas solicitações e justificativas
               </p>
             </div>

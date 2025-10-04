@@ -136,32 +136,30 @@ const Approvals = () => {
 
   return (
     <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold">Aprovações</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-xl md:text-3xl font-bold">Aprovações</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
                 Gerencie justificativas e solicitações dos colaboradores
               </p>
             </div>
-            <div className="flex gap-2">
-              <Badge variant="secondary" className="text-sm">
-                {filteredJustifications.filter(j => j.status === 'pending').length} pendentes
-              </Badge>
-            </div>
+            <Badge variant="secondary" className="text-xs md:text-sm">
+              {filteredJustifications.filter(j => j.status === 'pending').length} pendentes
+            </Badge>
           </div>
 
           {/* Filters */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Filter className="h-5 w-5" />
+            <CardHeader className="pb-3 md:pb-6">
+              <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                <Filter className="h-4 w-4 md:h-5 md:w-5" />
                 Filtros
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex gap-4">
-              <div className="flex-1">
-                <Label className="text-sm font-medium">Status</Label>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+              <div>
+                <Label className="text-xs md:text-sm font-medium">Status</Label>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
                   <SelectTrigger>
                     <SelectValue />
@@ -175,8 +173,8 @@ const Approvals = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1">
-                <Label className="text-sm font-medium">Tipo</Label>
+              <div>
+                <Label className="text-xs md:text-sm font-medium">Tipo</Label>
                 <Select value={filterType} onValueChange={setFilterType}>
                   <SelectTrigger>
                     <SelectValue />
@@ -191,8 +189,8 @@ const Approvals = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1">
-                <Label className="text-sm font-medium">Buscar</Label>
+              <div>
+                <Label className="text-xs md:text-sm font-medium">Buscar</Label>
                 <Input 
                   placeholder="Nome do colaborador..." 
                   value={searchTerm}

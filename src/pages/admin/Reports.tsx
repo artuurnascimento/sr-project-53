@@ -159,26 +159,26 @@ const Reports = () => {
 
   return (
     <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold">Relatórios</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-xl md:text-3xl font-bold">Relatórios</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
                 Análise detalhada de dados de ponto e produtividade
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => generateReport('csv')}>
-                <Download className="h-4 w-4 mr-2" />
-                CSV
+              <Button variant="outline" size="sm" onClick={() => generateReport('csv')} className="text-xs md:text-sm flex-1 sm:flex-none">
+                <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">CSV</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={() => generateReport('excel')}>
-                <Download className="h-4 w-4 mr-2" />
-                Excel
+              <Button variant="outline" size="sm" onClick={() => generateReport('excel')} className="text-xs md:text-sm flex-1 sm:flex-none">
+                <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Excel</span>
               </Button>
-              <Button size="sm" onClick={() => generateReport('pdf')}>
-                <Download className="h-4 w-4 mr-2" />
-                PDF
+              <Button size="sm" onClick={() => generateReport('pdf')} className="text-xs md:text-sm flex-1 sm:flex-none">
+                <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">PDF</span>
               </Button>
             </div>
           </div>

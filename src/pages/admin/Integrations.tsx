@@ -160,11 +160,11 @@ const Integrations = () => {
 
   return (
     <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold">Integrações</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-xl md:text-3xl font-bold">Integrações</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
                 Configure integrações com sistemas externos
               </p>
             </div>
@@ -225,7 +225,7 @@ const Integrations = () => {
           </div>
 
           {/* Integrations Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
             {integrations.map((integration) => (
               <Card key={integration.id}>
                 <CardHeader>

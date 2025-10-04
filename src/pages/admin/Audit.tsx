@@ -100,22 +100,22 @@ const Audit = () => {
 
   return (
     <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold">Auditoria</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-xl md:text-3xl font-bold">Auditoria</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
                 Registro de todas as ações realizadas no sistema
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => exportAuditLog('csv')}>
-                <Download className="h-4 w-4 mr-2" />
-                Exportar CSV
+              <Button variant="outline" size="sm" onClick={() => exportAuditLog('csv')} className="text-xs md:text-sm">
+                <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Exportar </span>CSV
               </Button>
-              <Button variant="outline" size="sm" onClick={() => exportAuditLog('pdf')}>
-                <Download className="h-4 w-4 mr-2" />
-                Exportar PDF
+              <Button variant="outline" size="sm" onClick={() => exportAuditLog('pdf')} className="text-xs md:text-sm">
+                <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Exportar </span>PDF
               </Button>
             </div>
           </div>

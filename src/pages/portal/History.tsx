@@ -162,7 +162,7 @@ const History = () => {
       <div className="max-w-4xl mx-auto space-y-4 md:space-y-6 p-4 md:p-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4">
           <h1 className="text-xl md:text-2xl font-bold">Histórico de Ponto</h1>
-          <Button variant="outline" size="sm" onClick={() => handleExport('csv')} className="text-xs md:text-sm w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={handleExport} className="text-xs md:text-sm w-full sm:w-auto">
             <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
             CSV
           </Button>

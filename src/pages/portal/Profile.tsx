@@ -145,11 +145,11 @@ const Profile = () => {
 
   return (
     <PortalLayout>
-      <div className="max-w-4xl mx-auto space-y-6 p-4">
+      <div className="max-w-4xl mx-auto space-y-4 md:space-y-6 p-4">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold">Meu Perfil</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl md:text-3xl font-bold">Meu Perfil</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Gerencie suas informações pessoais e configurações
           </p>
         </div>
