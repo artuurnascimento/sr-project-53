@@ -476,10 +476,10 @@ const FacialAudit = () => {
           </CardContent>
         </Card>
 
-        {/* Audit Table */}
+          {/* Audit Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Registros de Auditoria ({filteredRecords.length})</CardTitle>
+            <CardTitle className="text-base md:text-lg">Registros de Auditoria ({filteredRecords.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {filteredRecords.length === 0 ? (
@@ -489,168 +489,320 @@ const FacialAudit = () => {
                 </AlertDescription>
               </Alert>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data/Hora</TableHead>
-                      <TableHead>Usuário</TableHead>
-                      <TableHead>Confiança</TableHead>
-                      <TableHead>Prova de Vida</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredRecords.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell>
-                          {new Date(record.created_at).toLocaleDateString('pt-BR')}
-                          <br />
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(record.created_at).toLocaleTimeString('pt-BR')}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {record.profiles ? (
-                            <div>
-                              <p className="font-medium">{record.profiles.full_name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {record.profiles.email}
-                              </p>
-                            </div>
-                          ) : (
-                            <Badge variant="outline">Não identificado</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {getConfidenceBadge(record.confidence_score)}
-                          {record.confidence_score && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {(record.confidence_score * 100).toFixed(1)}%
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={record.liveness_passed ? "default" : "destructive"}>
-                            {record.liveness_passed ? 'Passou' : 'Falhou'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
+              <>
+                {/* Mobile Cards - visible only on mobile */}
+                <div className="lg:hidden space-y-3">
+                  {filteredRecords.map((record) => (
+                    <div key={record.id} className="p-4 rounded-lg border bg-card space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">
+                            {record.profiles?.full_name || 'Não identificado'}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {record.profiles?.email || ''}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(record.created_at).toLocaleString('pt-BR')}
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0">
                           {getStatusBadge(record.status)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setSelectedRecord(record)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
-                                <DialogHeader>
-                                  <DialogTitle>Detalhes da Tentativa</DialogTitle>
-                                  <DialogDescription>Visualize detalhes e evidências desta tentativa de reconhecimento.</DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <h4 className="font-medium mb-2">Imagem Capturada</h4>
-                                      {record.attempt_image_url && record.attempt_image_url !== 'no-image' ? (
-                                        <div className="space-y-2">
-                                          <img 
-                                            src={record.attempt_image_url} 
-                                            alt="Tentativa facial"
-                                            className="w-full rounded border"
-                                            onLoad={() => console.log('✅ Image loaded successfully for:', record.id)}
-                                            onError={(e) => {
-                                              console.error('❌ Failed to load image for:', record.id);
-                                              console.error('Image URL:', record.attempt_image_url);
-                                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200"%3E%3Crect fill="%23f0f0f0" width="300" height="200"/%3E%3Ctext fill="%23999" x="50%" y="50%" text-anchor="middle" dy=".3em"%3EErro ao carregar%3C/text%3E%3C/svg%3E';
-                                            }}
-                                          />
-                                          <p className="text-xs text-muted-foreground break-all">
-                                            {record.attempt_image_url.substring(0, 80)}...
-                                          </p>
-                                        </div>
-                                      ) : (
-                                        <div className="w-full h-48 bg-slate-100 rounded border flex items-center justify-center text-slate-400">
-                                          <p>Imagem não disponível</p>
-                                        </div>
-                                      )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Confiança:</span>
+                          <div className="mt-1">{getConfidenceBadge(record.confidence_score)}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Prova de Vida:</span>
+                          <div className="mt-1">
+                            <Badge variant={record.liveness_passed ? "default" : "destructive"} className="text-xs">
+                              {record.liveness_passed ? 'Passou' : 'Falhou'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-2 border-t">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 text-xs"
+                              onClick={() => setSelectedRecord(record)}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Ver Detalhes
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Detalhes da Tentativa</DialogTitle>
+                              <DialogDescription>Visualize detalhes e evidências desta tentativa de reconhecimento.</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <h4 className="font-medium mb-2 text-sm">Imagem Capturada</h4>
+                                  {record.attempt_image_url && record.attempt_image_url !== 'no-image' ? (
+                                    <div className="space-y-2">
+                                      <img 
+                                        src={record.attempt_image_url} 
+                                        alt="Tentativa facial"
+                                        className="w-full rounded border max-h-64 object-contain"
+                                        onLoad={() => console.log('✅ Image loaded successfully for:', record.id)}
+                                        onError={(e) => {
+                                          console.error('❌ Failed to load image for:', record.id);
+                                          console.error('Image URL:', record.attempt_image_url);
+                                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200"%3E%3Crect fill="%23f0f0f0" width="300" height="200"/%3E%3Ctext fill="%23999" x="50%" y="50%" text-anchor="middle" dy=".3em"%3EErro ao carregar%3C/text%3E%3C/svg%3E';
+                                        }}
+                                      />
+                                      <p className="text-xs text-muted-foreground break-all hidden md:block">
+                                        {record.attempt_image_url.substring(0, 60)}...
+                                      </p>
                                     </div>
-                                    <div className="space-y-3">
-                                      <div>
-                                        <label className="text-sm font-medium">Resultado</label>
-                                        <pre className="text-xs bg-slate-100 p-2 rounded mt-1 overflow-auto">
-                                          {JSON.stringify(record.recognition_result, null, 2)}
-                                        </pre>
-                                      </div>
-                                      <div>
-                                        <label className="text-sm font-medium">Confiança</label>
-                                        <p>{record.confidence_score ? 
-                                          `${(record.confidence_score * 100).toFixed(2)}%` : 
-                                          'N/A'
-                                        }</p>
-                                      </div>
-                                      <div>
-                                        <label className="text-sm font-medium">Prova de Vida</label>
-                                        <p>{record.liveness_passed ? 'Passou' : 'Falhou'}</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {record.status === 'pending' && (
-                                    <div className="flex gap-2 pt-4 border-t">
-                                      <Button
-                                        onClick={() => updateAuditStatus(record.id, 'approved')}
-                                        className="flex-1"
-                                      >
-                                        <CheckCircle className="h-4 w-4 mr-2" />
-                                        Aprovar
-                                      </Button>
-                                      <Button
-                                        onClick={() => updateAuditStatus(record.id, 'rejected')}
-                                        variant="destructive"
-                                        className="flex-1"
-                                      >
-                                        <X className="h-4 w-4 mr-2" />
-                                        Rejeitar
-                                      </Button>
+                                  ) : (
+                                    <div className="w-full h-48 bg-slate-100 rounded border flex items-center justify-center text-slate-400">
+                                      <p className="text-sm">Imagem não disponível</p>
                                     </div>
                                   )}
                                 </div>
-                              </DialogContent>
-                            </Dialog>
-                            
-                            {record.status === 'pending' && (
-                              <>
-                                <Button
-                                  onClick={() => updateAuditStatus(record.id, 'approved')}
-                                  size="sm"
-                                  className="bg-green-600 hover:bg-green-700"
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  onClick={() => updateAuditStatus(record.id, 'rejected')}
-                                  size="sm"
-                                  variant="destructive"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
+                                <div className="space-y-3">
+                                  <div>
+                                    <label className="text-sm font-medium">Resultado</label>
+                                    <pre className="text-xs bg-slate-100 p-2 rounded mt-1 overflow-auto max-h-32">
+                                      {JSON.stringify(record.recognition_result, null, 2)}
+                                    </pre>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium">Confiança</label>
+                                    <p className="text-sm">{record.confidence_score ? 
+                                      `${(record.confidence_score * 100).toFixed(2)}%` : 
+                                      'N/A'
+                                    }</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium">Prova de Vida</label>
+                                    <p className="text-sm">{record.liveness_passed ? 'Passou' : 'Falhou'}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              {record.status === 'pending' && (
+                                <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+                                  <Button
+                                    onClick={() => updateAuditStatus(record.id, 'approved')}
+                                    className="flex-1"
+                                    size="sm"
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Aprovar
+                                  </Button>
+                                  <Button
+                                    onClick={() => updateAuditStatus(record.id, 'rejected')}
+                                    variant="destructive"
+                                    className="flex-1"
+                                    size="sm"
+                                  >
+                                    <X className="h-4 w-4 mr-2" />
+                                    Rejeitar
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        
+                        {record.status === 'pending' && (
+                          <>
+                            <Button
+                              onClick={() => updateAuditStatus(record.id, 'approved')}
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              onClick={() => updateAuditStatus(record.id, 'rejected')}
+                              size="sm"
+                              variant="destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table - visible only on desktop */}
+                <div className="hidden lg:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data/Hora</TableHead>
+                        <TableHead>Usuário</TableHead>
+                        <TableHead>Confiança</TableHead>
+                        <TableHead>Prova de Vida</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRecords.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell>
+                            {new Date(record.created_at).toLocaleDateString('pt-BR')}
+                            <br />
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(record.created_at).toLocaleTimeString('pt-BR')}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {record.profiles ? (
+                              <div>
+                                <p className="font-medium">{record.profiles.full_name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {record.profiles.email}
+                                </p>
+                              </div>
+                            ) : (
+                              <Badge variant="outline">Não identificado</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {getConfidenceBadge(record.confidence_score)}
+                            {record.confidence_score && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {(record.confidence_score * 100).toFixed(1)}%
+                              </p>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={record.liveness_passed ? "default" : "destructive"}>
+                              {record.liveness_passed ? 'Passou' : 'Falhou'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(record.status)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSelectedRecord(record)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl">
+                                  <DialogHeader>
+                                    <DialogTitle>Detalhes da Tentativa</DialogTitle>
+                                    <DialogDescription>Visualize detalhes e evidências desta tentativa de reconhecimento.</DialogDescription>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <h4 className="font-medium mb-2">Imagem Capturada</h4>
+                                        {record.attempt_image_url && record.attempt_image_url !== 'no-image' ? (
+                                          <div className="space-y-2">
+                                            <img 
+                                              src={record.attempt_image_url} 
+                                              alt="Tentativa facial"
+                                              className="w-full rounded border"
+                                              onLoad={() => console.log('✅ Image loaded successfully for:', record.id)}
+                                              onError={(e) => {
+                                                console.error('❌ Failed to load image for:', record.id);
+                                                console.error('Image URL:', record.attempt_image_url);
+                                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200"%3E%3Crect fill="%23f0f0f0" width="300" height="200"/%3E%3Ctext fill="%23999" x="50%" y="50%" text-anchor="middle" dy=".3em"%3EErro ao carregar%3C/text%3E%3C/svg%3E';
+                                              }}
+                                            />
+                                            <p className="text-xs text-muted-foreground break-all">
+                                              {record.attempt_image_url.substring(0, 80)}...
+                                            </p>
+                                          </div>
+                                        ) : (
+                                          <div className="w-full h-48 bg-slate-100 rounded border flex items-center justify-center text-slate-400">
+                                            <p>Imagem não disponível</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="space-y-3">
+                                        <div>
+                                          <label className="text-sm font-medium">Resultado</label>
+                                          <pre className="text-xs bg-slate-100 p-2 rounded mt-1 overflow-auto">
+                                            {JSON.stringify(record.recognition_result, null, 2)}
+                                          </pre>
+                                        </div>
+                                        <div>
+                                          <label className="text-sm font-medium">Confiança</label>
+                                          <p>{record.confidence_score ? 
+                                            `${(record.confidence_score * 100).toFixed(2)}%` : 
+                                            'N/A'
+                                          }</p>
+                                        </div>
+                                        <div>
+                                          <label className="text-sm font-medium">Prova de Vida</label>
+                                          <p>{record.liveness_passed ? 'Passou' : 'Falhou'}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    {record.status === 'pending' && (
+                                      <div className="flex gap-2 pt-4 border-t">
+                                        <Button
+                                          onClick={() => updateAuditStatus(record.id, 'approved')}
+                                          className="flex-1"
+                                        >
+                                          <CheckCircle className="h-4 w-4 mr-2" />
+                                          Aprovar
+                                        </Button>
+                                        <Button
+                                          onClick={() => updateAuditStatus(record.id, 'rejected')}
+                                          variant="destructive"
+                                          className="flex-1"
+                                        >
+                                          <X className="h-4 w-4 mr-2" />
+                                          Rejeitar
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                              
+                              {record.status === 'pending' && (
+                                <>
+                                  <Button
+                                    onClick={() => updateAuditStatus(record.id, 'approved')}
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    onClick={() => updateAuditStatus(record.id, 'rejected')}
+                                    size="sm"
+                                    variant="destructive"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

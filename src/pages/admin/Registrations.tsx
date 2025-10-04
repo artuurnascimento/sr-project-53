@@ -278,7 +278,7 @@ const Registrations = () => {
           {/* Profiles Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Colaboradores ({filteredProfiles.length})</CardTitle>
+              <CardTitle className="text-base md:text-lg">Colaboradores ({filteredProfiles.length})</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -286,79 +286,145 @@ const Registrations = () => {
                   <p className="text-muted-foreground">Carregando colaboradores...</p>
                 </div>
               ) : filteredProfiles.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Colaborador</TableHead>
-                      <TableHead>Departamento</TableHead>
-                      <TableHead>Cargo</TableHead>
-                      <TableHead>Função</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Mobile Cards */}
+                  <div className="lg:hidden space-y-3">
                     {filteredProfiles.map((profile) => (
-                      <TableRow key={profile.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={profile.avatar_url || ''} />
-                              <AvatarFallback>
-                                {profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{profile.full_name}</div>
-                              <div className="text-sm text-muted-foreground">{profile.email}</div>
-                              {profile.employee_id && (
-                                <div className="text-xs text-muted-foreground">
-                                  ID: {profile.employee_id}
-                                </div>
-                              )}
-                            </div>
+                      <div key={profile.id} className="p-4 rounded-lg border bg-card space-y-3">
+                        <div className="flex items-start gap-3">
+                          <Avatar className="h-12 w-12 flex-shrink-0">
+                            <AvatarImage src={profile.avatar_url || ''} />
+                            <AvatarFallback className="text-xs">
+                              {profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{profile.full_name}</div>
+                            <div className="text-xs text-muted-foreground truncate">{profile.email}</div>
+                            {profile.employee_id && (
+                              <div className="text-xs text-muted-foreground">ID: {profile.employee_id}</div>
+                            )}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {profile.department || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{profile.position || 'N/A'}</TableCell>
-                        <TableCell>{getRoleBadge(profile.role)}</TableCell>
-                        <TableCell>
-                          <Badge variant={profile.is_active ? 'default' : 'secondary'}>
+                          <Badge variant={profile.is_active ? 'default' : 'secondary'} className="text-xs flex-shrink-0">
                             {profile.is_active ? 'Ativo' : 'Inativo'}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openEditDialog(profile)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDelete(profile.id)}
-                              disabled={deleteProfile.isPending}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-muted-foreground">Depto:</span>
+                            <div className="mt-1">
+                              <Badge variant="outline" className="text-xs">
+                                {profile.department || 'N/A'}
+                              </Badge>
+                            </div>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                          <div>
+                            <span className="text-muted-foreground">Cargo:</span>
+                            <div className="mt-1 font-medium truncate">{profile.position || 'N/A'}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-2 border-t">
+                          <div className="flex-1">{getRoleBadge(profile.role)}</div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(profile)}
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(profile.id)}
+                            disabled={deleteProfile.isPending}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+
+                  {/* Desktop Table */}
+                  <div className="hidden lg:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Colaborador</TableHead>
+                          <TableHead>Departamento</TableHead>
+                          <TableHead>Cargo</TableHead>
+                          <TableHead>Função</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredProfiles.map((profile) => (
+                          <TableRow key={profile.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={profile.avatar_url || ''} />
+                                  <AvatarFallback>
+                                    {profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="font-medium">{profile.full_name}</div>
+                                  <div className="text-sm text-muted-foreground">{profile.email}</div>
+                                  {profile.employee_id && (
+                                    <div className="text-xs text-muted-foreground">
+                                      ID: {profile.employee_id}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {profile.department || 'N/A'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{profile.position || 'N/A'}</TableCell>
+                            <TableCell>{getRoleBadge(profile.role)}</TableCell>
+                            <TableCell>
+                              <Badge variant={profile.is_active ? 'default' : 'secondary'}>
+                                {profile.is_active ? 'Ativo' : 'Inativo'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openEditDialog(profile)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDelete(profile.id)}
+                                  disabled={deleteProfile.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               ) : (
                 <div className="text-center py-8">
                   <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">Nenhum colaborador encontrado</h3>
-                  <p className="text-muted-foreground mb-4">
+                  <p className="text-muted-foreground mb-4 text-sm">
                     {searchTerm || departmentFilter !== 'all' || roleFilter !== 'all'
                       ? 'Nenhum colaborador corresponde aos filtros selecionados.'
                       : 'Comece adicionando o primeiro colaborador.'
