@@ -108,45 +108,48 @@ const FacialAudit = () => {
         }
       }
 
-      // Helper to extract storage key for private bucket facial-audit
-      const toFacialAuditKey = (urlOrPath: string): string | null => {
-        if (!urlOrPath) return null;
-        try {
-          if (urlOrPath.startsWith('http')) {
-            const marker = '/facial-audit/';
-            const idx = urlOrPath.indexOf(marker);
-            if (idx !== -1) return urlOrPath.substring(idx + marker.length);
-            return null;
-          }
-          if (urlOrPath.startsWith('facial-audit/')) return urlOrPath.replace('facial-audit/', '');
-          return urlOrPath;
-        } catch {
-          return null;
-        }
-      };
-
       // 3) Sign image URLs and attach profile info
       const withSignedUrls = await Promise.all(
         records.map(async (r) => {
-          const key = toFacialAuditKey(r.attempt_image_url);
-          if (key) {
-            // Skip signing for placeholders or backfill markers (no actual file in storage)
-            if (key.startsWith('backfill/') || key.startsWith('placeholder://')) {
-              console.info('FacialAudit: placeholder/backfill key, skipping sign for', r.id);
-            } else {
-              try {
-                const { data: signed } = await supabase.storage
-                  .from('facial-audit')
-                  .createSignedUrl(key, 60 * 60);
-                if (signed?.signedUrl) {
-                  r.attempt_image_url = signed.signedUrl;
+          // Attach profile info
+          r.profiles = r.profile_id ? profileMap[r.profile_id] ?? null : null;
+          
+          // Sign image URL if it exists and is not placeholder
+          if (r.attempt_image_url && r.attempt_image_url !== 'no-image') {
+            try {
+              let key = r.attempt_image_url;
+              
+              // Extract key from URL if needed
+              if (key.startsWith('http')) {
+                const marker = '/facial-audit/';
+                const idx = key.indexOf(marker);
+                if (idx !== -1) {
+                  key = key.substring(idx + marker.length);
                 }
-              } catch (e) {
-                console.warn('Could not sign image URL for audit', r.id, e);
               }
+              
+              // Clean prefix
+              if (key.startsWith('facial-audit/')) {
+                key = key.replace('facial-audit/', '');
+              }
+              
+              console.log('🔐 Signing image for audit:', r.id, 'key:', key);
+              
+              const { data: signed, error: signError } = await supabase.storage
+                .from('facial-audit')
+                .createSignedUrl(key, 3600);
+              
+              if (signError) {
+                console.warn('⚠️ Sign error for', r.id, ':', signError.message);
+              } else if (signed?.signedUrl) {
+                r.attempt_image_url = signed.signedUrl;
+                console.log('✅ Image signed successfully');
+              }
+            } catch (e) {
+              console.warn('⚠️ Could not sign image for audit', r.id, e);
             }
           }
-          r.profiles = r.profile_id ? profileMap[r.profile_id] ?? null : null;
+          
           return r;
         })
       );
@@ -557,14 +560,28 @@ const FacialAudit = () => {
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <h4 className="font-medium mb-2">Imagem Capturada</h4>
-                                      <img 
-                                        src={record.attempt_image_url} 
-                                        alt="Tentativa"
-                                        className="w-full rounded border"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).src = '/placeholder.svg';
-                                        }}
-                                      />
+                                      {record.attempt_image_url && record.attempt_image_url !== 'no-image' ? (
+                                        <div className="space-y-2">
+                                          <img 
+                                            src={record.attempt_image_url} 
+                                            alt="Tentativa facial"
+                                            className="w-full rounded border"
+                                            onLoad={() => console.log('✅ Image loaded successfully for:', record.id)}
+                                            onError={(e) => {
+                                              console.error('❌ Failed to load image for:', record.id);
+                                              console.error('Image URL:', record.attempt_image_url);
+                                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200"%3E%3Crect fill="%23f0f0f0" width="300" height="200"/%3E%3Ctext fill="%23999" x="50%" y="50%" text-anchor="middle" dy=".3em"%3EErro ao carregar%3C/text%3E%3C/svg%3E';
+                                            }}
+                                          />
+                                          <p className="text-xs text-muted-foreground break-all">
+                                            {record.attempt_image_url.substring(0, 80)}...
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <div className="w-full h-48 bg-slate-100 rounded border flex items-center justify-center text-slate-400">
+                                          <p>Imagem não disponível</p>
+                                        </div>
+                                      )}
                                     </div>
                                     <div className="space-y-3">
                                       <div>

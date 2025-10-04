@@ -14,16 +14,27 @@ export interface LogAttemptParams {
 export class FacialAuditService {
   static async uploadEvidence(blob: Blob, profileId?: string | null): Promise<string | null> {
     try {
-      const key = `${profileId || 'unknown'}_${Date.now()}.jpg`;
-      const { error } = await supabase.storage
+      const timestamp = Date.now();
+      const key = `audit/${profileId || 'unknown'}/${timestamp}.jpg`;
+      
+      console.log('📸 Uploading facial evidence:', key);
+      
+      const { data, error } = await supabase.storage
         .from('facial-audit')
-        .upload(key, blob, { contentType: 'image/jpeg', upsert: false });
+        .upload(key, blob, { 
+          contentType: 'image/jpeg', 
+          upsert: false 
+        });
+      
       if (error) {
-        console.warn('FacialAuditService.uploadEvidence upload error:', error.message);
+        console.error('❌ Upload error:', error.message);
+        return null;
       }
-      return key; // even if upload failed, keep key for consistency
+      
+      console.log('✅ Upload successful:', key);
+      return key;
     } catch (e) {
-      console.error('FacialAuditService.uploadEvidence error:', e);
+      console.error('❌ Upload exception:', e);
       return null;
     }
   }
@@ -36,11 +47,17 @@ export class FacialAuditService {
     status: AuditStatus;
     livenessPassed?: boolean;
   }): Promise<string | undefined> {
+    console.log('📝 Creating audit record:', {
+      profileId: params.profileId,
+      hasImage: !!params.attemptKey,
+      status: params.status
+    });
+
     const { data, error } = await supabase
       .from('facial_recognition_audit')
       .insert({
         profile_id: params.profileId,
-        attempt_image_url: params.attemptKey || undefined,
+        attempt_image_url: params.attemptKey || 'no-image',
         recognition_result: params.recognitionResult,
         confidence_score: params.confidenceScore,
         status: params.status,
@@ -50,9 +67,11 @@ export class FacialAuditService {
       .single();
 
     if (error) {
-      console.error('FacialAuditService.createAuditRecord error:', error.message);
+      console.error('❌ Audit record error:', error.message);
       return undefined;
     }
+    
+    console.log('✅ Audit record created:', data?.id);
     return data?.id as string | undefined;
   }
 
@@ -70,31 +89,39 @@ export class FacialAuditService {
   }
 
   static async signUrl(urlOrKey?: string | null): Promise<string | null> {
-    if (!urlOrKey) return null;
+    if (!urlOrKey || urlOrKey === 'no-image') return null;
+    
     try {
       let key = urlOrKey;
+      
+      // Extract key from URL if needed
       if (urlOrKey.startsWith('http')) {
         const marker = '/facial-audit/';
         const idx = urlOrKey.indexOf(marker);
         if (idx === -1) return null;
         key = urlOrKey.substring(idx + marker.length);
       }
-      if (key.startsWith('facial-audit/')) key = key.replace('facial-audit/', '');
-      // Skip signing for placeholders or backfill markers (no actual file in storage)
-      if (key.startsWith('backfill/') || key.startsWith('placeholder://')) {
-        console.info('FacialAuditService.signUrl: placeholder/backfill key, skipping sign');
-        return null;
+      
+      // Clean up key prefix
+      if (key.startsWith('facial-audit/')) {
+        key = key.replace('facial-audit/', '');
       }
+      
+      console.log('🔐 Signing URL for key:', key);
+      
       const { data, error } = await supabase.storage
         .from('facial-audit')
-        .createSignedUrl(key, 60 * 60);
+        .createSignedUrl(key, 3600);
+      
       if (error) {
-        console.error('FacialAuditService.signUrl error:', error.message);
+        console.error('❌ Sign URL error:', error.message);
         return null;
       }
+      
+      console.log('✅ URL signed successfully');
       return data?.signedUrl ?? null;
     } catch (e) {
-      console.error('FacialAuditService.signUrl exception:', e);
+      console.error('❌ Sign URL exception:', e);
       return null;
     }
   }

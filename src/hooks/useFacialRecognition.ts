@@ -89,20 +89,24 @@ export const useFacialRecognition = () => {
       }
 
       const descriptor = Array.from(detections.descriptor);
+      
+      console.log('🔍 Face detected, creating blob for audit...');
 
-      // Captura blob para auditoria
+      // Captura blob para auditoria - SEMPRE criar
       const blob = await new Promise<Blob>((resolve) => {
         if (imageElement instanceof HTMLCanvasElement) {
-          imageElement.toBlob((b) => resolve(b!), 'image/jpeg', 0.8);
+          imageElement.toBlob((b) => resolve(b!), 'image/jpeg', 0.95);
         } else {
           const canvas = document.createElement('canvas');
           canvas.width = imageElement.naturalWidth || imageElement.width;
           canvas.height = imageElement.naturalHeight || imageElement.height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(imageElement, 0, 0);
-          canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.8);
+          canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.95);
         }
       });
+      
+      console.log('📸 Blob created, size:', blob.size);
 
       // Tenta reconhecimento no backend (pode falhar por tipo vector)
       const { data, error } = await supabase.rpc('find_user_by_face_embedding', {
@@ -110,64 +114,58 @@ export const useFacialRecognition = () => {
         similarity_threshold: 0.6,
       });
 
-      let auditId: string | undefined;
-
       if (error || !data || data.length === 0) {
-        // Sem correspondência: grave a tentativa para auditoria
-        try {
-          const { auditId } = await FacialAuditService.logAttempt({
-            blob,
-            profileId: null,
-            recognitionResult: { success: false, reason: error ? 'rpc_error' : 'no_match' },
-            status: 'rejected',
-            livenessPassed: true,
-          });
-          return {
-            success: false,
-            error: error ? 'Erro no reconhecimento facial' : 'Nenhum usuário encontrado com essa face',
-            auditId,
-          };
-        } catch (e) {
-          console.error('Failed to log unmatched attempt:', e);
-          return {
-            success: false,
-            error: error ? 'Erro no reconhecimento facial' : 'Nenhum usuário encontrado com essa face',
-          };
-        }
-      }
-
-      // Sucesso: cria registro aprovado
-      const match = data[0];
-      try {
-        const { auditId } = await FacialAuditService.logAttempt({
+        console.log('❌ No match found, logging failed attempt...');
+        
+        // Sem correspondência: SEMPRE grave a tentativa com imagem
+        const { auditId: failedAuditId } = await FacialAuditService.logAttempt({
           blob,
-          profileId: match.profile_id,
-          recognitionResult: {
-            success: true,
-            userName: match.full_name,
-            confidence: match.similarity_score,
+          profileId: null,
+          recognitionResult: { 
+            success: false, 
+            reason: error ? 'rpc_error' : 'no_match',
+            error: error?.message 
           },
-          confidenceScore: match.similarity_score,
-          status: 'approved',
+          status: 'rejected',
           livenessPassed: true,
         });
-
+        
+        console.log('📝 Failed attempt logged with audit ID:', failedAuditId);
+        
         return {
-          success: true,
-          userId: match.profile_id,
-          userName: match.full_name,
-          confidence: match.similarity_score * 100,
-          auditId,
-        };
-      } catch (uploadError) {
-        console.error('Error in audit process:', uploadError);
-        return {
-          success: true,
-          userId: match.profile_id,
-          userName: match.full_name,
-          confidence: match.similarity_score * 100,
+          success: false,
+          error: error ? 'Erro no reconhecimento facial' : 'Nenhum usuário encontrado com essa face',
+          auditId: failedAuditId,
         };
       }
+
+      // Sucesso: SEMPRE cria registro aprovado com imagem
+      const match = data[0];
+      console.log('✅ Match found:', match.full_name, 'confidence:', match.similarity_score);
+      
+      const { auditId: successAuditId } = await FacialAuditService.logAttempt({
+        blob,
+        profileId: match.profile_id,
+        recognitionResult: {
+          success: true,
+          userName: match.full_name,
+          email: match.email,
+          confidence: match.similarity_score,
+        },
+        confidenceScore: match.similarity_score,
+        status: 'approved',
+        livenessPassed: true,
+      });
+
+      console.log('📝 Success logged with audit ID:', successAuditId);
+
+      return {
+        success: true,
+        userId: match.profile_id,
+        userName: match.full_name,
+        confidence: match.similarity_score * 100,
+        auditId: successAuditId,
+      };
 
     } catch (error) {
       console.error('Face recognition error:', error);
