@@ -167,16 +167,16 @@ const Reports = () => {
                 Análise detalhada de dados de ponto e produtividade
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => generateReport('csv')} className="text-xs md:text-sm flex-1 sm:flex-none">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button variant="outline" size="sm" onClick={() => generateReport('csv')} className="text-xs md:text-sm w-full sm:w-auto">
                 <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 <span className="hidden sm:inline">CSV</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={() => generateReport('excel')} className="text-xs md:text-sm flex-1 sm:flex-none">
+              <Button variant="outline" size="sm" onClick={() => generateReport('excel')} className="text-xs md:text-sm w-full sm:w-auto">
                 <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 <span className="hidden sm:inline">Excel</span>
               </Button>
-              <Button size="sm" onClick={() => generateReport('pdf')} className="text-xs md:text-sm flex-1 sm:flex-none">
+              <Button size="sm" onClick={() => generateReport('pdf')} className="text-xs md:text-sm w-full sm:w-auto">
                 <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 <span className="hidden sm:inline">PDF</span>
               </Button>
@@ -235,11 +235,11 @@ const Reports = () => {
           </Card>
 
           <Tabs defaultValue="overview" className="space-y-4 md:space-y-6">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 text-xs md:text-sm">
-              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-              <TabsTrigger value="attendance">Frequência</TabsTrigger>
-              <TabsTrigger value="departments">Departamentos</TabsTrigger>
-              <TabsTrigger value="productivity">Produtividade</TabsTrigger>
+            <TabsList className="flex w-full overflow-x-auto gap-2 text-xs md:text-sm">
+              <TabsTrigger value="overview" className="flex-shrink-0">Visão Geral</TabsTrigger>
+              <TabsTrigger value="attendance" className="flex-shrink-0">Frequência</TabsTrigger>
+              <TabsTrigger value="departments" className="flex-shrink-0">Departamentos</TabsTrigger>
+              <TabsTrigger value="productivity" className="flex-shrink-0">Produtividade</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 md:space-y-6">
