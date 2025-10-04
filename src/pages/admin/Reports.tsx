@@ -159,7 +159,7 @@ const Reports = () => {
 
   return (
     <AdminLayout>
-        <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+        <div className="space-y-4 md:space-y-6 p-4 md:p-0 max-w-full overflow-x-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="text-xl md:text-3xl font-bold">Relatórios</h1>
@@ -235,7 +235,7 @@ const Reports = () => {
           </Card>
 
           <Tabs defaultValue="overview" className="space-y-4 md:space-y-6">
-            <TabsList className="flex w-full overflow-x-auto gap-2 text-xs md:text-sm">
+            <TabsList className="w-full flex flex-wrap gap-2 text-xs md:text-sm">
               <TabsTrigger value="overview" className="flex-shrink-0">Visão Geral</TabsTrigger>
               <TabsTrigger value="attendance" className="flex-shrink-0">Frequência</TabsTrigger>
               <TabsTrigger value="departments" className="flex-shrink-0">Departamentos</TabsTrigger>

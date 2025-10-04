@@ -352,7 +352,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8 overflow-x-hidden">
           {/* Desktop Header with Notifications */}
           <div className="hidden lg:flex items-center justify-end mb-6 gap-3">
             <Popover>
