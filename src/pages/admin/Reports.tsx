@@ -185,33 +185,35 @@ const Reports = () => {
 
           {/* Filters */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Filter className="h-5 w-5" />
+            <CardHeader className="pb-3 md:pb-6">
+              <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                <Filter className="h-4 w-4 md:h-5 md:w-5" />
                 Filtros do Relatório
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <div>
-                <Label className="text-sm font-medium">Data Início</Label>
+                <Label className="text-xs md:text-sm font-medium">Data Início</Label>
                 <Input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
+                  className="text-sm"
                 />
               </div>
               <div>
-                <Label className="text-sm font-medium">Data Fim</Label>
+                <Label className="text-xs md:text-sm font-medium">Data Fim</Label>
                 <Input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  className="text-sm"
                 />
               </div>
               <div>
-                <Label className="text-sm font-medium">Departamento</Label>
+                <Label className="text-xs md:text-sm font-medium">Departamento</Label>
                 <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -222,26 +224,27 @@ const Reports = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-end">
-                <Button className="w-full">
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Gerar Relatório
+              <div className="flex items-end sm:col-span-2 md:col-span-1">
+                <Button className="w-full text-sm">
+                  <BarChart3 className="h-3 w-3 md:h-4 md:w-4 mr-2" />
+                  <span className="hidden sm:inline">Gerar Relatório</span>
+                  <span className="sm:hidden">Gerar</span>
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+          <Tabs defaultValue="overview" className="space-y-4 md:space-y-6">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 text-xs md:text-sm">
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
               <TabsTrigger value="attendance">Frequência</TabsTrigger>
               <TabsTrigger value="departments">Departamentos</TabsTrigger>
               <TabsTrigger value="productivity">Produtividade</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-6">
+            <TabsContent value="overview" className="space-y-4 md:space-y-6">
               {/* Overview Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total de Colaboradores</CardTitle>
@@ -299,59 +302,64 @@ const Reports = () => {
 
               {/* Recent Activity */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Atividade Recente</CardTitle>
+                <CardHeader className="pb-3 md:pb-6">
+                  <CardTitle className="text-base md:text-lg">Atividade Recente</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     {timeEntries?.slice(0, 10).map((entry) => (
                       <div 
                         key={entry.id} 
-                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/5 cursor-pointer transition-colors"
+                        className="flex items-center justify-between p-2 md:p-3 rounded-lg border hover:bg-accent/5 cursor-pointer transition-colors"
                         onClick={() => {
                           setSelectedEntry(entry);
                           setDetailsOpen(true);
                         }}
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Clock className="h-4 w-4 text-primary" />
+                        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                          <div className="w-6 h-6 md:w-8 md:h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Clock className="h-3 w-3 md:h-4 md:w-4 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">
+                            <div className="font-medium text-sm truncate">
                               {entry.profiles?.full_name || 'Usuário'}
                             </div>
-                            <div className="text-sm text-muted-foreground truncate">
+                            <div className="text-xs md:text-sm text-muted-foreground truncate">
                               {entry.punch_type === 'IN' ? 'Entrada' :
                                entry.punch_type === 'OUT' ? 'Saída' :
                                entry.punch_type === 'BREAK_IN' ? 'Início Intervalo' : 'Fim Intervalo'} - {' '}
-                              {new Date(entry.punch_time).toLocaleString('pt-BR')}
+                              {new Date(entry.punch_time).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
                             </div>
-                            <div className="flex gap-2 mt-1">
+                            <div className="flex gap-1 md:gap-2 mt-0.5 md:mt-1">
                               {entry.facial_recognition_audit && entry.facial_recognition_audit.length > 0 && (
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <Camera className="h-3 w-3" />
-                                  <span>Foto</span>
+                                <div className="flex items-center gap-0.5 md:gap-1 text-xs text-muted-foreground">
+                                  <Camera className="h-2.5 w-2.5 md:h-3 md:w-3" />
+                                  <span className="hidden sm:inline">Foto</span>
                                 </div>
                               )}
                               {entry.location_address && (
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <MapPin className="h-3 w-3" />
-                                  <span>Local</span>
+                                <div className="flex items-center gap-0.5 md:gap-1 text-xs text-muted-foreground">
+                                  <MapPin className="h-2.5 w-2.5 md:h-3 md:w-3" />
+                                  <span className="hidden sm:inline">Local</span>
                                 </div>
                               )}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                          <Badge variant={entry.status === 'approved' ? 'default' : 'secondary'}>
+                        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0 ml-1 md:ml-2">
+                          <Badge variant={entry.status === 'approved' ? 'default' : 'secondary'} className="text-xs">
                             {entry.status === 'approved' ? 'Aprovado' : 'Pendente'}
                           </Badge>
-                          <Eye className="h-4 w-4 text-muted-foreground" />
+                          <Eye className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground hidden sm:block" />
                         </div>
                       </div>
                     )) || (
-                      <p className="text-muted-foreground text-center py-4">
+                      <p className="text-muted-foreground text-center py-4 text-sm">
                         Nenhuma atividade recente
                       </p>
                     )}
@@ -360,25 +368,25 @@ const Reports = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="attendance" className="space-y-6">
+            <TabsContent value="attendance" className="space-y-4 md:space-y-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Análise de Frequência</CardTitle>
+                <CardHeader className="pb-3 md:pb-6">
+                  <CardTitle className="text-base md:text-lg">Análise de Frequência</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-4 md:space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-green-600">95%</div>
-                        <div className="text-sm text-muted-foreground">Taxa de Presença</div>
+                        <div className="text-2xl md:text-3xl font-bold text-green-600">95%</div>
+                        <div className="text-xs md:text-sm text-muted-foreground">Taxa de Presença</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-orange-600">3</div>
-                        <div className="text-sm text-muted-foreground">Atrasos Hoje</div>
+                        <div className="text-2xl md:text-3xl font-bold text-orange-600">3</div>
+                        <div className="text-xs md:text-sm text-muted-foreground">Atrasos Hoje</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-red-600">1</div>
-                        <div className="text-sm text-muted-foreground">Faltas Hoje</div>
+                        <div className="text-2xl md:text-3xl font-bold text-red-600">1</div>
+                        <div className="text-xs md:text-sm text-muted-foreground">Faltas Hoje</div>
                       </div>
                     </div>
                     
