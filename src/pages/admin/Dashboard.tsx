@@ -224,112 +224,141 @@ const Dashboard = () => {
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6 max-w-full overflow-x-hidden">
-        {/* Header Compacto */}
+        {/* Header - Mobile compacto, Desktop normal */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
-            <p className="text-xs md:text-sm text-slate-600 mt-0.5 md:hidden">Visão geral do sistema</p>
+            <p className="text-xs text-slate-600 mt-0.5 md:hidden">Visão geral do sistema</p>
+            <p className="hidden md:block text-muted-foreground">Visão geral do sistema de ponto eletrônico</p>
           </div>
           
-          {/* Menu de Ações - Mobile e Desktop */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0 md:h-9 md:w-auto md:px-3">
-                <MoreVertical className="h-4 w-4" />
-                <span className="hidden md:inline md:ml-2">Ações</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => navigate('/admin/relatorios')}>
-                <FileText className="h-4 w-4 mr-2" />
-                Ver Relatórios
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => generateMonthlyReport('pdf')}>
-                <Download className="h-4 w-4 mr-2" />
-                Exportar PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => generateMonthlyReport('excel')}>
-                <Download className="h-4 w-4 mr-2" />
-                Exportar Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Mobile: Menu de Ações | Desktop: Botões separados */}
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => navigate('/admin/relatorios')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Ver Relatórios
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => generateMonthlyReport('pdf')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => generateMonthlyReport('excel')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
+          <div className="hidden md:flex gap-2">
+            <Button variant="outline" onClick={() => navigate('/admin/relatorios')}>
+              <FileText className="h-4 w-4 mr-2" />
+              Relatórios
+            </Button>
+            <Button variant="outline" onClick={() => generateMonthlyReport('pdf')}>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar PDF
+            </Button>
+            <Button onClick={() => generateMonthlyReport('excel')}>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar Excel
+            </Button>
+          </div>
         </div>
 
-        {/* Stats Cards - Grid 2x2 no Mobile */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+        {/* Stats Cards - Mobile: Grid 2x2 | Desktop: Grid 1x4 */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-6">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200/50">
             <CardContent className="p-3 md:p-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="p-2 bg-blue-500 rounded-lg mb-2">
-                  <Users className="h-4 w-4 md:h-5 md:w-5 text-white" />
+              <div className="flex md:flex-row flex-col items-center md:items-start text-center md:text-left gap-2 md:gap-4">
+                <div className="p-2 bg-blue-500 rounded-lg">
+                  <Users className="h-4 w-4 md:h-6 md:w-6 text-white" />
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-blue-700">
-                  {reportData?.activeEmployees || 0}
+                <div>
+                  <p className="text-xs md:text-sm font-medium text-slate-600 md:mb-1">Colaboradores Ativos</p>
+                  <div className="text-2xl md:text-3xl font-bold text-blue-700">
+                    {reportData?.activeEmployees || 0}
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1 md:hidden">Colaboradores</p>
                 </div>
-                <p className="text-xs text-slate-600 mt-1">Colaboradores</p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-50 to-green-100/50 border-green-200/50">
             <CardContent className="p-3 md:p-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="p-2 bg-green-500 rounded-lg mb-2">
-                  <Clock className="h-4 w-4 md:h-5 md:w-5 text-white" />
+              <div className="flex md:flex-row flex-col items-center md:items-start text-center md:text-left gap-2 md:gap-4">
+                <div className="p-2 bg-green-500 rounded-lg">
+                  <Clock className="h-4 w-4 md:h-6 md:w-6 text-white" />
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-green-700">
-                  {reportData?.todayPunches || 0}
+                <div>
+                  <p className="text-xs md:text-sm font-medium text-slate-600 md:mb-1">Registros de Hoje</p>
+                  <div className="text-2xl md:text-3xl font-bold text-green-700">
+                    {reportData?.todayPunches || 0}
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1 md:hidden">Registros Hoje</p>
                 </div>
-                <p className="text-xs text-slate-600 mt-1">Registros Hoje</p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 border-orange-200/50">
             <CardContent className="p-3 md:p-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="p-2 bg-orange-500 rounded-lg mb-2">
-                  <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-white" />
+              <div className="flex md:flex-row flex-col items-center md:items-start text-center md:text-left gap-2 md:gap-4">
+                <div className="p-2 bg-orange-500 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 md:h-6 md:w-6 text-white" />
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-orange-700">
-                  {reportData?.pendingApprovals || 0}
+                <div>
+                  <p className="text-xs md:text-sm font-medium text-slate-600 md:mb-1">Aprovações Pendentes</p>
+                  <div className="text-2xl md:text-3xl font-bold text-orange-700">
+                    {reportData?.pendingApprovals || 0}
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1 md:hidden">Pendentes</p>
                 </div>
-                <p className="text-xs text-slate-600 mt-1">Pendentes</p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-200/50">
             <CardContent className="p-3 md:p-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="p-2 bg-purple-500 rounded-lg mb-2">
-                  <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-white" />
+              <div className="flex md:flex-row flex-col items-center md:items-start text-center md:text-left gap-2 md:gap-4">
+                <div className="p-2 bg-purple-500 rounded-lg">
+                  <CheckCircle className="h-4 w-4 md:h-6 md:w-6 text-white" />
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-purple-700">
-                  {reportData?.overtime || 0}h
+                <div>
+                  <p className="text-xs md:text-sm font-medium text-slate-600 md:mb-1">Horas Extras do Mês</p>
+                  <div className="text-2xl md:text-3xl font-bold text-purple-700">
+                    {reportData?.overtime || 0}h
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1 md:hidden">Horas Extras</p>
                 </div>
-                <p className="text-xs text-slate-600 mt-1">Horas Extras</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
-          {/* Recent Events - Compacto */}
+          {/* Recent Events */}
           <Card className="shadow-lg border-slate-200/50">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 md:pb-6">
               <CardTitle className="flex items-center gap-2 text-base md:text-lg text-slate-900">
                 <Activity className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                 Últimos Registros
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="space-y-2">
+              <div className="space-y-2 md:space-y-3">
                 {recentEntries?.slice(0, 5).map((entry) => (
                   <div 
                     key={entry.id} 
-                    className="flex items-center gap-2 p-2 md:p-3 rounded-lg border hover:bg-accent/5 cursor-pointer transition-colors"
+                    className="flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-lg border hover:bg-accent/5 cursor-pointer transition-colors"
                     onClick={() => {
                       setSelectedEntry(entry);
                       setDetailsOpen(true);
@@ -340,11 +369,11 @@ const Dashboard = () => {
                       <img 
                         src={entry.facial_recognition_audit[0].attempt_image_url}
                         alt="Foto"
-                        className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border flex-shrink-0"
+                        className="w-8 h-8 md:w-12 md:h-12 rounded-full object-cover border flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                        <Users className="h-4 w-4 md:h-5 md:w-5 text-slate-400" />
+                      <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+                        <Users className="h-4 w-4 md:h-6 md:w-6 text-slate-400" />
                       </div>
                     )}
                     
@@ -367,7 +396,8 @@ const Dashboard = () => {
                       variant={entry.status === 'approved' ? 'default' : 'secondary'} 
                       className="text-xs flex-shrink-0"
                     >
-                      {entry.status === 'approved' ? 'OK' : 'Pend'}
+                      <span className="md:hidden">{entry.status === 'approved' ? 'OK' : 'Pend'}</span>
+                      <span className="hidden md:inline">{entry.status === 'approved' ? 'Aprovado' : 'Pendente'}</span>
                     </Badge>
                   </div>
                 )) || (
@@ -382,23 +412,23 @@ const Dashboard = () => {
                 className="w-full mt-3 text-xs md:text-sm"
                 onClick={() => navigate('/admin/auditoria')}
               >
-                Ver Todos
+                Ver Todos os Registros
               </Button>
             </CardContent>
           </Card>
 
-          {/* Pending Approvals - Compacto */}
+          {/* Pending Approvals */}
           <Card className="shadow-lg border-slate-200/50">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 md:pb-6">
               <CardTitle className="flex items-center gap-2 text-base md:text-lg text-slate-900">
                 <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
                 Aprovações Pendentes
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="space-y-2">
+              <div className="space-y-2 md:space-y-3">
                 {pendingJustifications?.filter(j => j.status === 'pending').slice(0, 5).map((justification) => (
-                  <div key={justification.id} className="p-2 md:p-3 rounded-lg bg-slate-50/50 border border-slate-200/50">
+                  <div key={justification.id} className="p-2 md:p-4 rounded-lg bg-slate-50/50 border border-slate-200/50">
                     <div className="flex items-start justify-between mb-2 gap-2">
                       <div className="min-w-0 flex-1">
                         <span className="font-semibold text-xs md:text-sm text-slate-900 block truncate">
@@ -416,16 +446,16 @@ const Dashboard = () => {
                       )}
                     </div>
                     
-                    {/* Attachments Preview - Compacto */}
+                    {/* Attachments Preview */}
                     {justification.attachments?.length > 0 && (
-                      <div className="flex gap-1 mb-2">
+                      <div className="flex gap-1 md:gap-2 mb-2">
                         {justification.attachments.slice(0, 2).map((attachment: any, idx: number) => (
                           attachmentUrls[attachment.path] && (
                             <img
                               key={idx}
                               src={attachmentUrls[attachment.path]}
                               alt="Anexo"
-                              className="w-10 h-10 md:w-12 md:h-12 object-cover rounded border cursor-pointer"
+                              className="w-10 h-10 md:w-16 md:h-16 object-cover rounded border cursor-pointer"
                               onClick={() => {
                                 setSelectedJustification(justification);
                                 setSelectedImage(attachmentUrls[attachment.path]);
@@ -438,7 +468,7 @@ const Dashboard = () => {
                         ))}
                         {justification.attachments.length > 2 && (
                           <div 
-                            className="w-10 h-10 md:w-12 md:h-12 bg-slate-200 rounded border flex items-center justify-center text-xs text-slate-600 cursor-pointer"
+                            className="w-10 h-10 md:w-16 md:h-16 bg-slate-200 rounded border flex items-center justify-center text-xs text-slate-600 cursor-pointer"
                             onClick={() => {
                               setSelectedJustification(justification);
                               if (justification.attachments[0]?.path && attachmentUrls[justification.attachments[0].path]) {
@@ -452,20 +482,20 @@ const Dashboard = () => {
                       </div>
                     )}
 
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-1.5 md:gap-2">
                       <Button 
                         size="sm" 
-                        className="flex-1 h-7 text-xs bg-green-500 hover:bg-green-600"
+                        className="flex-1 h-7 md:h-9 text-xs md:text-sm bg-green-500 hover:bg-green-600"
                         onClick={() => handleApproveJustification(justification.id)}
                         disabled={updateJustification.isPending}
                       >
-                        <CheckCircle className="h-3 w-3 mr-1" />
+                        <CheckCircle className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                         Aprovar
                       </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="flex-1 h-7 text-xs"
+                        className="flex-1 h-7 md:h-9 text-xs md:text-sm"
                         onClick={() => handleRejectJustification(justification.id)}
                         disabled={updateJustification.isPending}
                       >
@@ -485,24 +515,24 @@ const Dashboard = () => {
                 className="w-full mt-3 text-xs md:text-sm"
                 onClick={() => navigate('/admin/aprovacoes')}
               >
-                Ver Todas
+                Ver Todas as Aprovações
               </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Department Stats - Compacto */}
+        {/* Department Stats */}
         <Card className="shadow-lg border-slate-200/50">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 md:pb-6">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg text-slate-900">
               <BarChart3 className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-              Por Departamento
+              Estatísticas por Departamento
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="space-y-2">
+            <div className="space-y-2 md:space-y-4">
               {reportData?.departmentStats.map((dept) => (
-                <div key={dept.department} className="flex items-center justify-between p-2 md:p-3 rounded-lg bg-slate-50/50 border border-slate-200/50">
+                <div key={dept.department} className="flex items-center justify-between p-2 md:p-4 rounded-lg bg-slate-50/50 border border-slate-200/50">
                   <div className="min-w-0 flex-1">
                     <h4 className="font-semibold text-sm md:text-base text-slate-900 truncate">{dept.department}</h4>
                     <p className="text-xs text-slate-600">
@@ -510,8 +540,8 @@ const Dashboard = () => {
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0 ml-2">
-                    <div className="text-lg md:text-xl font-bold text-primary">{dept.avgHours}h</div>
-                    <div className="text-xs text-slate-500">média</div>
+                    <div className="text-lg md:text-2xl font-bold text-primary">{dept.avgHours}h</div>
+                    <div className="text-xs text-slate-500">média mensal</div>
                   </div>
                 </div>
               ))}
@@ -519,52 +549,52 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Quick Actions - Grid Compacto */}
+        {/* Quick Actions */}
         <Card className="shadow-lg border-slate-200/50">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 md:pb-6">
             <CardTitle className="text-base md:text-lg text-slate-900">Ações Rápidas</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
               <Button 
                 variant="outline" 
-                className="h-20 md:h-24 flex flex-col gap-1.5 md:gap-2 rounded-lg"
+                className="h-20 md:h-28 flex flex-col gap-1.5 md:gap-3 rounded-lg hover:shadow-md transition-shadow"
                 onClick={() => navigate('/admin/cadastros')}
               >
-                <div className="p-1.5 md:p-2 bg-blue-100 rounded-lg">
-                  <Users className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
+                <div className="p-1.5 md:p-3 bg-blue-100 rounded-lg">
+                  <Users className="h-4 w-4 md:h-6 md:w-6 text-blue-600" />
                 </div>
-                <span className="text-xs md:text-sm font-medium text-slate-700">Usuários</span>
+                <span className="text-xs md:text-sm font-medium text-slate-700">Gerenciar Usuários</span>
               </Button>
               <Button 
                 variant="outline" 
-                className="h-20 md:h-24 flex flex-col gap-1.5 md:gap-2 rounded-lg"
+                className="h-20 md:h-28 flex flex-col gap-1.5 md:gap-3 rounded-lg hover:shadow-md transition-shadow"
                 onClick={() => navigate('/admin/aprovacoes')}
               >
-                <div className="p-1.5 md:p-2 bg-orange-100 rounded-lg">
-                  <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
+                <div className="p-1.5 md:p-3 bg-orange-100 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 md:h-6 md:w-6 text-orange-600" />
                 </div>
-                <span className="text-xs md:text-sm font-medium text-slate-700">Aprovar</span>
+                <span className="text-xs md:text-sm font-medium text-slate-700">Aprovar Solicitações</span>
               </Button>
               <Button 
                 variant="outline" 
-                className="h-20 md:h-24 flex flex-col gap-1.5 md:gap-2 rounded-lg"
+                className="h-20 md:h-28 flex flex-col gap-1.5 md:gap-3 rounded-lg hover:shadow-md transition-shadow"
                 onClick={() => navigate('/admin/relatorios')}
               >
-                <div className="p-1.5 md:p-2 bg-green-100 rounded-lg">
-                  <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
+                <div className="p-1.5 md:p-3 bg-green-100 rounded-lg">
+                  <TrendingUp className="h-4 w-4 md:h-6 md:w-6 text-green-600" />
                 </div>
-                <span className="text-xs md:text-sm font-medium text-slate-700">Relatórios</span>
+                <span className="text-xs md:text-sm font-medium text-slate-700">Ver Relatórios</span>
               </Button>
               <Button 
                 variant="outline" 
-                className="h-20 md:h-24 flex flex-col gap-1.5 md:gap-2 rounded-lg"
+                className="h-20 md:h-28 flex flex-col gap-1.5 md:gap-3 rounded-lg hover:shadow-md transition-shadow"
                 onClick={() => navigate('/admin/integracoes')}
               >
-                <div className="p-1.5 md:p-2 bg-purple-100 rounded-lg">
-                  <Calendar className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
+                <div className="p-1.5 md:p-3 bg-purple-100 rounded-lg">
+                  <Calendar className="h-4 w-4 md:h-6 md:w-6 text-purple-600" />
                 </div>
-                <span className="text-xs md:text-sm font-medium text-slate-700">Config</span>
+                <span className="text-xs md:text-sm font-medium text-slate-700">Configurações</span>
               </Button>
             </div>
           </CardContent>
