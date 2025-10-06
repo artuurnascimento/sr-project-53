@@ -1,12 +1,16 @@
-import { Users, Clock, AlertTriangle, CheckCircle, MapPin, TrendingUp, Calendar, Activity, BarChart3, Image as ImageIcon, Eye } from 'lucide-react';
+import { Users, Clock, AlertTriangle, CheckCircle, MapPin, TrendingUp, Calendar, Activity, BarChart3, Image as ImageIcon, Eye, MoreVertical, FileText, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useReportData } from '@/hooks/useReports';
-import { useTimeEntries } from '@/hooks/useTimeTracking';
+import { useTimeEntries, type TimeEntry } from '@/hooks/useTimeTracking';
 import { useJustifications, useUpdateJustification } from '@/hooks/useJustifications';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useNavigate } from 'react-router-dom';
@@ -25,6 +29,8 @@ const Dashboard = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
   const [selectedJustification, setSelectedJustification] = useState<any>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
 
   // Load attachment URLs for pending justifications
   useEffect(() => {
@@ -94,6 +100,65 @@ const Dashboard = () => {
     }
   };
 
+  const generateMonthlyReport = (format: 'pdf' | 'excel') => {
+    if (!recentEntries) return;
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const monthEntries = recentEntries.filter(entry => {
+      const entryDate = new Date(entry.punch_time);
+      return entryDate >= startOfMonth && entryDate <= endOfMonth;
+    });
+
+    if (format === 'pdf') {
+      const doc = new jsPDF();
+      
+      doc.setFontSize(16);
+      doc.text('Relatório Mensal de Ponto', 14, 15);
+      
+      doc.setFontSize(10);
+      doc.text(`Período: ${startOfMonth.toLocaleDateString('pt-BR')} a ${endOfMonth.toLocaleDateString('pt-BR')}`, 14, 22);
+      doc.text(`Total de Registros: ${monthEntries.length}`, 14, 27);
+      
+      const tableData = monthEntries.map(entry => [
+        new Date(entry.punch_time).toLocaleDateString('pt-BR'),
+        new Date(entry.punch_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        entry.profiles?.full_name || 'N/A',
+        entry.punch_type === 'IN' ? 'Entrada' : entry.punch_type === 'OUT' ? 'Saída' : entry.punch_type === 'BREAK_IN' ? 'Início Int.' : 'Fim Int.',
+        entry.status === 'approved' ? 'Aprovado' : 'Pendente'
+      ]);
+
+      autoTable(doc, {
+        head: [['Data', 'Hora', 'Colaborador', 'Tipo', 'Status']],
+        body: tableData,
+        startY: 32,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 247, 250] }
+      });
+      
+      doc.save(`relatorio-mensal-${now.getMonth() + 1}-${now.getFullYear()}.pdf`);
+      toast.success('Relatório PDF gerado com sucesso!');
+    } else if (format === 'excel') {
+      const data = monthEntries.map(entry => ({
+        'Data': new Date(entry.punch_time).toLocaleDateString('pt-BR'),
+        'Hora': new Date(entry.punch_time).toLocaleTimeString('pt-BR'),
+        'Colaborador': entry.profiles?.full_name || 'N/A',
+        'Tipo': entry.punch_type === 'IN' ? 'Entrada' : entry.punch_type === 'OUT' ? 'Saída' : entry.punch_type === 'BREAK_IN' ? 'Início Intervalo' : 'Fim Intervalo',
+        'Status': entry.status === 'approved' ? 'Aprovado' : 'Pendente'
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Relatório Mensal');
+      
+      XLSX.writeFile(wb, `relatorio-mensal-${now.getMonth() + 1}-${now.getFullYear()}.xlsx`);
+      toast.success('Relatório Excel gerado com sucesso!');
+    }
+  };
+
   const getEventTypeLabel = (type: string) => {
     const labels = {
       'IN': 'Entrada',
@@ -124,32 +189,6 @@ const Dashboard = () => {
     );
   };
 
-  const getPriorityBadge = (priority: string) => {
-    const variants = {
-      'high': 'destructive',
-      'medium': 'secondary',
-      'low': 'outline'
-    } as const;
-
-    const labels = {
-      'high': 'Alta',
-      'medium': 'Média',
-      'low': 'Baixa'
-    };
-
-    return (
-      <Badge variant={variants[priority as keyof typeof variants]}>
-        {labels[priority as keyof typeof labels]}
-      </Badge>
-    );
-  };
-
-  const formatDateTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('pt-BR');
-  };
-
-  // Helpers for display formatting
   const maskEmail = (email: string) => {
     if (!email) return '';
     const [user, domain] = email.split('@');
@@ -173,289 +212,233 @@ const Dashboard = () => {
   if (reportLoading) {
     return (
       <AdminLayout>
-          <div className="space-y-6">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Carregando dashboard...</p>
-            </div>
+        <div className="space-y-6">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Carregando dashboard...</p>
           </div>
+        </div>
       </AdminLayout>
     );
   }
 
   return (
     <AdminLayout>
-        <div className="space-y-4 md:space-y-8">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4 md:mb-8">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard Administrativo</h1>
-              <p className="text-sm md:text-base text-slate-700 mt-1">
-                Painel de controle e gestão do sistema de ponto eletrônico
-              </p>
-            </div>
-            <div className="flex flex-row md:flex-col gap-2 md:gap-3">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="shadow-sm flex-1 md:flex-none text-xs md:text-sm"
-                onClick={() => navigate('/admin/relatorios')}
-              >
-                <Calendar className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                <span className="hidden sm:inline">Relatório Mensal</span>
-                <span className="sm:hidden">Relatório</span>
-              </Button>
-              <Button 
-                size="sm" 
-                className="shadow-sm flex-1 md:flex-none text-xs md:text-sm"
-                onClick={() => navigate('/admin/relatorios')}
-              >
-                <TrendingUp className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                <span className="hidden sm:inline">Exportar Dados</span>
-                <span className="sm:hidden">Exportar</span>
-              </Button>
-            </div>
+      <div className="space-y-4 md:space-y-6 max-w-full overflow-x-hidden">
+        {/* Header Compacto */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
+            <p className="text-xs md:text-sm text-slate-600 mt-0.5 md:hidden">Visão geral do sistema</p>
           </div>
+          
+          {/* Menu de Ações - Mobile e Desktop */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0 md:h-9 md:w-auto md:px-3">
+                <MoreVertical className="h-4 w-4" />
+                <span className="hidden md:inline md:ml-2">Ações</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => navigate('/admin/relatorios')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Ver Relatórios
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => generateMonthlyReport('pdf')}>
+                <Download className="h-4 w-4 mr-2" />
+                Exportar PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => generateMonthlyReport('excel')}>
+                <Download className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200/50 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 md:pb-3">
-                <CardTitle className="text-xs md:text-sm font-semibold text-slate-700">Colaboradores Ativos</CardTitle>
-                <div className="p-1.5 md:p-2 bg-blue-500 rounded-lg">
-                  <Users className="h-3 w-3 md:h-4 md:w-4 text-white" />
+        {/* Stats Cards - Grid 2x2 no Mobile */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200/50">
+            <CardContent className="p-3 md:p-6">
+              <div className="flex flex-col items-center text-center">
+                <div className="p-2 bg-blue-500 rounded-lg mb-2">
+                  <Users className="h-4 w-4 md:h-5 md:w-5 text-white" />
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl md:text-3xl font-bold text-blue-700 mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-blue-700">
                   {reportData?.activeEmployees || 0}
                 </div>
-                <p className="text-xs md:text-sm text-slate-600 mb-2 md:mb-3">
-                  de {reportData?.totalEmployees || 0} total
-                </p>
-                <Progress 
-                  value={reportData ? (reportData.activeEmployees / reportData.totalEmployees) * 100 : 0} 
-                  className="h-1.5 md:h-2"
-                />
-              </CardContent>
-            </Card>
+                <p className="text-xs text-slate-600 mt-1">Colaboradores</p>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="bg-gradient-to-br from-green-50 to-green-100/50 border-green-200/50 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 md:pb-3">
-                <CardTitle className="text-xs md:text-sm font-semibold text-slate-700">Registros Hoje</CardTitle>
-                <div className="p-1.5 md:p-2 bg-green-500 rounded-lg">
-                  <Clock className="h-3 w-3 md:h-4 md:w-4 text-white" />
+          <Card className="bg-gradient-to-br from-green-50 to-green-100/50 border-green-200/50">
+            <CardContent className="p-3 md:p-6">
+              <div className="flex flex-col items-center text-center">
+                <div className="p-2 bg-green-500 rounded-lg mb-2">
+                  <Clock className="h-4 w-4 md:h-5 md:w-5 text-white" />
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl md:text-3xl font-bold text-green-700 mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-green-700">
                   {reportData?.todayPunches || 0}
                 </div>
-                <p className="text-xs md:text-sm text-slate-600">
-                  batidas de ponto
-                </p>
-              </CardContent>
-            </Card>
+                <p className="text-xs text-slate-600 mt-1">Registros Hoje</p>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 border-orange-200/50 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 md:pb-3">
-                <CardTitle className="text-xs md:text-sm font-semibold text-slate-700">Aprovações Pendentes</CardTitle>
-                <div className="p-1.5 md:p-2 bg-orange-500 rounded-lg">
-                  <AlertTriangle className="h-3 w-3 md:h-4 md:w-4 text-white" />
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 border-orange-200/50">
+            <CardContent className="p-3 md:p-6">
+              <div className="flex flex-col items-center text-center">
+                <div className="p-2 bg-orange-500 rounded-lg mb-2">
+                  <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-white" />
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl md:text-3xl font-bold text-orange-700 mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-orange-700">
                   {reportData?.pendingApprovals || 0}
                 </div>
-                <p className="text-xs md:text-sm text-slate-600">
-                  justificativas
-                </p>
-              </CardContent>
-            </Card>
+                <p className="text-xs text-slate-600 mt-1">Pendentes</p>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-200/50 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 md:pb-3">
-                <CardTitle className="text-xs md:text-sm font-semibold text-slate-700">Horas Extras</CardTitle>
-                <div className="p-1.5 md:p-2 bg-purple-500 rounded-lg">
-                  <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-white" />
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-200/50">
+            <CardContent className="p-3 md:p-6">
+              <div className="flex flex-col items-center text-center">
+                <div className="p-2 bg-purple-500 rounded-lg mb-2">
+                  <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-white" />
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl md:text-3xl font-bold text-purple-700 mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-purple-700">
                   {reportData?.overtime || 0}h
                 </div>
-                <p className="text-xs md:text-sm text-slate-600">
-                  este mês
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+                <p className="text-xs text-slate-600 mt-1">Horas Extras</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
-            {/* Recent Events */}
-            <Card className="shadow-lg border-slate-200/50">
-              <CardHeader className="pb-3 md:pb-6">
-                <CardTitle className="flex items-center gap-2 md:gap-3 text-base md:text-lg text-slate-900">
-                  <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg">
-                    <Activity className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-                  </div>
-                  Últimos Registros
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2 md:space-y-4">
-                  {recentEntries?.slice(0, 5).map((entry) => (
-                    <div key={entry.id} className="flex items-start justify-between p-3 md:p-4 rounded-xl bg-slate-50/50 border border-slate-200/50 hover:bg-slate-100/50 transition-colors">
-                      <div className="flex items-start gap-2 md:gap-3 flex-1 min-w-0">
-                        {/* Foto do reconhecimento facial ou avatar */}
-                        {entry.facial_recognition_audit?.[0]?.attempt_image_url ? (
-                          <img 
-                            src={entry.facial_recognition_audit[0].attempt_image_url}
-                            alt="Foto do registro"
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-slate-200 flex-shrink-0"
-                          />
-                        ) : entry.profiles?.avatar_url ? (
-                          <img 
-                            src={entry.profiles.avatar_url}
-                            alt="Avatar"
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-slate-200 flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                            <Users className="h-5 w-5 md:h-6 md:w-6 text-slate-400" />
-                          </div>
-                        )}
-                        
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 md:gap-2">
-                            <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full flex-shrink-0 ${
-                              entry.punch_type === 'IN' ? 'bg-green-500' :
-                              entry.punch_type === 'OUT' ? 'bg-red-500' :
-                              entry.punch_type === 'BREAK_IN' ? 'bg-orange-500' : 'bg-blue-500'
-                            }`}></div>
-                            <span className="font-semibold text-sm md:text-base text-slate-900 truncate">
-                              {getDisplayName(entry.profiles) || 'Usuário'}
-                            </span>
-                          </div>
-                          <span className="text-xs md:text-sm text-slate-500">
-                            {getEventTypeLabel(entry.punch_type)} - {' '}
-                            {new Date(entry.punch_time).toLocaleTimeString('pt-BR', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                          {entry.facial_recognition_audit?.[0]?.confidence_score && (
-                            <span className="text-xs text-slate-400 mt-0.5 md:mt-1 hidden sm:block">
-                              Confiança: {(entry.facial_recognition_audit[0].confidence_score * 100).toFixed(1)}%
-                            </span>
-                          )}
-                          {entry.location_address && (
-                            <div className="flex items-center gap-1 mt-0.5 md:mt-1 hidden sm:flex">
-                              <MapPin className="h-3 w-3 text-slate-400" />
-                              <span className="text-xs text-slate-400 truncate">
-                                {entry.location_address}
-                              </span>
-                            </div>
-                          )}
-                        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
+          {/* Recent Events - Compacto */}
+          <Card className="shadow-lg border-slate-200/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg text-slate-900">
+                <Activity className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                Últimos Registros
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                {recentEntries?.slice(0, 5).map((entry) => (
+                  <div 
+                    key={entry.id} 
+                    className="flex items-center gap-2 p-2 md:p-3 rounded-lg border hover:bg-accent/5 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setSelectedEntry(entry);
+                      setDetailsOpen(true);
+                    }}
+                  >
+                    {/* Avatar/Foto */}
+                    {entry.facial_recognition_audit?.[0]?.attempt_image_url ? (
+                      <img 
+                        src={entry.facial_recognition_audit[0].attempt_image_url}
+                        alt="Foto"
+                        className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+                        <Users className="h-4 w-4 md:h-5 md:w-5 text-slate-400" />
                       </div>
-                      <div className="flex-shrink-0 ml-1 md:ml-2 self-start md:self-center">
-                        {getStatusBadge(entry.status)}
+                    )}
+                    
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-xs md:text-sm truncate">
+                        {getDisplayName(entry.profiles) || 'Usuário'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {getEventTypeLabel(entry.punch_type)} • {' '}
+                        {new Date(entry.punch_time).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </div>
                     </div>
-                  )) || (
-                    <p className="text-muted-foreground text-center py-4">
-                      Nenhum registro recente
-                    </p>
-                  )}
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="w-full mt-3 md:mt-4 shadow-sm text-xs md:text-sm"
-                  onClick={() => navigate('/admin/auditoria')}
-                >
-                  Ver Todos os Registros
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Pending Approvals */}
-            <Card className="shadow-lg border-slate-200/50">
-              <CardHeader className="pb-3 md:pb-6">
-                <CardTitle className="flex items-center gap-2 md:gap-3 text-base md:text-lg text-slate-900">
-                  <div className="p-1.5 md:p-2 bg-orange-500/10 rounded-lg">
-                    <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
+                    
+                    {/* Status Badge */}
+                    <Badge 
+                      variant={entry.status === 'approved' ? 'default' : 'secondary'} 
+                      className="text-xs flex-shrink-0"
+                    >
+                      {entry.status === 'approved' ? 'OK' : 'Pend'}
+                    </Badge>
                   </div>
-                  Aprovações Pendentes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2 md:space-y-4">
-                  {pendingJustifications?.filter(j => j.status === 'pending').slice(0, 5).map((justification) => (
-                    <div key={justification.id} className="p-3 md:p-4 rounded-xl bg-slate-50/50 border border-slate-200/50 hover:bg-slate-100/50 transition-colors">
-                      <div className="flex items-start justify-between mb-2 gap-2">
-                        <div className="min-w-0 flex-1">
-                          <span className="font-semibold text-sm md:text-base text-slate-900 block truncate">
-                            {getDisplayName(justification.profiles) || 'Usuário'}
-                          </span>
-                          <div className="text-xs md:text-sm text-slate-500">
-                            {new Date(justification.created_at).toLocaleDateString('pt-BR')}
-                          </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-2 flex-shrink-0">
-                          {justification.attachments?.length > 0 && (
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex items-center gap-1 text-xs">
-                              <ImageIcon className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                              {justification.attachments.length}
-                            </Badge>
-                          )}
-                          <Badge variant="outline" className="bg-white/50 text-xs whitespace-nowrap">
-                            {justification.request_type === 'absence' ? 'Falta' :
-                             justification.request_type === 'overtime' ? 'H. Extra' :
-                             justification.request_type === 'vacation' ? 'Férias' :
-                             justification.request_type === 'expense' ? 'Despesa' : 'Outro'}
-                          </Badge>
+                )) || (
+                  <p className="text-muted-foreground text-center py-4 text-sm">
+                    Nenhum registro recente
+                  </p>
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="w-full mt-3 text-xs md:text-sm"
+                onClick={() => navigate('/admin/auditoria')}
+              >
+                Ver Todos
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Pending Approvals - Compacto */}
+          <Card className="shadow-lg border-slate-200/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg text-slate-900">
+                <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
+                Aprovações Pendentes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                {pendingJustifications?.filter(j => j.status === 'pending').slice(0, 5).map((justification) => (
+                  <div key={justification.id} className="p-2 md:p-3 rounded-lg bg-slate-50/50 border border-slate-200/50">
+                    <div className="flex items-start justify-between mb-2 gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-semibold text-xs md:text-sm text-slate-900 block truncate">
+                          {getDisplayName(justification.profiles) || 'Usuário'}
+                        </span>
+                        <div className="text-xs text-slate-500 truncate">
+                          {justification.title}
                         </div>
                       </div>
-                      <p className="text-xs md:text-sm text-slate-600 mb-2 md:mb-3 line-clamp-2">
-                        {justification.description}
-                      </p>
-                      
-                      {/* Attachments Preview */}
                       {justification.attachments?.length > 0 && (
-                        <div className="flex gap-1.5 md:gap-2 mb-2 md:mb-3">
-                          {justification.attachments.slice(0, 3).map((attachment: any, idx: number) => (
-                            attachmentUrls[attachment.path] && (
-                              <img
-                                key={idx}
-                                src={attachmentUrls[attachment.path]}
-                                alt="Anexo"
-                                className="w-12 h-12 md:w-16 md:h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => {
-                                  setSelectedJustification(justification);
-                                  setSelectedImage(attachmentUrls[attachment.path]);
-                                }}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = '/placeholder.svg';
-                                }}
-                              />
-                            )
-                          ))}
-                          {justification.attachments.length > 3 && (
-                            <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-200 rounded border flex items-center justify-center text-xs text-slate-600">
-                              +{justification.attachments.length - 3}
-                            </div>
-                          )}
-                        </div>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex items-center gap-1 text-xs flex-shrink-0">
+                          <ImageIcon className="h-3 w-3" />
+                          {justification.attachments.length}
+                        </Badge>
                       )}
-
-                      <div className="flex flex-wrap gap-1.5 md:gap-2">
-                        {justification.attachments?.length > 0 && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs h-6 md:h-7 px-2"
+                    </div>
+                    
+                    {/* Attachments Preview - Compacto */}
+                    {justification.attachments?.length > 0 && (
+                      <div className="flex gap-1 mb-2">
+                        {justification.attachments.slice(0, 2).map((attachment: any, idx: number) => (
+                          attachmentUrls[attachment.path] && (
+                            <img
+                              key={idx}
+                              src={attachmentUrls[attachment.path]}
+                              alt="Anexo"
+                              className="w-10 h-10 md:w-12 md:h-12 object-cover rounded border cursor-pointer"
+                              onClick={() => {
+                                setSelectedJustification(justification);
+                                setSelectedImage(attachmentUrls[attachment.path]);
+                              }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/placeholder.svg';
+                              }}
+                            />
+                          )
+                        ))}
+                        {justification.attachments.length > 2 && (
+                          <div 
+                            className="w-10 h-10 md:w-12 md:h-12 bg-slate-200 rounded border flex items-center justify-center text-xs text-slate-600 cursor-pointer"
                             onClick={() => {
                               setSelectedJustification(justification);
                               if (justification.attachments[0]?.path && attachmentUrls[justification.attachments[0].path]) {
@@ -463,133 +446,238 @@ const Dashboard = () => {
                               }
                             }}
                           >
-                            <Eye className="h-2.5 w-2.5 md:h-3 md:w-3 mr-1" />
-                            <span className="hidden sm:inline">Ver Anexos</span>
-                            <span className="sm:hidden">Ver</span>
-                          </Button>
+                            +{justification.attachments.length - 2}
+                          </div>
                         )}
-                        <Button 
-                          size="sm" 
-                          className="text-xs h-6 md:h-7 px-2 md:px-3 bg-green-500 hover:bg-green-600 text-white flex-1 sm:flex-none"
-                          onClick={() => handleApproveJustification(justification.id)}
-                          disabled={updateJustification.isPending}
-                        >
-                          Aprovar
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="text-xs h-6 md:h-7 px-2 md:px-3 flex-1 sm:flex-none"
-                          onClick={() => handleRejectJustification(justification.id)}
-                          disabled={updateJustification.isPending}
-                        >
-                          Rejeitar
-                        </Button>
                       </div>
-                    </div>
-                  )) || (
-                    <p className="text-muted-foreground text-center py-4">
-                      Nenhuma aprovação pendente
-                    </p>
-                  )}
-                </div>
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-3 md:mt-4 shadow-sm text-xs md:text-sm"
-                  onClick={() => navigate('/admin/aprovacoes')}
-                >
-                  Ver Todas as Aprovações
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                    )}
 
-          {/* Department Stats */}
-          <Card className="shadow-lg border-slate-200/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-slate-900">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                </div>
-                Estatísticas por Departamento
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {reportData?.departmentStats.map((dept) => (
-                  <div key={dept.department} className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 border border-slate-200/50">
-                    <div>
-                      <h4 className="font-semibold text-slate-900">{dept.department}</h4>
-                      <p className="text-sm text-slate-600">
-                        {dept.employees} colaboradores
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-primary">{dept.avgHours}h</div>
-                      <div className="text-sm text-slate-500">média mensal</div>
+                    <div className="flex gap-1.5">
+                      <Button 
+                        size="sm" 
+                        className="flex-1 h-7 text-xs bg-green-500 hover:bg-green-600"
+                        onClick={() => handleApproveJustification(justification.id)}
+                        disabled={updateJustification.isPending}
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Aprovar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1 h-7 text-xs"
+                        onClick={() => handleRejectJustification(justification.id)}
+                        disabled={updateJustification.isPending}
+                      >
+                        Rejeitar
+                      </Button>
                     </div>
                   </div>
-                ))}
+                )) || (
+                  <p className="text-muted-foreground text-center py-4 text-sm">
+                    Nenhuma aprovação pendente
+                  </p>
+                )}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="shadow-lg border-slate-200/50">
-            <CardHeader>
-              <CardTitle className="text-slate-900">Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all"
-                  onClick={() => navigate('/admin/cadastros')}
-                >
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Users className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <span className="font-medium text-slate-700">Gerenciar Usuários</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all"
-                  onClick={() => navigate('/admin/aprovacoes')}
-                >
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <AlertTriangle className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <span className="font-medium text-slate-700">Aprovar Pendências</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all"
-                  onClick={() => navigate('/admin/relatorios')}
-                >
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <TrendingUp className="h-6 w-6 text-green-600" />
-                  </div>
-                  <span className="font-medium text-slate-700">Gerar Relatório</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-24 flex flex-col gap-2 rounded-xl shadow-sm hover:shadow-md transition-all"
-                  onClick={() => navigate('/admin/integracoes')}
-                >
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Calendar className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <span className="font-medium text-slate-700">Configurar Horários</span>
-                </Button>
-              </div>
+              <Button 
+                variant="outline"
+                size="sm"
+                className="w-full mt-3 text-xs md:text-sm"
+                onClick={() => navigate('/admin/aprovacoes')}
+              >
+                Ver Todas
+              </Button>
             </CardContent>
           </Card>
         </div>
 
+        {/* Department Stats - Compacto */}
+        <Card className="shadow-lg border-slate-200/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg text-slate-900">
+              <BarChart3 className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+              Por Departamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2">
+              {reportData?.departmentStats.map((dept) => (
+                <div key={dept.department} className="flex items-center justify-between p-2 md:p-3 rounded-lg bg-slate-50/50 border border-slate-200/50">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-semibold text-sm md:text-base text-slate-900 truncate">{dept.department}</h4>
+                    <p className="text-xs text-slate-600">
+                      {dept.employees} colaboradores
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0 ml-2">
+                    <div className="text-lg md:text-xl font-bold text-primary">{dept.avgHours}h</div>
+                    <div className="text-xs text-slate-500">média</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions - Grid Compacto */}
+        <Card className="shadow-lg border-slate-200/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg text-slate-900">Ações Rápidas</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+              <Button 
+                variant="outline" 
+                className="h-20 md:h-24 flex flex-col gap-1.5 md:gap-2 rounded-lg"
+                onClick={() => navigate('/admin/cadastros')}
+              >
+                <div className="p-1.5 md:p-2 bg-blue-100 rounded-lg">
+                  <Users className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
+                </div>
+                <span className="text-xs md:text-sm font-medium text-slate-700">Usuários</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-20 md:h-24 flex flex-col gap-1.5 md:gap-2 rounded-lg"
+                onClick={() => navigate('/admin/aprovacoes')}
+              >
+                <div className="p-1.5 md:p-2 bg-orange-100 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
+                </div>
+                <span className="text-xs md:text-sm font-medium text-slate-700">Aprovar</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-20 md:h-24 flex flex-col gap-1.5 md:gap-2 rounded-lg"
+                onClick={() => navigate('/admin/relatorios')}
+              >
+                <div className="p-1.5 md:p-2 bg-green-100 rounded-lg">
+                  <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
+                </div>
+                <span className="text-xs md:text-sm font-medium text-slate-700">Relatórios</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-20 md:h-24 flex flex-col gap-1.5 md:gap-2 rounded-lg"
+                onClick={() => navigate('/admin/integracoes')}
+              >
+                <div className="p-1.5 md:p-2 bg-purple-100 rounded-lg">
+                  <Calendar className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
+                </div>
+                <span className="text-xs md:text-sm font-medium text-slate-700">Config</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Details Dialog */}
+        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+          <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Detalhes do Registro</DialogTitle>
+            </DialogHeader>
+            {selectedEntry && (
+              <div className="space-y-4">
+                {/* Employee Info */}
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-base md:text-lg">{selectedEntry.profiles?.full_name || 'Usuário'}</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Tipo:</span>
+                      <p className="font-medium">
+                        {selectedEntry.punch_type === 'IN' ? 'Entrada' :
+                         selectedEntry.punch_type === 'OUT' ? 'Saída' :
+                         selectedEntry.punch_type === 'BREAK_IN' ? 'Início Intervalo' : 'Fim Intervalo'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Horário:</span>
+                      <p className="font-medium">
+                        {new Date(selectedEntry.punch_time).toLocaleString('pt-BR')}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Status:</span>
+                      <p className="font-medium">
+                        <Badge variant={selectedEntry.status === 'approved' ? 'default' : 'secondary'}>
+                          {selectedEntry.status === 'approved' ? 'Aprovado' : 'Pendente'}
+                        </Badge>
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Departamento:</span>
+                      <p className="font-medium">{selectedEntry.profiles?.department || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Facial Recognition */}
+                {selectedEntry.facial_recognition_audit && selectedEntry.facial_recognition_audit.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Eye className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                      <h4 className="font-semibold text-sm md:text-base">Reconhecimento Facial</h4>
+                    </div>
+                    <div className="border rounded-lg p-3 md:p-4 space-y-3">
+                      <div className="relative w-full aspect-video bg-muted rounded-lg overflow-hidden">
+                        <img 
+                          src={selectedEntry.facial_recognition_audit[0].attempt_image_url}
+                          alt="Foto de reconhecimento facial"
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/placeholder.svg';
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Confiança:</span>
+                        <Badge variant={
+                          selectedEntry.facial_recognition_audit[0].confidence_score >= 0.9 ? 'default' :
+                          selectedEntry.facial_recognition_audit[0].confidence_score >= 0.7 ? 'secondary' : 'destructive'
+                        }>
+                          {(selectedEntry.facial_recognition_audit[0].confidence_score * 100).toFixed(1)}%
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Location */}
+                {selectedEntry.location_address && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                      <h4 className="font-semibold text-sm md:text-base">Localização</h4>
+                    </div>
+                    <div className="border rounded-lg p-3 md:p-4 space-y-2">
+                      <p className="text-sm font-medium">{selectedEntry.location_address}</p>
+                      {selectedEntry.location_lat && selectedEntry.location_lng && (
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedEntry.location_lat.toFixed(6)}, {selectedEntry.location_lng.toFixed(6)}
+                          </p>
+                          <a
+                            href={`https://www.google.com/maps?q=${selectedEntry.location_lat},${selectedEntry.location_lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          >
+                            <MapPin className="h-3 w-3" />
+                            Ver no Google Maps
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Image Viewer Dialog */}
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {selectedJustification ? `Anexo - ${getDisplayName(selectedJustification.profiles)}` : 'Visualizar Anexo'}
@@ -606,13 +694,13 @@ const Dashboard = () => {
                 </div>
                 
                 {selectedJustification && (
-                  <div className="bg-slate-50 p-4 rounded-lg">
-                    <h4 className="font-medium mb-2">{selectedJustification.title}</h4>
-                    <p className="text-sm text-slate-600 mb-3">{selectedJustification.description}</p>
+                  <div className="bg-slate-50 p-3 md:p-4 rounded-lg">
+                    <h4 className="font-medium text-sm md:text-base mb-2">{selectedJustification.title}</h4>
+                    <p className="text-xs md:text-sm text-slate-600 mb-3">{selectedJustification.description}</p>
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        className="bg-green-500 hover:bg-green-600"
+                        className="flex-1 bg-green-500 hover:bg-green-600 text-xs md:text-sm"
                         onClick={() => {
                           handleApproveJustification(selectedJustification.id);
                           setSelectedImage(null);
@@ -620,12 +708,13 @@ const Dashboard = () => {
                         }}
                         disabled={updateJustification.isPending}
                       >
-                        <CheckCircle className="h-4 w-4 mr-2" />
+                        <CheckCircle className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                         Aprovar
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
+                        className="flex-1 text-xs md:text-sm"
                         onClick={() => {
                           handleRejectJustification(selectedJustification.id);
                           setSelectedImage(null);
@@ -642,6 +731,7 @@ const Dashboard = () => {
             )}
           </DialogContent>
         </Dialog>
+      </div>
     </AdminLayout>
   );
 };
