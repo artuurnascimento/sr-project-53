@@ -6,17 +6,37 @@ import PortalLayout from '@/components/layout/PortalLayout';
 import AdvancedFacialRecognition from '@/components/AdvancedFacialRecognition';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const FaceRegistration = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [registrationComplete, setRegistrationComplete] = useState(false);
 
-  const handleRegistrationSuccess = () => {
+  const handleRegistrationSuccess = async () => {
     setRegistrationComplete(true);
+    
+    // Recarregar o perfil do usuário para atualizar o cache
+    if (profile?.id) {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('face_embedding, facial_reference_url')
+          .eq('id', profile.id)
+          .single();
+        
+        console.log('✅ Profile reloaded after facial registration:', data);
+      } catch (error) {
+        console.error('Error reloading profile:', error);
+      }
+    }
+    
+    // Redirecionar após 2 segundos
     setTimeout(() => {
-      navigate('/portal');
-    }, 3000);
+      navigate('/portal', { replace: true });
+      // Forçar reload da página para garantir que o estado seja atualizado
+      window.location.reload();
+    }, 2000);
   };
 
   if (registrationComplete) {
@@ -35,7 +55,7 @@ const FaceRegistration = () => {
                 Seu reconhecimento facial foi cadastrado com sucesso. Agora você pode usar a câmera para bater ponto.
               </p>
               <p className="text-sm text-muted-foreground">
-                Redirecionando em alguns segundos...
+                Redirecionando para a página inicial...
               </p>
             </CardContent>
           </Card>
@@ -125,7 +145,8 @@ const FaceRegistration = () => {
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                 <li>Você poderá usar o reconhecimento facial para bater ponto</li>
                 <li>O sistema identificará automaticamente seu rosto</li>
-                <li>Caso não funcione, você ainda pode usar a localização manual</li>
+                <li>Cada tipo de batimento (Entrada, Saída, etc.) só pode ser feito 1x por dia</li>
+                <li>A página será atualizada automaticamente após o cadastro</li>
               </ul>
             </div>
           </CardContent>

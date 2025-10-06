@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2, Shield } from 'lucide-react';
+import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2, Shield, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import { useCreateTimeEntry, useTodayTimeEntries, useWorkingHours } from '@/hook
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 interface WorkLocation {
   id: string;
@@ -24,21 +25,71 @@ interface WorkLocation {
 }
 
 const PortalHome = () => {
-  const { profile } = useAuth();
+  const navigate = useNavigate();
+  const { profile, updateProfile } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [location, setLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isPunchingIn, setIsPunchingIn] = useState(false);
-  const [usedPunchTypes, setUsedPunchTypes] = useState<Set<string>>(new Set());
   const [showFacialModal, setShowFacialModal] = useState(false);
   const [pendingPunchType, setPendingPunchType] = useState<'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT' | null>(null);
   const [validatedWorkLocation, setValidatedWorkLocation] = useState<WorkLocation | null>(null);
+  const [hasFacialRegistration, setHasFacialRegistration] = useState(false);
+  const [checkingFacialRegistration, setCheckingFacialRegistration] = useState(true);
 
   const createTimeEntry = useCreateTimeEntry();
   const { data: todayEntries, refetch: refetchToday } = useTodayTimeEntries(profile?.id);
   const { data: workingHours } = useWorkingHours(profile?.id, new Date().toISOString().split('T')[0]);
+
+  // Verificar se o usuário tem cadastro facial
+  useEffect(() => {
+    const checkFacialRegistration = async () => {
+      if (!profile?.id) {
+        setCheckingFacialRegistration(false);
+        return;
+      }
+
+      try {
+        // Verificar se tem face_embedding ou facial_reference_url
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('face_embedding, facial_reference_url')
+          .eq('id', profile.id)
+          .single();
+
+        if (error) throw error;
+
+        const hasRegistration = !!(data?.face_embedding || data?.facial_reference_url);
+        setHasFacialRegistration(hasRegistration);
+        
+        console.log('✅ Facial registration check:', {
+          hasEmbedding: !!data?.face_embedding,
+          hasReferenceUrl: !!data?.facial_reference_url,
+          hasRegistration
+        });
+      } catch (error) {
+        console.error('Error checking facial registration:', error);
+        setHasFacialRegistration(false);
+      } finally {
+        setCheckingFacialRegistration(false);
+      }
+    };
+
+    checkFacialRegistration();
+
+    // Recarregar quando voltar para a página
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkFacialRegistration();
+        refetchToday();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [profile?.id, refetchToday]);
 
   // Fetch geofencing config
   const { data: geofencingConfig } = useQuery({
@@ -199,6 +250,20 @@ const PortalHome = () => {
     getLocation();
   }, [geofencingConfig, workLocations]);
 
+  // Verificar quais tipos de batimento já foram feitos hoje
+  const getPunchTypesUsedToday = () => {
+    if (!todayEntries) return new Set<string>();
+    
+    const usedTypes = new Set<string>();
+    todayEntries.forEach(entry => {
+      usedTypes.add(entry.punch_type);
+    });
+    
+    return usedTypes;
+  };
+
+  const usedPunchTypes = getPunchTypesUsedToday();
+
   const handlePunchClick = (type: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT') => {
     if (!location || !isOnline) {
       toast.error('Verifique sua localização e conexão');
@@ -212,8 +277,20 @@ const PortalHome = () => {
     }
 
     // Verificar se tem face cadastrada - OBRIGATÓRIO
-    if (!profile?.face_embedding && !profile?.facial_reference_url) {
+    if (!hasFacialRegistration) {
       toast.error('Cadastro facial obrigatório! Registre sua face antes de bater o ponto.');
+      return;
+    }
+
+    // Verificar se já bateu este tipo de ponto hoje
+    if (usedPunchTypes.has(type)) {
+      const typeNames = {
+        'IN': 'Entrada',
+        'OUT': 'Saída',
+        'BREAK_IN': 'Início do Intervalo',
+        'BREAK_OUT': 'Fim do Intervalo'
+      };
+      toast.error(`Você já registrou ${typeNames[type]} hoje`);
       return;
     }
 
@@ -281,7 +358,8 @@ const PortalHome = () => {
         }
       }
       
-      refetchToday();
+      // Recarregar registros de hoje
+      await refetchToday();
       
       const punchNames = {
         'IN': 'Entrada',
@@ -289,9 +367,6 @@ const PortalHome = () => {
         'BREAK_IN': 'Início do Intervalo',
         'BREAK_OUT': 'Fim do Intervalo'
       };
-      
-      // Mark this punch type as used
-      setUsedPunchTypes(prev => new Set(prev).add(type));
       
       toast.success(`${punchNames[type]} registrada com sucesso!`);
     } catch (error) {
@@ -320,15 +395,31 @@ const PortalHome = () => {
 
   const canPunch = (type: string) => {
     // Bloquear se não tem face cadastrada
-    if (!profile?.face_embedding && !profile?.facial_reference_url) return false;
+    if (!hasFacialRegistration) return false;
     if (!location || !isOnline || isPunchingIn || createTimeEntry.isPending) return false;
     
     // Validar geofencing se ativado
     if (geofencingConfig?.enabled && !validatedWorkLocation) return false;
     
-    // Check if this punch type was already used
+    // Verificar se já bateu este tipo de ponto hoje
     if (usedPunchTypes.has(type)) return false;
+    
     return true;
+  };
+
+  const getPunchButtonText = (type: string) => {
+    if (usedPunchTypes.has(type)) {
+      return '✓ Registrado';
+    }
+    
+    const names = {
+      'IN': 'Entrada',
+      'OUT': 'Saída',
+      'BREAK_IN': 'Início Intervalo',
+      'BREAK_OUT': 'Fim Intervalo'
+    };
+    
+    return names[type as keyof typeof names] || type;
   };
 
   return (
@@ -418,67 +509,15 @@ const PortalHome = () => {
           </Alert>
         )}
 
-        {/* Punch Buttons - Large & Clean */}
-        <div className="grid grid-cols-2 gap-4">
-          <Button 
-            size="lg" 
-            className="h-32 flex flex-col gap-3 text-lg font-semibold bg-green-600 hover:bg-green-700"
-            onClick={() => handlePunchClick('IN')}
-            disabled={!canPunch('IN')}
-          >
-            {isPunchingIn && pendingPunchType === 'IN' ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : (
-              <Clock className="h-8 w-8" />
-            )}
-            Entrada
-          </Button>
-
-          <Button 
-            size="lg" 
-            className="h-32 flex flex-col gap-3 text-lg font-semibold bg-red-600 hover:bg-red-700"
-            onClick={() => handlePunchClick('OUT')}
-            disabled={!canPunch('OUT')}
-          >
-            {isPunchingIn && pendingPunchType === 'OUT' ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : (
-              <Clock className="h-8 w-8" />
-            )}
-            Saída
-          </Button>
-
-          <Button 
-            size="lg" 
-            className="h-32 flex flex-col gap-3 text-lg font-semibold bg-orange-600 hover:bg-orange-700"
-            onClick={() => handlePunchClick('BREAK_IN')}
-            disabled={!canPunch('BREAK_IN')}
-          >
-            {isPunchingIn && pendingPunchType === 'BREAK_IN' ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : (
-              <Clock className="h-8 w-8" />
-            )}
-            Início Intervalo
-          </Button>
-
-          <Button 
-            size="lg" 
-            className="h-32 flex flex-col gap-3 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
-            onClick={() => handlePunchClick('BREAK_OUT')}
-            disabled={!canPunch('BREAK_OUT')}
-          >
-            {isPunchingIn && pendingPunchType === 'BREAK_OUT' ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : (
-              <Clock className="h-8 w-8" />
-            )}
-            Fim Intervalo
-          </Button>
-        </div>
-
-        {/* Facial Recognition Setup Banner - OBRIGATÓRIO */}
-        {!profile?.face_embedding && !profile?.facial_reference_url && (
+        {/* Facial Registration Status - OBRIGATÓRIO */}
+        {checkingFacialRegistration ? (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+            <AlertDescription className="text-blue-800">
+              Verificando cadastro facial...
+            </AlertDescription>
+          </Alert>
+        ) : !hasFacialRegistration ? (
           <Alert className="bg-red-50 border-red-200">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <AlertDescription className="flex items-center justify-between">
@@ -487,15 +526,107 @@ const PortalHome = () => {
                 <p className="text-xs text-red-700 mt-1">Você precisa cadastrar sua face antes de registrar ponto</p>
               </div>
               <Button 
-                onClick={() => window.location.href = '/portal/cadastro-facial'}
+                onClick={() => navigate('/portal/cadastro-facial')}
                 size="sm"
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
+                <Camera className="h-4 w-4 mr-2" />
                 Cadastrar Agora
               </Button>
             </AlertDescription>
           </Alert>
+        ) : (
+          <Alert className="bg-green-50 border-green-200">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <AlertDescription className="text-green-800">
+              <p className="font-semibold">✓ Reconhecimento facial ativo</p>
+              <p className="text-sm mt-1">Você pode registrar seu ponto usando a câmera</p>
+            </AlertDescription>
+          </Alert>
         )}
+
+        {/* Punch Buttons - Large & Clean */}
+        <div className="grid grid-cols-2 gap-4">
+          <Button 
+            size="lg" 
+            className={`h-32 flex flex-col gap-3 text-lg font-semibold ${
+              usedPunchTypes.has('IN') 
+                ? 'bg-green-200 text-green-800 hover:bg-green-200 cursor-not-allowed' 
+                : 'bg-green-600 hover:bg-green-700'
+            }`}
+            onClick={() => handlePunchClick('IN')}
+            disabled={!canPunch('IN')}
+          >
+            {isPunchingIn && pendingPunchType === 'IN' ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : usedPunchTypes.has('IN') ? (
+              <CheckCircle className="h-8 w-8" />
+            ) : (
+              <Clock className="h-8 w-8" />
+            )}
+            {getPunchButtonText('IN')}
+          </Button>
+
+          <Button 
+            size="lg" 
+            className={`h-32 flex flex-col gap-3 text-lg font-semibold ${
+              usedPunchTypes.has('OUT') 
+                ? 'bg-red-200 text-red-800 hover:bg-red-200 cursor-not-allowed' 
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+            onClick={() => handlePunchClick('OUT')}
+            disabled={!canPunch('OUT')}
+          >
+            {isPunchingIn && pendingPunchType === 'OUT' ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : usedPunchTypes.has('OUT') ? (
+              <CheckCircle className="h-8 w-8" />
+            ) : (
+              <Clock className="h-8 w-8" />
+            )}
+            {getPunchButtonText('OUT')}
+          </Button>
+
+          <Button 
+            size="lg" 
+            className={`h-32 flex flex-col gap-3 text-lg font-semibold ${
+              usedPunchTypes.has('BREAK_IN') 
+                ? 'bg-orange-200 text-orange-800 hover:bg-orange-200 cursor-not-allowed' 
+                : 'bg-orange-600 hover:bg-orange-700'
+            }`}
+            onClick={() => handlePunchClick('BREAK_IN')}
+            disabled={!canPunch('BREAK_IN')}
+          >
+            {isPunchingIn && pendingPunchType === 'BREAK_IN' ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : usedPunchTypes.has('BREAK_IN') ? (
+              <CheckCircle className="h-8 w-8" />
+            ) : (
+              <Clock className="h-8 w-8" />
+            )}
+            {getPunchButtonText('BREAK_IN')}
+          </Button>
+
+          <Button 
+            size="lg" 
+            className={`h-32 flex flex-col gap-3 text-lg font-semibold ${
+              usedPunchTypes.has('BREAK_OUT') 
+                ? 'bg-blue-200 text-blue-800 hover:bg-blue-200 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+            onClick={() => handlePunchClick('BREAK_OUT')}
+            disabled={!canPunch('BREAK_OUT')}
+          >
+            {isPunchingIn && pendingPunchType === 'BREAK_OUT' ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : usedPunchTypes.has('BREAK_OUT') ? (
+              <CheckCircle className="h-8 w-8" />
+            ) : (
+              <Clock className="h-8 w-8" />
+            )}
+            {getPunchButtonText('BREAK_OUT')}
+          </Button>
+        </div>
 
         {/* Today Summary - Compact */}
         <Card>
