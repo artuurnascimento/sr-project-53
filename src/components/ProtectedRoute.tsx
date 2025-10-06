@@ -25,12 +25,23 @@ const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRoutePr
     return <Navigate to="/auth" replace />;
   }
 
-  // If user is authenticated but no specific role required, allow access
+  // Se não há cargo específico requerido, permite acesso
   if (!requiredRole) {
     return <>{children}</>;
   }
 
-// Check role permissions - only block access if specifically required and user doesn't have permission
+  // Bloquear colaboradores de acessar áreas administrativas
+  if (requiredRole === 'manager' && profile?.role === 'employee') {
+    return <Navigate to="/portal" replace />;
+  }
+
+  // Bloquear gerentes e admins de acessar o portal do colaborador
+  // (assumindo que rotas do portal não têm requiredRole ou têm requiredRole='employee')
+  if (requiredRole === 'employee' && (profile?.role === 'manager' || profile?.role === 'admin')) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  // Verificar permissões específicas
   if (requiredRole && profile?.role !== requiredRole && profile?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -47,8 +58,8 @@ const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRoutePr
               Voltar
             </button>
             <Link 
-              to="/dashboard-redirect" 
-              className="px-4 py-2 text-sm bg-primary text-white hover:bg-primary/90 rounded"
+              to={profile?.role === 'employee' ? '/portal' : '/admin/dashboard'} 
+              className="px-4 py-2 text-sm bg-primary text-white hover:bg-primary/90 rounded inline-block"
             >
               Ir para Início
             </Link>

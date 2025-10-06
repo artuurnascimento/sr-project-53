@@ -51,9 +51,11 @@ const App = () => (
             <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
             <Route path="/termos-uso" element={<TermsOfUse />} />
             <Route path="/auth" element={<Auth />} />
+            
+            {/* Redirect route - now handles automatic role-based redirect */}
             <Route path="/dashboard-redirect" element={<DashboardRedirect />} />
             
-            {/* Portal Routes - accessible to all authenticated users */}
+            {/* Portal Routes - APENAS para colaboradores */}
             <Route path="/portal" element={
               <ProtectedRoute>
                 <PortalHome />
@@ -85,7 +87,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             
-            {/* Admin Routes - accessible to admin and manager roles */}
+            {/* Admin Routes - APENAS para gerentes e administradores */}
             <Route path="/admin" element={
               <ProtectedRoute requiredRole="manager">
                 <AdminDashboard />
