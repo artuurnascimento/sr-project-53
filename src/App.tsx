@@ -23,7 +23,7 @@ import PortalJustifications from "./pages/portal/Justifications";
 import PortalProfile from "./pages/portal/Profile";
 
 // Admin pages  
-import Dashboard from "./pages/admin/Dashboard";
+import AdminDashboard from "./pages/admin/Dashboard";
 import AdminApprovals from "./pages/admin/Approvals";
 import AdminReports from "./pages/admin/Reports";
 import AdminRegistrations from "./pages/admin/Registrations";
@@ -90,12 +90,12 @@ const App = () => (
             {/* Admin Routes - APENAS para gerentes e administradores */}
             <Route path="/admin" element={
               <ProtectedRoute requiredRole="manager">
-                <Dashboard />
+                <AdminDashboard />
               </ProtectedRoute>
             } />
             <Route path="/admin/dashboard" element={
               <ProtectedRoute requiredRole="manager">
-                <Dashboard />
+                <AdminDashboard />
               </ProtectedRoute>
             } />
             <Route path="/admin/aprovacoes" element={
