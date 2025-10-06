@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2, Building } from 'lucide-react';
+import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import PortalLayout from '@/components/layout/PortalLayout';
 import FacialRecognitionModal from '@/components/FacialRecognitionModal';
 import LocationMap from '@/components/LocationMap';
@@ -14,6 +12,16 @@ import { useCreateTimeEntry, useTodayTimeEntries, useWorkingHours } from '@/hook
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
+
+interface WorkLocation {
+  id: string;
+  name: string;
+  type: string;
+  latitude?: number;
+  longitude?: number;
+  radius_meters?: number;
+  is_active: boolean;
+}
 
 const PortalHome = () => {
   const { profile } = useAuth();
@@ -26,11 +34,27 @@ const PortalHome = () => {
   const [usedPunchTypes, setUsedPunchTypes] = useState<Set<string>>(new Set());
   const [showFacialModal, setShowFacialModal] = useState(false);
   const [pendingPunchType, setPendingPunchType] = useState<'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT' | null>(null);
-  const [selectedWorkLocation, setSelectedWorkLocation] = useState<string>('');
+  const [validatedWorkLocation, setValidatedWorkLocation] = useState<WorkLocation | null>(null);
 
   const createTimeEntry = useCreateTimeEntry();
   const { data: todayEntries, refetch: refetchToday } = useTodayTimeEntries(profile?.id);
   const { data: workingHours } = useWorkingHours(profile?.id, new Date().toISOString().split('T')[0]);
+
+  // Fetch geofencing config
+  const { data: geofencingConfig } = useQuery({
+    queryKey: ['geofencing_config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('site_config')
+        .select('value')
+        .eq('key', 'geofencing')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      return (data?.value as { enabled: boolean; default_radius: number }) || { enabled: false, default_radius: 100 };
+    },
+  });
 
   // Fetch work locations
   const { data: workLocations } = useQuery({
@@ -43,7 +67,7 @@ const PortalHome = () => {
         .order('name', { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data as WorkLocation[];
     },
   });
 
@@ -65,6 +89,48 @@ const PortalHome = () => {
     };
   }, []);
 
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // Distance in meters
+  };
+
+  // Validate if user is within allowed location
+  const validateLocation = (userLat: number, userLng: number): WorkLocation | null => {
+    if (!geofencingConfig?.enabled || !workLocations) {
+      return null; // Geofencing disabled, allow from anywhere
+    }
+
+    for (const workLoc of workLocations) {
+      if (!workLoc.latitude || !workLoc.longitude) continue;
+      
+      const distance = calculateDistance(
+        userLat,
+        userLng,
+        workLoc.latitude,
+        workLoc.longitude
+      );
+
+      const allowedRadius = workLoc.radius_meters || 100;
+      
+      if (distance <= allowedRadius) {
+        return workLoc;
+      }
+    }
+
+    return null;
+  };
+
   const getLocation = async () => {
     if (!navigator.geolocation) {
       setLocationError('Geolocalização não suportada pelo navegador');
@@ -80,6 +146,21 @@ const PortalHome = () => {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         };
+
+        // Validate location if geofencing is enabled
+        if (geofencingConfig?.enabled) {
+          const validLocation = validateLocation(coords.lat, coords.lng);
+          
+          if (!validLocation) {
+            setLocationError('Você não está em uma localização permitida para bater ponto');
+            setLocation(null);
+            setValidatedWorkLocation(null);
+            setIsGettingLocation(false);
+            return;
+          }
+          
+          setValidatedWorkLocation(validLocation);
+        }
 
         try {
           // Try to get address from coordinates (optional)
@@ -116,7 +197,7 @@ const PortalHome = () => {
 
   useEffect(() => {
     getLocation();
-  }, []);
+  }, [geofencingConfig, workLocations]);
 
   const handlePunchClick = (type: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT') => {
     if (!location || !isOnline) {
@@ -124,8 +205,9 @@ const PortalHome = () => {
       return;
     }
 
-    if (!selectedWorkLocation) {
-      toast.error('Selecione uma localização de trabalho');
+    // Verificar geofencing se ativado
+    if (geofencingConfig?.enabled && !validatedWorkLocation) {
+      toast.error('Você não está em uma localização permitida para bater ponto');
       return;
     }
 
@@ -148,7 +230,7 @@ const PortalHome = () => {
   };
 
   const handlePunch = async (type: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT', auditId?: string) => {
-    if (!profile || !location || isPunchingIn || createTimeEntry.isPending || !selectedWorkLocation) return;
+    if (!profile || !location || isPunchingIn || createTimeEntry.isPending) return;
 
     setIsPunchingIn(true);
     
@@ -160,7 +242,7 @@ const PortalHome = () => {
         location_lat: location.lat,
         location_lng: location.lng,
         location_address: location.address || 'Localização registrada',
-        work_location_id: selectedWorkLocation,
+        work_location_id: validatedWorkLocation?.id || null,
       };
 
       const result = await createTimeEntry.mutateAsync(entry);
@@ -177,7 +259,7 @@ const PortalHome = () => {
         }
       }
 
-      // Fallback: if no audit was created (e.g., camera/recognition path failed), create a minimal audit record
+      // Fallback: if no audit was created, create a minimal audit record
       if (!auditId && result?.id && profile?.id) {
         const { error: fallbackErr } = await supabase
           .from('facial_recognition_audit')
@@ -236,34 +318,14 @@ const PortalHome = () => {
     });
   };
 
-  const getLastPunchType = () => {
-    if (!todayEntries || todayEntries.length === 0) return null;
-    return todayEntries[0].punch_type;
-  };
-
-  const getNextExpectedPunch = () => {
-    const lastPunch = getLastPunchType();
-    if (!lastPunch) return 'IN';
-    
-    switch (lastPunch) {
-      case 'IN': return 'BREAK_IN';
-      case 'BREAK_IN': return 'BREAK_OUT';
-      case 'BREAK_OUT': return 'OUT';
-      case 'OUT': return 'IN';
-      default: return 'IN';
-    }
-  };
-
-  const isWorkingTime = () => {
-    const hour = currentTime.getHours();
-    return hour >= 8 && hour < 17;
-  };
-
   const canPunch = (type: string) => {
     // Bloquear se não tem face cadastrada
     if (!profile?.face_embedding && !profile?.facial_reference_url) return false;
     if (!location || !isOnline || isPunchingIn || createTimeEntry.isPending) return false;
-    if (!selectedWorkLocation) return false;
+    
+    // Validar geofencing se ativado
+    if (geofencingConfig?.enabled && !validatedWorkLocation) return false;
+    
     // Check if this punch type was already used
     if (usedPunchTypes.has(type)) return false;
     return true;
@@ -300,37 +362,29 @@ const PortalHome = () => {
           </CardContent>
         </Card>
 
-        {/* Work Location Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Building className="h-5 w-5" />
-              Localização de Trabalho
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="work-location">Selecione onde você está trabalhando</Label>
-              <Select value={selectedWorkLocation} onValueChange={setSelectedWorkLocation}>
-                <SelectTrigger id="work-location">
-                  <SelectValue placeholder="Escolha uma localização" />
-                </SelectTrigger>
-                <SelectContent>
-                  {workLocations?.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {!selectedWorkLocation && (
-                <p className="text-xs text-muted-foreground">
-                  Você precisa selecionar uma localização antes de bater ponto
-                </p>
+        {/* Geofencing Status */}
+        {geofencingConfig?.enabled && (
+          <Alert className={validatedWorkLocation ? 'border-green-200 bg-green-50' : 'border-orange-200 bg-orange-50'}>
+            <Shield className={`h-5 w-5 ${validatedWorkLocation ? 'text-green-600' : 'text-orange-600'}`} />
+            <AlertDescription>
+              {validatedWorkLocation ? (
+                <div className="text-green-800">
+                  <p className="font-semibold">✓ Localização Validada</p>
+                  <p className="text-sm mt-1">
+                    Você está em: <strong>{validatedWorkLocation.name}</strong>
+                  </p>
+                </div>
+              ) : (
+                <div className="text-orange-800">
+                  <p className="font-semibold">⚠ Fora da Área Permitida</p>
+                  <p className="text-sm mt-1">
+                    Você precisa estar em uma localização autorizada para bater ponto
+                  </p>
+                </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Location Status - Compact */}
         {locationError ? (
@@ -352,7 +406,7 @@ const PortalHome = () => {
           <Alert className="text-sm border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              Localização confirmada
+              Localização GPS confirmada
             </AlertDescription>
           </Alert>
         ) : (

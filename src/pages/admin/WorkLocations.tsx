@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit, Trash2, MapPin, Building, Home, Check, X } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Building, Home, Check, X, Shield, ShieldOff, Navigation, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,9 +18,17 @@ interface WorkLocation {
   id: string;
   name: string;
   type: string;
+  latitude?: number;
+  longitude?: number;
+  radius_meters?: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface GeofencingConfig {
+  enabled: boolean;
+  default_radius: number;
 }
 
 const WorkLocations = () => {
@@ -27,11 +36,57 @@ const WorkLocations = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<WorkLocation | null>(null);
+  const [isGettingCurrentLocation, setIsGettingCurrentLocation] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
     type: 'office',
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
+    radius_meters: 100,
     is_active: true,
+  });
+
+  // Fetch geofencing config
+  const { data: geofencingConfig } = useQuery({
+    queryKey: ['geofencing_config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('site_config')
+        .select('value')
+        .eq('key', 'geofencing')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      const value = data?.value as unknown;
+      return (value as GeofencingConfig) || { enabled: false, default_radius: 100 };
+    },
+  });
+
+  // Update geofencing config mutation
+  const updateGeofencingConfig = useMutation({
+    mutationFn: async (config: GeofencingConfig) => {
+      const { data, error } = await supabase
+        .from('site_config')
+        .upsert({
+          key: 'geofencing',
+          value: config as any,
+          description: 'Configuração de geofencing para batimento de ponto'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['geofencing_config'] });
+      toast.success('Configuração atualizada com sucesso!');
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao atualizar configuração: ' + error.message);
+    },
   });
 
   // Fetch work locations
@@ -119,18 +174,62 @@ const WorkLocations = () => {
     setFormData({
       name: '',
       type: 'office',
+      latitude: undefined,
+      longitude: undefined,
+      radius_meters: 100,
       is_active: true,
     });
   };
 
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocalização não suportada');
+      return;
+    }
+
+    setIsGettingCurrentLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData({
+          ...formData,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setIsGettingCurrentLocation(false);
+        toast.success('Localização atual capturada!');
+      },
+      (error) => {
+        setIsGettingCurrentLocation(false);
+        toast.error('Erro ao obter localização');
+        console.error('Geolocation error:', error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+      }
+    );
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (geofencingConfig?.enabled && (!formData.latitude || !formData.longitude)) {
+      toast.error('Defina as coordenadas da localização');
+      return;
+    }
+    
     await createLocation.mutateAsync(formData);
   };
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLocation) return;
+    
+    if (geofencingConfig?.enabled && (!formData.latitude || !formData.longitude)) {
+      toast.error('Defina as coordenadas da localização');
+      return;
+    }
     
     await updateLocation.mutateAsync({
       id: selectedLocation.id,
@@ -149,6 +248,9 @@ const WorkLocations = () => {
     setFormData({
       name: location.name,
       type: location.type,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      radius_meters: location.radius_meters || 100,
       is_active: location.is_active,
     });
     setIsEditDialogOpen(true);
@@ -158,6 +260,13 @@ const WorkLocations = () => {
     await updateLocation.mutateAsync({
       id,
       is_active: !currentStatus,
+    });
+  };
+
+  const toggleGeofencing = async (enabled: boolean) => {
+    await updateGeofencingConfig.mutateAsync({
+      enabled,
+      default_radius: geofencingConfig?.default_radius || 100,
     });
   };
 
@@ -201,7 +310,7 @@ const WorkLocations = () => {
                 Nova Localização
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Nova Localização</DialogTitle>
               </DialogHeader>
@@ -230,6 +339,77 @@ const WorkLocations = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {geofencingConfig?.enabled && (
+                  <>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Coordenadas GPS</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={getCurrentLocation}
+                          disabled={isGettingCurrentLocation}
+                        >
+                          {isGettingCurrentLocation ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Obtendo...
+                            </>
+                          ) : (
+                            <>
+                              <Navigation className="h-4 w-4 mr-2" />
+                              Usar Atual
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="latitude" className="text-xs">Latitude</Label>
+                          <Input
+                            id="latitude"
+                            type="number"
+                            step="any"
+                            placeholder="-8.0000"
+                            value={formData.latitude || ''}
+                            onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) })}
+                            required={geofencingConfig?.enabled}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="longitude" className="text-xs">Longitude</Label>
+                          <Input
+                            id="longitude"
+                            type="number"
+                            step="any"
+                            placeholder="-35.0000"
+                            value={formData.longitude || ''}
+                            onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) })}
+                            required={geofencingConfig?.enabled}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="radius">Raio Permitido (metros)</Label>
+                      <Input
+                        id="radius"
+                        type="number"
+                        min="10"
+                        max="5000"
+                        value={formData.radius_meters}
+                        onChange={(e) => setFormData({ ...formData, radius_meters: parseInt(e.target.value) })}
+                        required={geofencingConfig?.enabled}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Colaboradores poderão bater ponto dentro deste raio
+                      </p>
+                    </div>
+                  </>
+                )}
                 
                 <div className="flex items-center justify-between">
                   <Label htmlFor="is_active">Ativo</Label>
@@ -247,6 +427,51 @@ const WorkLocations = () => {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Geofencing Toggle Card */}
+        <Card className={geofencingConfig?.enabled ? 'border-green-200 bg-green-50' : 'border-orange-200 bg-orange-50'}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {geofencingConfig?.enabled ? (
+                  <Shield className="h-6 w-6 text-green-600" />
+                ) : (
+                  <ShieldOff className="h-6 w-6 text-orange-600" />
+                )}
+                <div>
+                  <h3 className="font-semibold text-sm">
+                    Restrição de Localização
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {geofencingConfig?.enabled 
+                      ? 'Colaboradores só podem bater ponto nas localizações cadastradas'
+                      : 'Colaboradores podem bater ponto de qualquer lugar'
+                    }
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={geofencingConfig?.enabled || false}
+                onCheckedChange={toggleGeofencing}
+                disabled={updateGeofencingConfig.isPending}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Info Alert */}
+        {geofencingConfig?.enabled && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <MapPin className="h-5 w-5 text-blue-600" />
+            <AlertDescription className="text-sm text-blue-900">
+              <p className="font-medium mb-1">Geofencing Ativado</p>
+              <p className="text-blue-800">
+                O sistema validará automaticamente se o colaborador está dentro do raio permitido 
+                de uma das localizações ativas antes de permitir o batimento de ponto.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Locations Grid */}
         {isLoading ? (
@@ -277,8 +502,26 @@ const WorkLocations = () => {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between mb-4">
+                <CardContent className="space-y-3">
+                  {geofencingConfig?.enabled && location.latitude && location.longitude && (
+                    <div className="text-xs space-y-1 p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-medium">Coordenadas:</span>
+                      </div>
+                      <p className="text-muted-foreground">
+                        Lat: {location.latitude.toFixed(6)}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Lng: {location.longitude.toFixed(6)}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Raio: {location.radius_meters || 100}m
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Status</span>
                     <Switch
                       checked={location.is_active}
@@ -315,7 +558,10 @@ const WorkLocations = () => {
               <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">Nenhuma localização cadastrada</h3>
               <p className="text-muted-foreground mb-4 text-sm">
-                Comece adicionando a primeira localização de trabalho
+                {geofencingConfig?.enabled 
+                  ? 'Adicione localizações permitidas para batimento de ponto'
+                  : 'Comece adicionando a primeira localização de trabalho'
+                }
               </p>
               <Button onClick={() => setIsCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -327,7 +573,7 @@ const WorkLocations = () => {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Localização</DialogTitle>
             </DialogHeader>
@@ -355,6 +601,77 @@ const WorkLocations = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {geofencingConfig?.enabled && (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Coordenadas GPS</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={getCurrentLocation}
+                        disabled={isGettingCurrentLocation}
+                      >
+                        {isGettingCurrentLocation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Obtendo...
+                          </>
+                        ) : (
+                          <>
+                            <Navigation className="h-4 w-4 mr-2" />
+                            Usar Atual
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor="edit_latitude" className="text-xs">Latitude</Label>
+                        <Input
+                          id="edit_latitude"
+                          type="number"
+                          step="any"
+                          placeholder="-8.0000"
+                          value={formData.latitude || ''}
+                          onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) })}
+                          required={geofencingConfig?.enabled}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit_longitude" className="text-xs">Longitude</Label>
+                        <Input
+                          id="edit_longitude"
+                          type="number"
+                          step="any"
+                          placeholder="-35.0000"
+                          value={formData.longitude || ''}
+                          onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) })}
+                          required={geofencingConfig?.enabled}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_radius">Raio Permitido (metros)</Label>
+                    <Input
+                      id="edit_radius"
+                      type="number"
+                      min="10"
+                      max="5000"
+                      value={formData.radius_meters}
+                      onChange={(e) => setFormData({ ...formData, radius_meters: parseInt(e.target.value) })}
+                      required={geofencingConfig?.enabled}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Colaboradores poderão bater ponto dentro deste raio
+                    </p>
+                  </div>
+                </>
+              )}
               
               <div className="flex items-center justify-between">
                 <Label htmlFor="edit_is_active">Ativo</Label>
@@ -393,10 +710,18 @@ const WorkLocations = () => {
               <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-blue-900">
                 <p className="font-medium mb-1">Como funciona?</p>
-                <p className="text-blue-800">
-                  Os colaboradores poderão selecionar uma destas localizações ao bater ponto. 
-                  Apenas localizações ativas estarão disponíveis para seleção.
-                </p>
+                <ul className="text-blue-800 space-y-1 list-disc list-inside">
+                  <li>
+                    <strong>Restrição Desativada:</strong> Colaboradores podem bater ponto de qualquer lugar
+                  </li>
+                  <li>
+                    <strong>Restrição Ativada:</strong> O sistema valida automaticamente se o colaborador 
+                    está dentro do raio de uma localização ativa antes de permitir o registro
+                  </li>
+                  <li>
+                    Configure coordenadas GPS e raio para cada localização permitida
+                  </li>
+                </ul>
               </div>
             </div>
           </CardContent>
