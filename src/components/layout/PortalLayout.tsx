@@ -61,30 +61,55 @@ const PortalLayout = ({ children }: PortalLayoutProps) => {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 p-0">
-              <div className="flex flex-col h-full bg-white">
+            <SheetContent side="left" className="w-80 p-0 bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700/60">
+              <div className="flex flex-col h-full">
                 {/* Mobile Sidebar Header */}
-                <div className="p-6 border-b border-slate-200">
+                <div className="p-6 border-b border-slate-700/60">
                   <div className="flex items-center gap-3">
                     <img 
                       src={logoSirius} 
                       alt="Sirius Ambiental" 
-                      className="h-10 w-auto"
+                      className="h-10 w-auto filter brightness-0 invert"
                     />
                     <div>
-                      <p className="text-sm text-slate-600 font-medium">Portal do Colaborador</p>
+                      <p className="text-sm text-slate-300 font-medium">Portal do Colaborador</p>
                     </div>
                   </div>
+                </div>
+                
+                {/* Menu Label */}
+                <div className="px-6 pt-6 pb-4">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Menu
+                  </p>
                 </div>
                 
                 <nav className="flex-1 p-6">
                   <NavContent />
                 </nav>
                 
-                <div className="p-6 border-t border-slate-200">
+                {/* User Profile Section */}
+                <div className="p-6 border-t border-slate-700/60">
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-slate-700/20 to-slate-600/20 border border-slate-600/30">
+                    <Avatar className="h-10 w-10 ring-2 ring-white shadow-md">
+                      <AvatarImage src={profile?.avatar_url || ''} />
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
+                        {profile?.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-white truncate">
+                        {profile?.full_name || 'Usuário'}
+                      </div>
+                      <div className="text-sm text-slate-300 truncate">
+                        {profile?.role === 'admin' ? 'Administrador' : profile?.role === 'manager' ? 'Gerente' : 'Colaborador'}
+                      </div>
+                    </div>
+                  </div>
+                  
                   <Button 
                     variant="ghost" 
-                    className="w-full justify-start text-slate-600 hover:text-slate-900" 
+                    className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700/50 mt-4" 
                     onClick={signOut}
                   >
                     <LogOut className="h-5 w-5 mr-3" />
