@@ -107,46 +107,50 @@ const Registrations = () => {
         password: '***hidden***'
       });
 
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: payload
-      });
-
-      console.log('📥 Raw response:', { data, error });
-
-      // Se houver erro na invocação
-      if (error) {
-        console.error('❌ Function invocation error:', error);
-        
-        // Tentar extrair mensagem de erro mais específica
-        let errorMessage = 'Erro ao criar colaborador';
-        
-        if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        // Se o erro contém contexto adicional
-        if (error.context) {
-          console.error('Error context:', error.context);
-        }
-        
-        throw new Error(errorMessage);
+      // Fazer chamada HTTP direta para obter mais detalhes do erro
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Sessão não encontrada. Faça login novamente.');
       }
 
-      // Se não há dados na resposta
-      if (!data) {
-        console.error('❌ No data in response');
-        throw new Error('Nenhuma resposta da função');
+      const response = await fetch(
+        `https://segvkjzlvkhkjkwyecnc.supabase.co/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlZ3Zranpsdmtoa2prd3llY25jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NjkwOTgsImV4cCI6MjA3MzU0NTA5OH0.rKy5zZNrMuWGK_37ZK7H9xzX_ioajm-NiXGPXYlk3Jo'
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      console.log('📥 HTTP Response status:', response.status);
+      console.log('📥 HTTP Response headers:', Object.fromEntries(response.headers.entries()));
+
+      const responseText = await response.text();
+      console.log('📥 HTTP Response text:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Failed to parse response as JSON:', parseError);
+        throw new Error(`Resposta inválida do servidor: ${responseText.substring(0, 100)}`);
       }
 
-      console.log('📊 Response data:', data);
+      console.log('📊 Parsed response data:', data);
 
-      // Se a função retornou success: false
-      if (data.success === false) {
-        console.error('❌ Function returned success: false, error:', data.error);
+      if (!response.ok) {
+        throw new Error(data.error || `Erro HTTP ${response.status}`);
+      }
+
+      if (!data.success) {
         throw new Error(data.error || 'Erro ao criar colaborador');
       }
 
-      // Sucesso!
       console.log('✅ User created successfully:', data.user_id);
 
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
@@ -158,11 +162,8 @@ const Registrations = () => {
       
       let errorMessage = 'Erro ao criar colaborador';
       
-      // Mensagens de erro específicas
-      if (error.message?.includes('duplicate key')) {
+      if (error.message?.includes('duplicate key') || error.message?.includes('already registered')) {
         errorMessage = 'Email ou ID de funcionário já cadastrado';
-      } else if (error.message?.includes('already registered')) {
-        errorMessage = 'Email já cadastrado no sistema';
       } else if (error.message?.includes('Only admins and managers')) {
         errorMessage = 'Você não tem permissão para criar usuários';
       } else if (error.message?.includes('Managers can only create employees')) {
