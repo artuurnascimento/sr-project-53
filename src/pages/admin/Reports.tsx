@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BarChart3, Download, Calendar, Users, Clock, TrendingUp, Filter, MapPin, Camera, Eye } from 'lucide-react';
+import { BarChart3, Download, Calendar, Users, Clock, TrendingUp, Filter, MapPin, Camera, Eye, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -20,7 +20,7 @@ import { useProfiles } from '@/hooks/useProfiles';
 const Reports = () => {
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
-    date.setDate(1); // First day of current month
+    date.setDate(1);
     return date.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => {
@@ -30,6 +30,8 @@ const Reports = () => {
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const { data: reportData, isLoading } = useReportData(startDate, endDate);
   const { data: timeEntries } = useTimeEntries();
@@ -82,27 +84,24 @@ const Reports = () => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Relatório de Ponto');
       
-      // Auto-size columns
       const maxWidth = data.reduce((w, r) => Math.max(w, r.Colaborador?.length || 0), 10);
       ws['!cols'] = [
-        { wch: 12 }, // Data
-        { wch: 10 }, // Hora
-        { wch: maxWidth + 2 }, // Colaborador
-        { wch: 15 }, // Departamento
-        { wch: 15 }, // Tipo
-        { wch: 10 }, // Status
-        { wch: 30 }  // Localização
+        { wch: 12 },
+        { wch: 10 },
+        { wch: maxWidth + 2 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 10 },
+        { wch: 30 }
       ];
       
       XLSX.writeFile(wb, `relatorio-ponto-${startDate}-${endDate}.xlsx`);
     } else if (format === 'pdf') {
       const doc = new jsPDF();
       
-      // Título
       doc.setFontSize(16);
       doc.text('Relatório de Ponto', 14, 15);
       
-      // Período
       doc.setFontSize(10);
       doc.text(`Período: ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`, 14, 22);
       
@@ -110,10 +109,8 @@ const Reports = () => {
         doc.text(`Departamento: ${selectedDepartment}`, 14, 27);
       }
       
-      // Estatísticas
       doc.text(`Total de Registros: ${filteredEntries.length}`, 14, selectedDepartment !== 'all' ? 32 : 27);
       
-      // Tabela
       const tableData = filteredEntries.map(entry => [
         new Date(entry.punch_time).toLocaleDateString('pt-BR'),
         new Date(entry.punch_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
@@ -152,14 +149,412 @@ const Reports = () => {
 
   const getAttendanceRate = () => {
     if (!reportData) return 0;
-    const workingDays = 22; // Average working days per month
-    const expectedPunches = reportData.activeEmployees * workingDays * 2; // IN and OUT
+    const workingDays = 22;
+    const expectedPunches = reportData.activeEmployees * workingDays * 2;
     return Math.round((reportData.todayPunches / expectedPunches) * 100);
   };
 
+  const paginatedEntries = timeEntries?.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  ) || [];
+
+  const totalPages = Math.ceil((timeEntries?.length || 0) / itemsPerPage);
+
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="min-h-screen bg-[#F9FAFB]">
+          <div className="lg:hidden">
+            <div className="p-4 space-y-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="h-24 bg-white rounded-xl border animate-pulse" />
+              ))}
+            </div>
+          </div>
+          <div className="hidden lg:flex items-center justify-center h-64">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout>
-        <div className="space-y-4 md:space-y-6 p-4 md:p-0 max-w-full overflow-x-hidden">
+      <div className="min-h-screen bg-[#F9FAFB]">
+        {/* ========== MOBILE LAYOUT ========== */}
+        <div className="lg:hidden">
+          {/* Header */}
+          <div className="bg-white border-b border-[#E5E7EB] p-4">
+            <h1 className="text-2xl font-bold text-[#111827]">Relatórios</h1>
+            <p className="text-sm text-[#6B7280] mt-1">
+              Análise detalhada de dados de ponto e produtividade
+            </p>
+          </div>
+
+          {/* Export Buttons */}
+          <div className="bg-white border-b border-[#E5E7EB] p-4">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => generateReport('csv')}
+                className="flex-1 h-11 rounded-xl border-[#D1D5DB] text-sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                CSV
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => generateReport('excel')}
+                className="flex-1 h-11 rounded-xl border-[#D1D5DB] text-sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Excel
+              </Button>
+              <Button 
+                onClick={() => generateReport('pdf')}
+                className="flex-1 h-11 rounded-xl bg-[#0F3C4C] hover:bg-[#0F3C4C]/90 text-white text-sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
+            </div>
+          </div>
+
+          {/* Filters Card */}
+          <div className="p-4">
+            <Card className="rounded-xl shadow-sm border-[#E5E7EB]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold text-[#111827] flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-[#6B7280]" />
+                  Filtros do Relatório
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-[#374151]">Data Início</Label>
+                  <div className="relative">
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="h-11 rounded-xl border-[#D1D5DB] text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-[#374151]">Data Fim</Label>
+                  <div className="relative">
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="h-11 rounded-xl border-[#D1D5DB] text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-[#374151]">Departamento</Label>
+                  <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                    <SelectTrigger className="h-11 rounded-xl border-[#D1D5DB] text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {getDepartments().map(dept => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button className="w-full h-12 rounded-xl bg-[#0F3C4C] hover:bg-[#0F3C4C]/90 text-white">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Gerar
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tabs */}
+          <div className="px-4">
+            <Tabs defaultValue="overview" className="space-y-4">
+              <TabsList className="w-full grid grid-cols-2 h-11 bg-[#F3F4F6] rounded-xl p-1">
+                <TabsTrigger 
+                  value="overview" 
+                  className="rounded-lg text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                >
+                  Visão Geral
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="attendance" 
+                  className="rounded-lg text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                >
+                  Frequência
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="space-y-4 mt-4">
+                {/* Stats Cards */}
+                <Card className="rounded-xl shadow-sm border-[#E5E7EB]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-sm font-medium text-[#111827]">Total de Colaboradores</h3>
+                      <Users className="h-5 w-5 text-[#6B7280]" />
+                    </div>
+                    <p className="text-3xl font-bold text-[#111827]">
+                      {reportData?.totalEmployees || 0}
+                    </p>
+                    <p className="text-xs text-[#6B7280] mt-1">
+                      {reportData?.activeEmployees || 0} ativos
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-xl shadow-sm border-[#E5E7EB]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-sm font-medium text-[#111827]">Registros Hoje</h3>
+                      <Clock className="h-5 w-5 text-[#6B7280]" />
+                    </div>
+                    <p className="text-3xl font-bold text-[#111827]">
+                      {reportData?.todayPunches || 0}
+                    </p>
+                    <p className="text-xs text-[#6B7280] mt-1">batidas de ponto</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-xl shadow-sm border-[#E5E7EB]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-sm font-medium text-[#111827]">Taxa de Presença</h3>
+                      <TrendingUp className="h-5 w-5 text-[#6B7280]" />
+                    </div>
+                    <p className="text-3xl font-bold text-[#111827]">
+                      {getAttendanceRate()}%
+                    </p>
+                    <Progress value={getAttendanceRate()} className="mt-2 h-2" />
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-xl shadow-sm border-[#E5E7EB]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-sm font-medium text-[#111827]">Horas Extras</h3>
+                      <Clock className="h-5 w-5 text-[#6B7280]" />
+                    </div>
+                    <p className="text-3xl font-bold text-[#F97316]">
+                      {reportData?.overtime || 0}h
+                    </p>
+                    <p className="text-xs text-[#6B7280] mt-1">este mês</p>
+                  </CardContent>
+                </Card>
+
+                {/* Recent Activity */}
+                <Card className="rounded-xl shadow-sm border-[#E5E7EB]">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold text-[#111827]">
+                      Atividade Recente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {paginatedEntries.map((entry) => (
+                      <div 
+                        key={entry.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB]"
+                        onClick={() => {
+                          setSelectedEntry(entry);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Clock className="h-5 w-5 text-[#6B7280] flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[#111827] truncate">
+                              {entry.profiles?.full_name || 'Usuário'}
+                            </p>
+                            <p className="text-xs text-[#6B7280] truncate">
+                              {entry.punch_type === 'IN' ? 'Entrada' :
+                               entry.punch_type === 'OUT' ? 'Saída' :
+                               entry.punch_type === 'BREAK_IN' ? 'Início Intervalo' : 'Fim Intervalo'} - {' '}
+                              {new Date(entry.punch_time).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit'
+                              })}, {new Date(entry.punch_time).toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                            <div className="flex gap-2 mt-1">
+                              {entry.facial_recognition_audit && entry.facial_recognition_audit.length > 0 && (
+                                <Camera className="h-3 w-3 text-[#6B7280]" />
+                              )}
+                              {entry.location_address && (
+                                <MapPin className="h-3 w-3 text-[#6B7280]" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <Badge 
+                          className={`
+                            text-xs flex-shrink-0 ml-2
+                            ${entry.status === 'approved' 
+                              ? 'bg-[#0F3C4C] text-white hover:bg-[#0F3C4C]/90' 
+                              : 'bg-[#F3F4F6] text-[#6B7280]'
+                            }
+                          `}
+                        >
+                          {entry.status === 'approved' ? 'Aprovado' : 'Pendente'}
+                        </Badge>
+                      </div>
+                    ))}
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-1 pt-4">
+                        {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map(page => (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`
+                              w-8 h-8 rounded-lg text-sm font-medium transition-colors
+                              ${currentPage === page 
+                                ? 'bg-[#0F3C4C] text-white' 
+                                : 'bg-white text-[#6B7280] border border-[#E5E7EB]'
+                              }
+                            `}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="attendance" className="space-y-4 mt-4">
+                <Card className="rounded-xl shadow-sm border-[#E5E7EB]">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold text-[#111827]">
+                      Análise de Frequência
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                      <div className="text-center p-3 rounded-lg bg-[#DCFCE7]">
+                        <p className="text-2xl font-bold text-[#166534]">95%</p>
+                        <p className="text-xs text-[#166534] mt-1">Presença</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-[#FED7AA]">
+                        <p className="text-2xl font-bold text-[#9A3412]">3</p>
+                        <p className="text-xs text-[#9A3412] mt-1">Atrasos</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-[#FEE2E2]">
+                        <p className="text-2xl font-bold text-[#991B1B]">1</p>
+                        <p className="text-xs text-[#991B1B] mt-1">Faltas</p>
+                      </div>
+                    </div>
+                    
+                    <div className="h-48 bg-[#F9FAFB] rounded-xl border border-[#E5E7EB] flex items-center justify-center">
+                      <div className="text-center">
+                        <BarChart3 className="h-10 w-10 text-[#9CA3AF] mx-auto mb-2" />
+                        <p className="text-sm text-[#6B7280]">Gráfico de frequência</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Details Dialog */}
+          <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+            <DialogContent className="max-w-[95vw] max-h-[80vh] overflow-y-auto rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-lg">Detalhes do Registro</DialogTitle>
+              </DialogHeader>
+              {selectedEntry && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-base">{selectedEntry.profiles?.full_name || 'Usuário'}</h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-[#6B7280]">Tipo:</span>
+                        <p className="font-medium text-[#111827]">
+                          {selectedEntry.punch_type === 'IN' ? 'Entrada' :
+                           selectedEntry.punch_type === 'OUT' ? 'Saída' :
+                           selectedEntry.punch_type === 'BREAK_IN' ? 'Início Intervalo' : 'Fim Intervalo'}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[#6B7280]">Horário:</span>
+                        <p className="font-medium text-[#111827]">
+                          {new Date(selectedEntry.punch_time).toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedEntry.facial_recognition_audit && selectedEntry.facial_recognition_audit.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-5 w-5 text-[#0F3C4C]" />
+                        <h4 className="font-semibold text-sm">Reconhecimento Facial</h4>
+                      </div>
+                      <div className="rounded-xl overflow-hidden border border-[#E5E7EB]">
+                        <img 
+                          src={selectedEntry.facial_recognition_audit[0].attempt_image_url}
+                          alt="Foto facial"
+                          className="w-full aspect-video object-contain bg-[#F9FAFB]"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/placeholder.svg';
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-sm p-3 bg-[#F9FAFB] rounded-lg">
+                        <span className="text-[#6B7280]">Confiança:</span>
+                        <Badge className={`
+                          ${selectedEntry.facial_recognition_audit[0].confidence_score >= 0.9 
+                            ? 'bg-green-100 text-green-800' 
+                            : selectedEntry.facial_recognition_audit[0].confidence_score >= 0.7 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-red-100 text-red-800'
+                          }
+                        `}>
+                          {(selectedEntry.facial_recognition_audit[0].confidence_score * 100).toFixed(1)}%
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedEntry.location_address && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5 text-[#0F3C4C]" />
+                        <h4 className="font-semibold text-sm">Localização</h4>
+                      </div>
+                      <div className="p-3 bg-[#F9FAFB] rounded-lg">
+                        <p className="text-sm font-medium text-[#111827]">{selectedEntry.location_address}</p>
+                        {selectedEntry.location_lat && selectedEntry.location_lng && (
+                          <p className="text-xs text-[#6B7280] mt-1">
+                            {selectedEntry.location_lat.toFixed(6)}, {selectedEntry.location_lng.toFixed(6)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* ========== DESKTOP LAYOUT (Original) ========== */}
+        <div className="hidden lg:block space-y-4 md:space-y-6 p-4 md:p-0 max-w-full overflow-x-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="text-xl md:text-3xl font-bold">Relatórios</h1>
@@ -183,7 +578,6 @@ const Reports = () => {
             </div>
           </div>
 
-          {/* Filters */}
           <Card>
             <CardHeader className="pb-3 md:pb-6">
               <CardTitle className="text-base md:text-lg flex items-center gap-2">
@@ -243,7 +637,6 @@ const Reports = () => {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 md:space-y-6">
-              {/* Overview Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -300,7 +693,6 @@ const Reports = () => {
                 </Card>
               </div>
 
-              {/* Recent Activity */}
               <Card>
                 <CardHeader className="pb-3 md:pb-6">
                   <CardTitle className="text-base md:text-lg">Atividade Recente</CardTitle>
@@ -483,7 +875,6 @@ const Reports = () => {
             </TabsContent>
           </Tabs>
 
-          {/* Details Dialog */}
           <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
@@ -491,7 +882,6 @@ const Reports = () => {
               </DialogHeader>
               {selectedEntry && (
                 <div className="space-y-6">
-                  {/* Employee Info */}
                   <div className="space-y-2">
                     <h3 className="font-semibold text-lg">{selectedEntry.profiles?.full_name || 'Usuário'}</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
@@ -524,7 +914,6 @@ const Reports = () => {
                     </div>
                   </div>
 
-                   {/* Facial Recognition */}
                   {selectedEntry.facial_recognition_audit && selectedEntry.facial_recognition_audit.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
@@ -538,11 +927,7 @@ const Reports = () => {
                             alt="Foto de reconhecimento facial"
                             className="w-full h-full object-contain"
                             onError={(e) => {
-                              console.error('Erro ao carregar imagem:', selectedEntry.facial_recognition_audit[0].attempt_image_url);
                               (e.target as HTMLImageElement).src = '/placeholder.svg';
-                            }}
-                            onLoad={() => {
-                              console.log('Imagem carregada com sucesso');
                             }}
                           />
                         </div>
@@ -559,7 +944,6 @@ const Reports = () => {
                     </div>
                   )}
 
-                  {/* Location */}
                   {selectedEntry.location_address && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
@@ -594,6 +978,7 @@ const Reports = () => {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
     </AdminLayout>
   );
 };
