@@ -46,21 +46,17 @@ const Registrations = () => {
   const isAdmin = currentUserProfile?.role === 'admin';
   const isManager = currentUserProfile?.role === 'manager';
 
-  // Verificar se pode editar/deletar um perfil
   const canModifyProfile = (targetProfile: any) => {
-    if (isAdmin) return true; // Admin pode tudo
+    if (isAdmin) return true;
     if (isManager) {
-      // Gerente só pode modificar colaboradores
       return targetProfile.role === 'employee';
     }
     return false;
   };
 
-  // Verificar se pode criar um cargo específico
   const canCreateRole = (role: string) => {
-    if (isAdmin) return true; // Admin pode criar qualquer cargo
+    if (isAdmin) return true;
     if (isManager) {
-      // Gerente só pode criar colaboradores
       return role === 'employee';
     }
     return false;
@@ -87,7 +83,6 @@ const Registrations = () => {
       return;
     }
 
-    // Validar permissão para criar este cargo
     if (!canCreateRole(formData.role)) {
       toast.error('Você não tem permissão para criar este tipo de cargo');
       return;
@@ -96,6 +91,12 @@ const Registrations = () => {
     setIsCreating(true);
 
     try {
+      console.log('📤 Calling create-user function with:', {
+        email: formData.email,
+        full_name: formData.full_name,
+        role: formData.role
+      });
+
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
           email: formData.email,
@@ -109,31 +110,43 @@ const Registrations = () => {
         }
       });
 
+      console.log('📥 Edge function response:', { data, error });
+
       if (error) {
-        console.error('Edge function error:', error);
-        throw error;
+        console.error('❌ Edge function error:', error);
+        throw new Error(error.message || 'Erro ao chamar função');
       }
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'Erro ao criar colaborador');
+      if (!data) {
+        throw new Error('Nenhuma resposta da função');
       }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao criar colaborador');
+      }
+
+      console.log('✅ User created successfully:', data.user_id);
 
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
       toast.success('Colaborador criado com sucesso!');
       setIsCreateDialogOpen(false);
       resetForm();
     } catch (error: any) {
-      console.error('Error creating profile:', error);
+      console.error('❌ Error creating profile:', error);
+      
+      let errorMessage = 'Erro ao criar colaborador';
       
       if (error.message?.includes('duplicate key') || error.message?.includes('already registered')) {
-        toast.error('Email ou ID de funcionário já cadastrado');
+        errorMessage = 'Email ou ID de funcionário já cadastrado';
       } else if (error.message?.includes('Only admins and managers')) {
-        toast.error('Você não tem permissão para criar usuários');
+        errorMessage = 'Você não tem permissão para criar usuários';
       } else if (error.message?.includes('Managers can only create employees')) {
-        toast.error('Gerentes só podem criar colaboradores');
-      } else {
-        toast.error('Erro ao criar colaborador: ' + (error.message || 'Erro desconhecido'));
+        errorMessage = 'Gerentes só podem criar colaboradores';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      
+      toast.error(errorMessage);
     } finally {
       setIsCreating(false);
     }
@@ -143,13 +156,11 @@ const Registrations = () => {
     e.preventDefault();
     if (!selectedProfile) return;
     
-    // Validar permissão para editar
     if (!canModifyProfile(selectedProfile)) {
       toast.error('Você não tem permissão para editar este usuário');
       return;
     }
 
-    // Validar permissão para alterar cargo
     if (selectedProfile.role !== formData.role && !canCreateRole(formData.role)) {
       toast.error('Você não tem permissão para alterar para este cargo');
       return;
@@ -178,7 +189,6 @@ const Registrations = () => {
     
     if (!targetProfile) return;
     
-    // Validar permissão para deletar
     if (!canModifyProfile(targetProfile)) {
       toast.error('Você não tem permissão para remover este usuário');
       return;
@@ -190,7 +200,6 @@ const Registrations = () => {
   };
 
   const openEditDialog = (profile: any) => {
-    // Validar permissão para editar
     if (!canModifyProfile(profile)) {
       toast.error('Você não tem permissão para editar este usuário');
       return;
@@ -251,7 +260,6 @@ const Registrations = () => {
   return (
     <AdminLayout>
         <div className="space-y-6">
-          {/* Permission Info Alert */}
           {isManager && (
             <Alert className="bg-blue-50 border-blue-200">
               <Shield className="h-5 w-5 text-blue-600" />
@@ -266,7 +274,6 @@ const Registrations = () => {
             </Alert>
           )}
 
-          {/* Header */}
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-2xl lg:text-3xl font-bold">Cadastros</h1>
@@ -388,7 +395,6 @@ const Registrations = () => {
             </Dialog>
           </div>
 
-          {/* Filters */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Filtros</CardTitle>
@@ -437,7 +443,6 @@ const Registrations = () => {
             </CardContent>
           </Card>
 
-          {/* Profiles Table */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base md:text-lg">Colaboradores ({filteredProfiles.length})</CardTitle>
@@ -449,7 +454,6 @@ const Registrations = () => {
                 </div>
               ) : filteredProfiles.length > 0 ? (
                 <>
-                  {/* Mobile Cards */}
                   <div className="lg:hidden space-y-3">
                     {filteredProfiles.map((profile) => {
                       const canModify = canModifyProfile(profile);
@@ -522,7 +526,6 @@ const Registrations = () => {
                     })}
                   </div>
 
-                  {/* Desktop Table */}
                   <div className="hidden lg:block">
                     <Table>
                       <TableHeader>
@@ -618,7 +621,6 @@ const Registrations = () => {
             </CardContent>
           </Card>
 
-          {/* Edit Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
