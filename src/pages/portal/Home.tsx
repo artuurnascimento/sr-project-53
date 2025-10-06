@@ -509,7 +509,7 @@ const PortalHome = () => {
           </Alert>
         )}
 
-        {/* Facial Registration Status - OBRIGATÓRIO */}
+        {/* Facial Registration Status - APENAS SE NÃO TIVER CADASTRO */}
         {checkingFacialRegistration ? (
           <Alert className="bg-blue-50 border-blue-200">
             <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
@@ -517,7 +517,7 @@ const PortalHome = () => {
               Verificando cadastro facial...
             </AlertDescription>
           </Alert>
-        ) : !hasFacialRegistration ? (
+        ) : !hasFacialRegistration && (
           <Alert className="bg-red-50 border-red-200">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <AlertDescription className="flex items-center justify-between">
@@ -533,14 +533,6 @@ const PortalHome = () => {
                 <Camera className="h-4 w-4 mr-2" />
                 Cadastrar Agora
               </Button>
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <Alert className="bg-green-50 border-green-200">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <AlertDescription className="text-green-800">
-              <p className="font-semibold">✓ Reconhecimento facial ativo</p>
-              <p className="text-sm mt-1">Você pode registrar seu ponto usando a câmera</p>
             </AlertDescription>
           </Alert>
         )}

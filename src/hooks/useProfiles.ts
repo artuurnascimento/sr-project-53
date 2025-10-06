@@ -98,22 +98,59 @@ export const useDeleteProfile = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      // Primeiro, buscar o user_id do profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Deletar o profile (isso vai deletar em cascata os dados relacionados)
+      const { error: deleteProfileError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (deleteProfileError) throw deleteProfileError;
+
+      // Deletar o usuário do Auth usando a Edge Function
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Sessão não encontrada');
+      }
+
+      const response = await fetch(
+        `https://segvkjzlvkhkjkwyecnc.supabase.co/functions/v1/delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlZ3Zranpsdmtoa2prd3llY25jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NjkwOTgsImV4cCI6M jA3MzU0NTA5OH0.rKy5zZNrMuWGK_37ZK7H9xzX_ioajm-NiXGPXYlk3Jo'
+          },
+          body: JSON.stringify({ user_id: profile.user_id })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao deletar usuário do Auth');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
       toast({
-        title: "Perfil removido com sucesso!",
+        title: "Colaborador removido com sucesso!",
+        description: "O usuário foi completamente removido do sistema.",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao remover perfil",
+        title: "Erro ao remover colaborador",
         description: error.message,
         variant: "destructive",
       });
