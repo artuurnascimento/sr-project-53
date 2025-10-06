@@ -20,12 +20,24 @@ const DashboardRedirect = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Redirecionamento automático baseado no cargo
-  if (profile?.role === 'employee') {
+  // Aguardar o profile ser carregado antes de redirecionar
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando perfil...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirecionamento baseado no cargo
+  if (profile.role === 'employee') {
     return <Navigate to="/portal" replace />;
   }
 
-  if (profile?.role === 'manager' || profile?.role === 'admin') {
+  if (profile.role === 'manager' || profile.role === 'admin') {
     return <Navigate to="/admin/dashboard" replace />;
   }
 

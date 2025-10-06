@@ -52,10 +52,10 @@ const App = () => (
             <Route path="/termos-uso" element={<TermsOfUse />} />
             <Route path="/auth" element={<Auth />} />
             
-            {/* Redirect route - now handles automatic role-based redirect */}
+            {/* Redirect route - handles automatic role-based redirect */}
             <Route path="/dashboard-redirect" element={<DashboardRedirect />} />
             
-            {/* Portal Routes - APENAS para colaboradores */}
+            {/* Portal Routes - Para todos os usuários autenticados, mas sem requiredRole específico */}
             <Route path="/portal" element={
               <ProtectedRoute>
                 <PortalHome />
@@ -87,7 +87,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             
-            {/* Admin Routes - APENAS para gerentes e administradores */}
+            {/* Admin Routes - Requer manager ou admin */}
             <Route path="/admin" element={
               <ProtectedRoute requiredRole="manager">
                 <AdminDashboard />

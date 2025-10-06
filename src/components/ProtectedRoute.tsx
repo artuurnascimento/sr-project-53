@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -11,6 +11,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRouteProps) => {
   const { user, profile, loading } = useAuth();
+  const location = useLocation();
 
   // Wait for profile to be loaded before checking role
   if (loading || (user && !profile)) {
@@ -30,43 +31,35 @@ const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRoutePr
     return <>{children}</>;
   }
 
-  // Bloquear colaboradores de acessar áreas administrativas
-  if (requiredRole === 'manager' && profile?.role === 'employee') {
-    return <Navigate to="/portal" replace />;
-  }
+  // Verificar se o usuário tem permissão para acessar esta rota
+  const hasPermission = () => {
+    if (!profile) return false;
+    
+    // Admin tem acesso a tudo
+    if (profile.role === 'admin') return true;
+    
+    // Manager tem acesso a rotas de manager
+    if (requiredRole === 'manager' && profile.role === 'manager') return true;
+    
+    // Employee tem acesso apenas a rotas de employee
+    if (requiredRole === 'employee' && profile.role === 'employee') return true;
+    
+    return false;
+  };
 
-  // Bloquear gerentes e admins de acessar o portal do colaborador
-  // (assumindo que rotas do portal não têm requiredRole ou têm requiredRole='employee')
-  if (requiredRole === 'employee' && (profile?.role === 'manager' || profile?.role === 'admin')) {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-
-  // Verificar permissões específicas
-  if (requiredRole && profile?.role !== requiredRole && profile?.role !== 'admin') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive">Acesso Restrito</h1>
-          <p className="text-muted-foreground mt-2">
-            Esta área requer permissões de {requiredRole === 'manager' ? 'gerente' : 'administrador'}.
-          </p>
-          <div className="mt-4 space-x-2">
-            <button 
-              onClick={() => window.history.back()} 
-              className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded"
-            >
-              Voltar
-            </button>
-            <Link 
-              to={profile?.role === 'employee' ? '/portal' : '/admin/dashboard'} 
-              className="px-4 py-2 text-sm bg-primary text-white hover:bg-primary/90 rounded inline-block"
-            >
-              Ir para Início
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+  // Se não tem permissão, redireciona para a área apropriada
+  if (!hasPermission()) {
+    // Determinar para onde redirecionar baseado no role do usuário
+    if (profile?.role === 'employee') {
+      return <Navigate to="/portal" replace />;
+    }
+    
+    if (profile?.role === 'manager' || profile?.role === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    
+    // Fallback
+    return <Navigate to="/auth" replace />;
   }
 
   return <>{children}</>;
