@@ -29,6 +29,7 @@ import AdminReports from "./pages/admin/Reports";
 import AdminRegistrations from "./pages/admin/Registrations";
 import AdminIntegrations from "./pages/admin/Integrations";
 import FacialAudit from "./pages/admin/FacialAudit";
+import WorkLocations from "./pages/admin/WorkLocations";
 import FaceRegistration from "./pages/portal/FaceRegistration";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -111,6 +112,11 @@ const App = () => (
             <Route path="/admin/cadastros" element={
               <ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/dashboard">
                 <AdminRegistrations />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/localizacoes" element={
+              <ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/dashboard">
+                <WorkLocations />
               </ProtectedRoute>
             } />
             <Route path="/admin/integracoes" element={

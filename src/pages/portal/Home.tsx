@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import PortalLayout from '@/components/layout/PortalLayout';
 import FacialRecognitionModal from '@/components/FacialRecognitionModal';
 import LocationMap from '@/components/LocationMap';
@@ -11,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCreateTimeEntry, useTodayTimeEntries, useWorkingHours } from '@/hooks/useTimeTracking';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 
 const PortalHome = () => {
   const { profile } = useAuth();
@@ -23,10 +26,26 @@ const PortalHome = () => {
   const [usedPunchTypes, setUsedPunchTypes] = useState<Set<string>>(new Set());
   const [showFacialModal, setShowFacialModal] = useState(false);
   const [pendingPunchType, setPendingPunchType] = useState<'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT' | null>(null);
+  const [selectedWorkLocation, setSelectedWorkLocation] = useState<string>('');
 
   const createTimeEntry = useCreateTimeEntry();
   const { data: todayEntries, refetch: refetchToday } = useTodayTimeEntries(profile?.id);
   const { data: workingHours } = useWorkingHours(profile?.id, new Date().toISOString().split('T')[0]);
+
+  // Fetch work locations
+  const { data: workLocations } = useQuery({
+    queryKey: ['work_locations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('work_locations')
+        .select('*')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+  });
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -105,6 +124,11 @@ const PortalHome = () => {
       return;
     }
 
+    if (!selectedWorkLocation) {
+      toast.error('Selecione uma localização de trabalho');
+      return;
+    }
+
     // Verificar se tem face cadastrada - OBRIGATÓRIO
     if (!profile?.face_embedding && !profile?.facial_reference_url) {
       toast.error('Cadastro facial obrigatório! Registre sua face antes de bater o ponto.');
@@ -124,7 +148,7 @@ const PortalHome = () => {
   };
 
   const handlePunch = async (type: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT', auditId?: string) => {
-    if (!profile || !location || isPunchingIn || createTimeEntry.isPending) return;
+    if (!profile || !location || isPunchingIn || createTimeEntry.isPending || !selectedWorkLocation) return;
 
     setIsPunchingIn(true);
     
@@ -136,6 +160,7 @@ const PortalHome = () => {
         location_lat: location.lat,
         location_lng: location.lng,
         location_address: location.address || 'Localização registrada',
+        work_location_id: selectedWorkLocation,
       };
 
       const result = await createTimeEntry.mutateAsync(entry);
@@ -238,6 +263,7 @@ const PortalHome = () => {
     // Bloquear se não tem face cadastrada
     if (!profile?.face_embedding && !profile?.facial_reference_url) return false;
     if (!location || !isOnline || isPunchingIn || createTimeEntry.isPending) return false;
+    if (!selectedWorkLocation) return false;
     // Check if this punch type was already used
     if (usedPunchTypes.has(type)) return false;
     return true;
@@ -251,6 +277,7 @@ const PortalHome = () => {
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Registro de Ponto</h1>
           <p className="text-sm md:text-base text-slate-600 mt-1">Registre sua jornada de trabalho</p>
         </div>
+        
         {/* Status Bar */}
         <div className="flex items-center justify-between text-sm">
           <Badge variant={isOnline ? "default" : "destructive"} className="flex items-center gap-2">
@@ -270,6 +297,38 @@ const PortalHome = () => {
               {formatTime(currentTime)}
             </div>
             <p className="text-sm text-slate-500">{formatDate(currentTime)}</p>
+          </CardContent>
+        </Card>
+
+        {/* Work Location Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Localização de Trabalho
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="work-location">Selecione onde você está trabalhando</Label>
+              <Select value={selectedWorkLocation} onValueChange={setSelectedWorkLocation}>
+                <SelectTrigger id="work-location">
+                  <SelectValue placeholder="Escolha uma localização" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workLocations?.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!selectedWorkLocation && (
+                <p className="text-xs text-muted-foreground">
+                  Você precisa selecionar uma localização antes de bater ponto
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -406,14 +465,14 @@ const PortalHome = () => {
                           minute: '2-digit'
                         })}
                       </span>
-                     </div>
-                     {entry.status === 'approved' ? (
-                       <CheckCircle className="h-4 w-4 text-green-500" />
-                     ) : (
-                       <AlertCircle className="h-4 w-4 text-yellow-500" />
-                     )}
-                   </div>
-                 ))}
+                    </div>
+                    {entry.status === 'approved' ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-yellow-500" />
+                    )}
+                  </div>
+                ))}
                 <div className="pt-3 mt-3 border-t">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-slate-700">Total Trabalhado:</span>
