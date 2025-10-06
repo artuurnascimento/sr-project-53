@@ -1,3 +1,5 @@
+/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
@@ -68,7 +70,7 @@ serve(async (req) => {
     const requestBody = await req.json();
     const { email, password, full_name, employee_id, department, position, role, is_active } = requestBody;
 
-    console.log('📝 Creating user with role:', role);
+    console.log('📝 Creating user with data:', { email, full_name, role, employee_id });
 
     if (!email || !password || !full_name) {
       return new Response(
@@ -105,7 +107,7 @@ serve(async (req) => {
     });
 
     if (authError) {
-      console.error('❌ Auth error:', authError);
+      console.error('❌ Auth error:', authError.message);
       return new Response(
         JSON.stringify({ success: false, error: authError.message }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -124,37 +126,59 @@ serve(async (req) => {
 
     const finalEmployeeId = employee_id?.trim() || `EMP${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
 
-    console.log('📋 Creating profile...');
-    const { error: profileError } = await supabaseAdmin
+    console.log('📋 Creating profile with employee_id:', finalEmployeeId);
+    
+    // Criar profile com dados completos
+    const profileData = {
+      user_id: authData.user.id,
+      full_name,
+      email,
+      employee_id: finalEmployeeId,
+      department: department || null,
+      position: position || null,
+      role: role || 'employee',
+      is_active: is_active !== undefined ? is_active : true,
+    };
+    
+    console.log('📋 Profile data:', profileData);
+    
+    const { data: profileResult, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        user_id: authData.user.id,
-        full_name,
-        email,
-        employee_id: finalEmployeeId,
-        department: department || null,
-        position: position || null,
-        role: role || 'employee',
-        is_active: is_active !== undefined ? is_active : true,
-      });
+      .insert(profileData)
+      .select()
+      .single();
 
     if (profileError) {
       console.error('❌ Profile error:', profileError);
+      console.error('❌ Profile error details:', {
+        message: profileError.message,
+        details: profileError.details,
+        hint: profileError.hint,
+        code: profileError.code
+      });
       
+      // Rollback: deletar usuário do auth
+      console.log('🔄 Rolling back auth user...');
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       
       return new Response(
-        JSON.stringify({ success: false, error: profileError.message }), 
+        JSON.stringify({ 
+          success: false, 
+          error: `Database error: ${profileError.message}`,
+          details: profileError.details,
+          hint: profileError.hint
+        }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('✅ Profile created successfully');
+    console.log('✅ Profile created successfully:', profileResult);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         user_id: authData.user.id,
+        profile_id: profileResult.id,
         employee_id: finalEmployeeId
       }), 
       { 
@@ -165,8 +189,13 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('❌ Error in create-user function:', error);
+    console.error('❌ Error stack:', error.stack);
     return new Response(
-      JSON.stringify({ success: false, error: error.message || 'Internal server error' }), 
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || 'Internal server error',
+        stack: error.stack
+      }), 
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
