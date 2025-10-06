@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, CheckCircle, X, Clock, Search, Filter, Calendar } from 'lucide-react';
+import { Eye, CheckCircle, X, Clock, Search, Filter, Calendar, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -252,12 +252,12 @@ const FacialAudit = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between">
+      <div className="space-y-4 lg:space-y-6">
+        {/* Header - Mobile otimizado */}
+        <div className="lg:flex lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Auditoria Facial</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Auditoria Facial</h1>
+            <p className="text-sm lg:text-base text-muted-foreground mt-1">
               Monitore e aprove tentativas de reconhecimento facial
             </p>
           </div>
@@ -271,120 +271,154 @@ const FacialAudit = () => {
           </Alert>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+        {/* Stats Cards - Mobile: vertical stack | Desktop: horizontal grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 lg:gap-4">
+          {/* Total Card */}
+          <Card className="bg-white shadow-sm border border-slate-200">
             <CardContent className="p-4">
-              <div className="flex items-center">
-                <Eye className="h-8 w-8 text-blue-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold">{auditRecords.length}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Eye className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900">{auditRecords.length}</p>
+                    <p className="text-sm text-slate-500">Total</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+
+          {/* Pendentes Card */}
+          <Card className="bg-white shadow-sm border border-slate-200">
             <CardContent className="p-4">
-              <div className="flex items-center">
-                <Clock className="h-8 w-8 text-yellow-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Pendentes</p>
-                  <p className="text-2xl font-bold">
-                    {auditRecords.filter(r => r.status === 'pending').length}
-                  </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {auditRecords.filter(r => r.status === 'pending').length}
+                    </p>
+                    <p className="text-sm text-slate-500">Pendentes</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+
+          {/* Aprovados Card */}
+          <Card className="bg-white shadow-sm border border-slate-200">
             <CardContent className="p-4">
-              <div className="flex items-center">
-                <CheckCircle className="h-8 w-8 text-green-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Aprovados</p>
-                  <p className="text-2xl font-bold">
-                    {auditRecords.filter(r => r.status === 'approved').length}
-                  </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {auditRecords.filter(r => r.status === 'approved').length}
+                    </p>
+                    <p className="text-sm text-slate-500">Aprovados</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+
+          {/* Rejeitados Card */}
+          <Card className="bg-white shadow-sm border border-slate-200">
             <CardContent className="p-4">
-              <div className="flex items-center">
-                <X className="h-8 w-8 text-red-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Rejeitados</p>
-                  <p className="text-2xl font-bold">
-                    {auditRecords.filter(r => r.status === 'rejected').length}
-                  </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                    <X className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {auditRecords.filter(r => r.status === 'rejected').length}
+                    </p>
+                    <p className="text-sm text-slate-500">Rejeitados</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
+        {/* Filters Card */}
+        <Card className="bg-white shadow-sm border border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+              <Filter className="h-5 w-5 text-slate-600" />
+              Filtros
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Buscar</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Nome, email ou ID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="approved">Aprovado</SelectItem>
-                    <SelectItem value="rejected">Rejeitado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Data</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Ações</label>
-                <Button onClick={loadAuditRecords} variant="outline" className="w-full">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Atualizar
-                </Button>
+          <CardContent className="space-y-4">
+            {/* Search Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Nome, email ou ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-11 rounded-xl border-slate-300 focus:border-primary"
+                />
               </div>
             </div>
+
+            {/* Status Select */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-11 rounded-xl border-slate-300">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="approved">Aprovado</SelectItem>
+                  <SelectItem value="rejected">Rejeitado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Data</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="pl-10 h-11 rounded-xl border-slate-300 focus:border-primary"
+                  placeholder="dd/mm/aaaa"
+                />
+              </div>
+            </div>
+
+            {/* Update Button - Mobile only */}
+            <Button 
+              onClick={loadAuditRecords} 
+              className="w-full h-11 rounded-xl bg-primary hover:bg-primary-hover lg:hidden"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Atualizar Resultados
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Audit Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base md:text-lg">Registros de Auditoria ({filteredRecords.length})</CardTitle>
+        {/* Records List/Table */}
+        <Card className="bg-white shadow-sm border border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold text-slate-900">
+              Registros de Auditoria ({filteredRecords.length})
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {filteredRecords.length === 0 ? (
@@ -398,149 +432,165 @@ const FacialAudit = () => {
                 {/* Mobile Cards - visible only on mobile */}
                 <div className="lg:hidden space-y-3">
                   {filteredRecords.map((record) => (
-                    <div key={record.id} className="p-4 rounded-lg border bg-card space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">
-                            {record.profiles?.full_name || 'Não identificado'}
+                    <Card key={record.id} className="bg-white border border-slate-200 shadow-sm">
+                      <CardContent className="p-4">
+                        {/* Header with user info and status */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm text-slate-900 truncate">
+                              {record.profiles?.full_name || 'Não identificado'}
+                            </div>
+                            <div className="text-xs text-slate-500 truncate">
+                              {record.profiles?.email || ''}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {record.profiles?.email || ''}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {new Date(record.created_at).toLocaleString('pt-BR')}
+                          <div className="flex-shrink-0 ml-2">
+                            {getStatusBadge(record.status)}
                           </div>
                         </div>
-                        <div className="flex-shrink-0">
-                          {getStatusBadge(record.status)}
+
+                        {/* Date/Time */}
+                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+                          <Clock className="h-3 w-3" />
+                          {new Date(record.created_at).toLocaleString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-muted-foreground">Confiança:</span>
-                          <div className="mt-1">{getConfidenceBadge(record.confidence_score)}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Prova de Vida:</span>
-                          <div className="mt-1">
-                            <Badge variant={record.liveness_passed ? "default" : "destructive"} className="text-xs">
+
+                        {/* Metrics */}
+                        <div className="grid grid-cols-2 gap-3 mb-3 pb-3 border-b border-slate-100">
+                          <div>
+                            <p className="text-xs text-slate-500 mb-1">Confiança</p>
+                            {getConfidenceBadge(record.confidence_score)}
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 mb-1">Prova de Vida</p>
+                            <Badge 
+                              variant={record.liveness_passed ? "default" : "destructive"} 
+                              className="text-xs"
+                            >
                               {record.liveness_passed ? 'Passou' : 'Falhou'}
                             </Badge>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex gap-2 pt-2 border-t">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 text-xs"
-                              onClick={() => setSelectedRecord(record)}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              Ver Detalhes
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Detalhes da Tentativa</DialogTitle>
-                              <DialogDescription>Visualize detalhes e evidências desta tentativa de reconhecimento.</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                  <h4 className="font-medium mb-2 text-sm">Imagem Capturada</h4>
-                                  {record.attempt_image_url && record.attempt_image_url !== 'no-image' ? (
-                                    <div className="space-y-2">
-                                      <img 
-                                        src={record.attempt_image_url} 
-                                        alt="Tentativa facial"
-                                        className="w-full rounded border max-h-64 object-contain"
-                                        onLoad={() => console.log('✅ Image loaded successfully for:', record.id)}
-                                        onError={(e) => {
-                                          console.error('❌ Failed to load image for:', record.id);
-                                          console.error('Image URL:', record.attempt_image_url);
-                                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200"%3E%3Crect fill="%23f0f0f0" width="300" height="200"/%3E%3Ctext fill="%23999" x="50%" y="50%" text-anchor="middle" dy=".3em"%3EErro ao carregar%3C/text%3E%3C/svg%3E';
-                                        }}
-                                      />
-                                      <p className="text-xs text-muted-foreground break-all hidden md:block">
-                                        {record.attempt_image_url.substring(0, 60)}...
-                                      </p>
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 h-9 rounded-lg text-xs"
+                                onClick={() => setSelectedRecord(record)}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                Ver Detalhes
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Detalhes da Tentativa</DialogTitle>
+                                <DialogDescription>Visualize detalhes e evidências desta tentativa de reconhecimento.</DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <h4 className="font-medium mb-2 text-sm">Imagem Capturada</h4>
+                                    {record.attempt_image_url && record.attempt_image_url !== 'no-image' ? (
+                                      <div className="space-y-2">
+                                        <img 
+                                          src={record.attempt_image_url} 
+                                          alt="Tentativa facial"
+                                          className="w-full rounded-lg border max-h-64 object-contain"
+                                          onLoad={() => console.log('✅ Image loaded successfully for:', record.id)}
+                                          onError={(e) => {
+                                            console.error('❌ Failed to load image for:', record.id);
+                                            console.error('Image URL:', record.attempt_image_url);
+                                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200"%3E%3Crect fill="%23f0f0f0" width="300" height="200"/%3E%3Ctext fill="%23999" x="50%" y="50%" text-anchor="middle" dy=".3em"%3EErro ao carregar%3C/text%3E%3C/svg%3E';
+                                          }}
+                                        />
+                                        <p className="text-xs text-muted-foreground break-all hidden md:block">
+                                          {record.attempt_image_url.substring(0, 60)}...
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <div className="w-full h-48 bg-slate-100 rounded-lg border flex items-center justify-center text-slate-400">
+                                        <p className="text-sm">Imagem não disponível</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="space-y-3">
+                                    <div>
+                                      <label className="text-sm font-medium">Resultado</label>
+                                      <pre className="text-xs bg-slate-100 p-2 rounded-lg mt-1 overflow-auto max-h-32">
+                                        {JSON.stringify(record.recognition_result, null, 2)}
+                                      </pre>
                                     </div>
-                                  ) : (
-                                    <div className="w-full h-48 bg-slate-100 rounded border flex items-center justify-center text-slate-400">
-                                      <p className="text-sm">Imagem não disponível</p>
+                                    <div>
+                                      <label className="text-sm font-medium">Confiança</label>
+                                      <p className="text-sm">{record.confidence_score ? 
+                                        `${(record.confidence_score * 100).toFixed(2)}%` : 
+                                        'N/A'
+                                      }</p>
                                     </div>
-                                  )}
-                                </div>
-                                <div className="space-y-3">
-                                  <div>
-                                    <label className="text-sm font-medium">Resultado</label>
-                                    <pre className="text-xs bg-slate-100 p-2 rounded mt-1 overflow-auto max-h-32">
-                                      {JSON.stringify(record.recognition_result, null, 2)}
-                                    </pre>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Confiança</label>
-                                    <p className="text-sm">{record.confidence_score ? 
-                                      `${(record.confidence_score * 100).toFixed(2)}%` : 
-                                      'N/A'
-                                    }</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-medium">Prova de Vida</label>
-                                    <p className="text-sm">{record.liveness_passed ? 'Passou' : 'Falhou'}</p>
+                                    <div>
+                                      <label className="text-sm font-medium">Prova de Vida</label>
+                                      <p className="text-sm">{record.liveness_passed ? 'Passou' : 'Falhou'}</p>
+                                    </div>
                                   </div>
                                 </div>
+                                {record.status === 'pending' && (
+                                  <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+                                    <Button
+                                      onClick={() => updateAuditStatus(record.id, 'approved')}
+                                      className="flex-1 h-10 rounded-lg"
+                                      size="sm"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Aprovar
+                                    </Button>
+                                    <Button
+                                      onClick={() => updateAuditStatus(record.id, 'rejected')}
+                                      variant="destructive"
+                                      className="flex-1 h-10 rounded-lg"
+                                      size="sm"
+                                    >
+                                      <X className="h-4 w-4 mr-2" />
+                                      Rejeitar
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
-                              {record.status === 'pending' && (
-                                <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-                                  <Button
-                                    onClick={() => updateAuditStatus(record.id, 'approved')}
-                                    className="flex-1"
-                                    size="sm"
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Aprovar
-                                  </Button>
-                                  <Button
-                                    onClick={() => updateAuditStatus(record.id, 'rejected')}
-                                    variant="destructive"
-                                    className="flex-1"
-                                    size="sm"
-                                  >
-                                    <X className="h-4 w-4 mr-2" />
-                                    Rejeitar
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                        
-                        {record.status === 'pending' && (
-                          <>
-                            <Button
-                              onClick={() => updateAuditStatus(record.id, 'approved')}
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <CheckCircle className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              onClick={() => updateAuditStatus(record.id, 'rejected')}
-                              size="sm"
-                              variant="destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                            </DialogContent>
+                          </Dialog>
+                          
+                          {record.status === 'pending' && (
+                            <>
+                              <Button
+                                onClick={() => updateAuditStatus(record.id, 'approved')}
+                                size="sm"
+                                className="h-9 rounded-lg bg-green-600 hover:bg-green-700"
+                              >
+                                <CheckCircle className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={() => updateAuditStatus(record.id, 'rejected')}
+                                size="sm"
+                                variant="destructive"
+                                className="h-9 rounded-lg"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
 
