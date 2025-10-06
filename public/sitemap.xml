@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://siriusport.com.br/</loc>
+    <lastmod>2024-03-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="pt-br" href="https://siriusport.com.br/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://wwww.siriusport.com.br/" />
+  </url>
+  
+  <!-- About Page -->
+  <url>
+    <loc>https://99cf4b81-294f-4dd1-9155-3a6e22e78c92.lovableproject.com/sobre</loc>
+    <lastmod>2024-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="pt-br" href="https://siriusport.com.br/sobre" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://wwww.siriusport.com.br/sobre" />
+  </url>
+  
+  <!-- Services Page -->
+  <url>
+    <loc>https://99cf4b81-294f-4dd1-9155-3a6e22e78c92.lovableproject.com/servicos</loc>
+    <lastmod>2024-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="pt-br" href="https://siriusport.com.br/servicos" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://wwww.siriusport.com.br/servicos" />
+  </url>
+  
+  <!-- Contact Page -->
+  <url>
+    <loc>https://99cf4b81-294f-4dd1-9155-3a6e22e78c92.lovableproject.com/contato</loc>
+    <lastmod>2024-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="pt-br" href="https://siriusport.com.br/contato" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://wwww.siriusport.com.br/contato" />
+  </url>
+  
+  <!-- Cases Page -->
+  <url>
+    <loc>https://99cf4b81-294f-4dd1-9155-3a6e22e78c92.lovableproject.com/cases</loc>
+    <lastmod>2024-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="pt-br" href="https://siriusport.com.br/cases" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://wwww.siriusport.com.br/cases" />
+  </url>
+  
+  <!-- Gallery Page -->
+  <url>
+    <loc>https://99cf4b81-294f-4dd1-9155-3a6e22e78c92.lovableproject.com/galeria</loc>
+    <lastmod>2024-03-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="pt-br" href="https://siriusport.com.br/galeria" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://wwww.siriusport.com.br/galeria" />
+  </url>
+  
+  <!-- Privacy Policy Page -->
+  <url>
+    <loc>https://99cf4b81-294f-4dd1-9155-3a6e22e78c92.lovableproject.com/politica-privacidade</loc>
+    <lastmod>2024-03-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="pt-br" href="https://siriusport.com.br/politica-privacidade" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://wwww.siriusport.com.br/politica-privacidade" />
+  </url>
+  
+  <!-- Terms of Use Page -->
+  <url>
+    <loc>https://99cf4b81-294f-4dd1-9155-3a6e22e78c92.lovableproject.com/termos-uso</loc>
+    <lastmod>2024-03-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="pt-br" href="ttps://wwww.siriusport.com.br/politica-privacidade" />
+    <xhtml:link rel="alternate" hreflang="en" href="tps://wwww.siriusport.com.br/politica-privacidade" />
+  </url>
+  
+</urlset>

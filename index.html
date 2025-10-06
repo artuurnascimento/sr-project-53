@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="https://siriusport.com.br/favicon.ico" type="image/x-icon" />
+
+    <title>Sirius Ambiental - Soluções em Emergências e Consultoria Ambiental</title>
+    <meta name="description" content="Especialistas em contenção, PEI, PAE, emergências ambientais marítimas e terrestres, monitoramento e consultoria para indústrias e portos." />
+    <meta name="author" content="Sirius Ambiental" />
+    <meta name="keywords" content="emergência ambiental, contenção vazamentos, PEI, PAE, consultoria ambiental, marítimo, portos, indústria" />
+
+    <meta property="og:title" content="Sirius Ambiental - Soluções em Emergências e Consultoria Ambiental" />
+    <meta property="og:description" content="Especialistas em contenção, PEI, PAE, emergências ambientais marítimas e terrestres, monitoramento e consultoria para indústrias e portos." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://siriusport.com.br/" />
+
+    <script type="module" src="/src/main.tsx"></script>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0F3C4C" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Portal Ponto" />
+    <link rel="apple-touch-icon" href="/logo-sirius.png" />
+    <script>
+      // Register service worker for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+
