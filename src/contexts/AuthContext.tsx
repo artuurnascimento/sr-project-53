@@ -57,10 +57,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         .single();
 
       if (error) throw error;
+      
+      console.log('✅ Profile loaded:', {
+        name: data.full_name,
+        role: data.role,
+        email: data.email
+      });
+      
       setProfile(data as Profile);
       return data;
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('❌ Error fetching profile:', error);
       return null;
     }
   };
@@ -69,6 +76,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('🔐 Auth state changed:', event);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -87,6 +96,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('🔐 Initial session check:', session ? 'Logged in' : 'Not logged in');
+      
       setSession(session);
       setUser(session?.user ?? null);
       

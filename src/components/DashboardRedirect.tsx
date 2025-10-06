@@ -33,16 +33,18 @@ const DashboardRedirect = () => {
   }
 
   // Redirecionamento baseado no cargo
+  // Admin e Manager vão para o painel administrativo
+  if (profile.role === 'admin' || profile.role === 'manager') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  // Employee vai para o portal do colaborador
   if (profile.role === 'employee') {
     return <Navigate to="/portal" replace />;
   }
 
-  if (profile.role === 'manager' || profile.role === 'admin') {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-
-  // Fallback: se não tiver cargo definido, vai para o portal
-  return <Navigate to="/portal" replace />;
+  // Fallback: se não tiver cargo definido, vai para auth
+  return <Navigate to="/auth" replace />;
 };
 
 export default DashboardRedirect;

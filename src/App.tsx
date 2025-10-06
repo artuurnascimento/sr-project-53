@@ -55,71 +55,71 @@ const App = () => (
             {/* Redirect route - handles automatic role-based redirect */}
             <Route path="/dashboard-redirect" element={<DashboardRedirect />} />
             
-            {/* Portal Routes - Para todos os usuários autenticados, mas sem requiredRole específico */}
+            {/* Portal Routes - APENAS para employees */}
             <Route path="/portal" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['employee']} redirectTo="/admin/dashboard">
                 <PortalHome />
               </ProtectedRoute>
             } />
             <Route path="/portal/home" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['employee']} redirectTo="/admin/dashboard">
                 <PortalHome />
               </ProtectedRoute>
             } />
             <Route path="/portal/historico" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['employee']} redirectTo="/admin/dashboard">
                 <PortalHistory />
               </ProtectedRoute>
             } />
             <Route path="/portal/justificativas" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['employee']} redirectTo="/admin/dashboard">
                 <PortalJustifications />
               </ProtectedRoute>
             } />
             <Route path="/portal/cadastro-facial" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['employee']} redirectTo="/admin/dashboard">
                 <FaceRegistration />
               </ProtectedRoute>
             } />
             <Route path="/portal/perfil" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['employee']} redirectTo="/admin/dashboard">
                 <PortalProfile />
               </ProtectedRoute>
             } />
             
-            {/* Admin Routes - Requer manager ou admin */}
+            {/* Admin Routes - APENAS para admin e manager */}
             <Route path="/admin" element={
-              <ProtectedRoute requiredRole="manager">
+              <ProtectedRoute allowedRoles={['admin', 'manager']} redirectTo="/portal">
                 <AdminDashboard />
               </ProtectedRoute>
             } />
             <Route path="/admin/dashboard" element={
-              <ProtectedRoute requiredRole="manager">
+              <ProtectedRoute allowedRoles={['admin', 'manager']} redirectTo="/portal">
                 <AdminDashboard />
               </ProtectedRoute>
             } />
             <Route path="/admin/aprovacoes" element={
-              <ProtectedRoute requiredRole="manager">
+              <ProtectedRoute allowedRoles={['admin', 'manager']} redirectTo="/portal">
                 <AdminApprovals />
               </ProtectedRoute>
             } />
             <Route path="/admin/relatorios" element={
-              <ProtectedRoute requiredRole="manager">
+              <ProtectedRoute allowedRoles={['admin', 'manager']} redirectTo="/portal">
                 <AdminReports />
               </ProtectedRoute>
             } />
             <Route path="/admin/cadastros" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/dashboard">
                 <AdminRegistrations />
               </ProtectedRoute>
             } />
             <Route path="/admin/integracoes" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/dashboard">
                 <AdminIntegrations />
               </ProtectedRoute>
             } />
             <Route path="/admin/auditoria" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/dashboard">
                 <FacialAudit />
               </ProtectedRoute>
             } />

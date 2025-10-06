@@ -7,9 +7,10 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: 'employee' | 'admin' | 'manager';
   redirectTo?: string;
+  allowedRoles?: ('employee' | 'admin' | 'manager')[];
 }
 
-const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, requiredRole, allowedRoles, redirectTo }: ProtectedRouteProps) => {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
 
@@ -26,14 +27,19 @@ const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRoutePr
     return <Navigate to="/auth" replace />;
   }
 
-  // Se não há cargo específico requerido, permite acesso
-  if (!requiredRole) {
+  // Se não há cargo específico requerido e não há lista de cargos permitidos, permite acesso
+  if (!requiredRole && !allowedRoles) {
     return <>{children}</>;
   }
 
   // Verificar se o usuário tem permissão para acessar esta rota
   const hasPermission = () => {
     if (!profile) return false;
+    
+    // Se há lista de cargos permitidos, verificar se o usuário está nela
+    if (allowedRoles) {
+      return allowedRoles.includes(profile.role);
+    }
     
     // Admin tem acesso a tudo
     if (profile.role === 'admin') return true;
@@ -49,6 +55,11 @@ const ProtectedRoute = ({ children, requiredRole, redirectTo }: ProtectedRoutePr
 
   // Se não tem permissão, redireciona para a área apropriada
   if (!hasPermission()) {
+    // Se foi especificado um redirect customizado, usar ele
+    if (redirectTo) {
+      return <Navigate to={redirectTo} replace />;
+    }
+    
     // Determinar para onde redirecionar baseado no role do usuário
     if (profile?.role === 'employee') {
       return <Navigate to="/portal" replace />;

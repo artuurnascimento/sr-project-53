@@ -33,11 +33,14 @@ const Auth = () => {
 
   // Redirecionamento automático baseado no cargo
   if (user && profile) {
+    // Admin e Manager vão APENAS para o painel administrativo
+    if (profile.role === 'admin' || profile.role === 'manager') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    
+    // Employee vai APENAS para o portal do colaborador
     if (profile.role === 'employee') {
       return <Navigate to="/portal" replace />;
-    }
-    if (profile.role === 'manager' || profile.role === 'admin') {
-      return <Navigate to="/admin/dashboard" replace />;
     }
   }
 
