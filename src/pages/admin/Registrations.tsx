@@ -91,40 +91,62 @@ const Registrations = () => {
     setIsCreating(true);
 
     try {
-      console.log('📤 Calling create-user function with:', {
+      const payload = {
         email: formData.email,
+        password: formData.password,
         full_name: formData.full_name,
-        role: formData.role
+        employee_id: formData.employee_id.trim() || undefined,
+        department: formData.department || undefined,
+        position: formData.position || undefined,
+        role: formData.role,
+        is_active: formData.is_active,
+      };
+
+      console.log('📤 Calling create-user function with payload:', {
+        ...payload,
+        password: '***hidden***'
       });
 
       const { data, error } = await supabase.functions.invoke('create-user', {
-        body: {
-          email: formData.email,
-          password: formData.password,
-          full_name: formData.full_name,
-          employee_id: formData.employee_id.trim() || undefined,
-          department: formData.department || undefined,
-          position: formData.position || undefined,
-          role: formData.role,
-          is_active: formData.is_active,
-        }
+        body: payload
       });
 
-      console.log('📥 Edge function response:', { data, error });
+      console.log('📥 Raw response:', { data, error });
 
+      // Se houver erro na invocação
       if (error) {
-        console.error('❌ Edge function error:', error);
-        throw new Error(error.message || 'Erro ao chamar função');
+        console.error('❌ Function invocation error:', error);
+        
+        // Tentar extrair mensagem de erro mais específica
+        let errorMessage = 'Erro ao criar colaborador';
+        
+        if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Se o erro contém contexto adicional
+        if (error.context) {
+          console.error('Error context:', error.context);
+        }
+        
+        throw new Error(errorMessage);
       }
 
+      // Se não há dados na resposta
       if (!data) {
+        console.error('❌ No data in response');
         throw new Error('Nenhuma resposta da função');
       }
 
-      if (!data.success) {
+      console.log('📊 Response data:', data);
+
+      // Se a função retornou success: false
+      if (data.success === false) {
+        console.error('❌ Function returned success: false, error:', data.error);
         throw new Error(data.error || 'Erro ao criar colaborador');
       }
 
+      // Sucesso!
       console.log('✅ User created successfully:', data.user_id);
 
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
@@ -132,16 +154,23 @@ const Registrations = () => {
       setIsCreateDialogOpen(false);
       resetForm();
     } catch (error: any) {
-      console.error('❌ Error creating profile:', error);
+      console.error('❌ Error in handleCreate:', error);
       
       let errorMessage = 'Erro ao criar colaborador';
       
-      if (error.message?.includes('duplicate key') || error.message?.includes('already registered')) {
+      // Mensagens de erro específicas
+      if (error.message?.includes('duplicate key')) {
         errorMessage = 'Email ou ID de funcionário já cadastrado';
+      } else if (error.message?.includes('already registered')) {
+        errorMessage = 'Email já cadastrado no sistema';
       } else if (error.message?.includes('Only admins and managers')) {
         errorMessage = 'Você não tem permissão para criar usuários';
       } else if (error.message?.includes('Managers can only create employees')) {
         errorMessage = 'Gerentes só podem criar colaboradores';
+      } else if (error.message?.includes('Invalid token')) {
+        errorMessage = 'Sessão expirada. Faça login novamente.';
+      } else if (error.message?.includes('Unauthorized')) {
+        errorMessage = 'Não autorizado. Verifique suas permissões.';
       } else if (error.message) {
         errorMessage = error.message;
       }
