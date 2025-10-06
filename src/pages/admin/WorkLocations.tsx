@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit, Trash2, MapPin, Building, Home, Check, X, Shield, ShieldOff, Navigation, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Building, Home, Shield, ShieldOff, Navigation, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -55,37 +55,78 @@ const WorkLocations = () => {
         .from('site_config')
         .select('value')
         .eq('key', 'geofencing')
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) {
+        console.error('Error fetching geofencing config:', error);
+        return { enabled: false, default_radius: 100 };
+      }
       
-      const value = data?.value as unknown;
-      return (value as GeofencingConfig) || { enabled: false, default_radius: 100 };
+      if (!data) {
+        return { enabled: false, default_radius: 100 };
+      }
+      
+      // Parse JSON value safely
+      try {
+        const config = data.value as any;
+        return {
+          enabled: config?.enabled || false,
+          default_radius: config?.default_radius || 100
+        } as GeofencingConfig;
+      } catch (e) {
+        console.error('Error parsing geofencing config:', e);
+        return { enabled: false, default_radius: 100 };
+      }
     },
   });
 
   // Update geofencing config mutation
   const updateGeofencingConfig = useMutation({
     mutationFn: async (config: GeofencingConfig) => {
-      const { data, error } = await supabase
+      // First, check if config exists
+      const { data: existing } = await supabase
         .from('site_config')
-        .upsert({
-          key: 'geofencing',
-          value: config as any,
-          description: 'Configuração de geofencing para batimento de ponto'
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('key', 'geofencing')
+        .maybeSingle();
 
-      if (error) throw error;
-      return data;
+      if (existing) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('site_config')
+          .update({
+            value: config as any,
+            updated_at: new Date().toISOString()
+          })
+          .eq('key', 'geofencing')
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from('site_config')
+          .insert({
+            key: 'geofencing',
+            value: config as any,
+            description: 'Configuração de geofencing para batimento de ponto'
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['geofencing_config'] });
       toast.success('Configuração atualizada com sucesso!');
     },
     onError: (error: any) => {
-      toast.error('Erro ao atualizar configuração: ' + error.message);
+      console.error('Error updating geofencing config:', error);
+      toast.error('Erro ao atualizar configuração');
     },
   });
 
@@ -122,7 +163,8 @@ const WorkLocations = () => {
       resetForm();
     },
     onError: (error: any) => {
-      toast.error('Erro ao criar localização: ' + error.message);
+      console.error('Error creating location:', error);
+      toast.error('Erro ao criar localização');
     },
   });
 
@@ -147,7 +189,8 @@ const WorkLocations = () => {
       resetForm();
     },
     onError: (error: any) => {
-      toast.error('Erro ao atualizar localização: ' + error.message);
+      console.error('Error updating location:', error);
+      toast.error('Erro ao atualizar localização');
     },
   });
 
@@ -166,7 +209,8 @@ const WorkLocations = () => {
       toast.success('Localização removida com sucesso!');
     },
     onError: (error: any) => {
-      toast.error('Erro ao remover localização: ' + error.message);
+      console.error('Error deleting location:', error);
+      toast.error('Erro ao remover localização');
     },
   });
 
