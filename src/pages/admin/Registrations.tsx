@@ -10,11 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import AdminLayout from '@/components/layout/AdminLayout';
-import { useProfiles, useCreateProfile, useUpdateProfile, useDeleteProfile } from '@/hooks/useProfiles';
+import { useProfiles, useUpdateProfile, useDeleteProfile } from '@/hooks/useProfiles';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Registrations = () => {
+  const queryClient = useQueryClient();
   const { data: profiles, isLoading } = useProfiles();
-  const createProfile = useCreateProfile();
   const updateProfile = useUpdateProfile();
   const deleteProfile = useDeleteProfile();
 
@@ -24,10 +27,12 @@ const Registrations = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [isCreating, setIsCreating] = useState(false);
 
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
+    password: '',
     employee_id: '',
     department: '',
     position: '',
@@ -39,6 +44,7 @@ const Registrations = () => {
     setFormData({
       full_name: '',
       email: '',
+      password: '',
       employee_id: '',
       department: '',
       position: '',
@@ -47,28 +53,92 @@ const Registrations = () => {
     });
   };
 
+  const generateEmployeeId = () => {
+    // Gerar ID único baseado em timestamp e random
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `EMP${timestamp}${random}`;
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Generate a temporary user_id (in real implementation, this would be handled by auth)
-    const tempUserId = crypto.randomUUID();
-    
-    await createProfile.mutateAsync({
-      ...formData,
-      user_id: tempUserId,
-    });
-    
-    setIsCreateDialogOpen(false);
-    resetForm();
+    if (!formData.password || formData.password.length < 6) {
+      toast.error('A senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      // 1. Criar usuário no auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: formData.email,
+        password: formData.password,
+        email_confirm: true,
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Usuário não foi criado');
+
+      // 2. Gerar employee_id único se não foi fornecido
+      const employeeId = formData.employee_id.trim() || generateEmployeeId();
+
+      // 3. Criar perfil vinculado ao usuário
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: authData.user.id,
+          full_name: formData.full_name,
+          email: formData.email,
+          employee_id: employeeId,
+          department: formData.department || null,
+          position: formData.position || null,
+          role: formData.role,
+          is_active: formData.is_active,
+        });
+
+      if (profileError) {
+        // Se falhar ao criar perfil, tentar deletar o usuário criado
+        await supabase.auth.admin.deleteUser(authData.user.id);
+        throw profileError;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      toast.success('Colaborador criado com sucesso!');
+      setIsCreateDialogOpen(false);
+      resetForm();
+    } catch (error: any) {
+      console.error('Error creating profile:', error);
+      
+      if (error.message?.includes('duplicate key')) {
+        toast.error('Email ou ID de funcionário já cadastrado');
+      } else if (error.message?.includes('User already registered')) {
+        toast.error('Este email já está cadastrado no sistema');
+      } else {
+        toast.error('Erro ao criar colaborador: ' + error.message);
+      }
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProfile) return;
     
+    // Gerar employee_id único se estiver vazio
+    const employeeId = formData.employee_id.trim() || generateEmployeeId();
+    
     await updateProfile.mutateAsync({
       id: selectedProfile.id,
-      ...formData,
+      full_name: formData.full_name,
+      email: formData.email,
+      employee_id: employeeId,
+      department: formData.department || null,
+      position: formData.position || null,
+      role: formData.role,
+      is_active: formData.is_active,
     });
     
     setIsEditDialogOpen(false);
@@ -87,6 +157,7 @@ const Registrations = () => {
     setFormData({
       full_name: profile.full_name,
       email: profile.email,
+      password: '', // Não mostrar senha existente
       employee_id: profile.employee_id || '',
       department: profile.department || '',
       position: profile.position || '',
@@ -152,13 +223,14 @@ const Registrations = () => {
                   Novo Colaborador
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
+                  
                   <DialogTitle>Novo Colaborador</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleCreate} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="full_name">Nome Completo</Label>
+                    <Label htmlFor="full_name">Nome Completo *</Label>
                     <Input
                       id="full_name"
                       value={formData.full_name}
@@ -168,7 +240,7 @@ const Registrations = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email *</Label>
                     <Input
                       id="email"
                       type="email"
@@ -177,14 +249,34 @@ const Registrations = () => {
                       required
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Senha Inicial *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required
+                      minLength={6}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      O colaborador poderá alterar a senha após o primeiro login
+                    </p>
+                  </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="employee_id">ID do Funcionário</Label>
                     <Input
                       id="employee_id"
+                      placeholder="Deixe vazio para gerar automaticamente"
                       value={formData.employee_id}
                       onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Se não informado, será gerado automaticamente
+                    </p>
                   </div>
                   
                   <div className="space-y-2">
@@ -206,7 +298,7 @@ const Registrations = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="role">Função</Label>
+                    <Label htmlFor="role">Função no Sistema *</Label>
                     <Select value={formData.role} onValueChange={(value: any) => setFormData({ ...formData, role: value })}>
                       <SelectTrigger>
                         <SelectValue />
@@ -219,8 +311,8 @@ const Registrations = () => {
                     </Select>
                   </div>
                   
-                  <Button type="submit" className="w-full" disabled={createProfile.isPending}>
-                    {createProfile.isPending ? 'Criando...' : 'Criar Colaborador'}
+                  <Button type="submit" className="w-full" disabled={isCreating}>
+                    {isCreating ? 'Criando...' : 'Criar Colaborador'}
                   </Button>
                 </form>
               </DialogContent>
@@ -442,7 +534,7 @@ const Registrations = () => {
 
           {/* Edit Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Editar Colaborador</DialogTitle>
               </DialogHeader>
@@ -472,6 +564,7 @@ const Registrations = () => {
                   <Label htmlFor="edit_employee_id">ID do Funcionário</Label>
                   <Input
                     id="edit_employee_id"
+                    placeholder="Deixe vazio para gerar automaticamente"
                     value={formData.employee_id}
                     onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
                   />
@@ -496,7 +589,7 @@ const Registrations = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="edit_role">Função</Label>
+                  <Label htmlFor="edit_role">Função no Sistema</Label>
                   <Select value={formData.role} onValueChange={(value: any) => setFormData({ ...formData, role: value })}>
                     <SelectTrigger>
                       <SelectValue />
