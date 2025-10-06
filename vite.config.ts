@@ -7,7 +7,7 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8100,
+    port: 8080,
   },
   plugins: [
     react(),
@@ -28,8 +28,4 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  // Configuração para Vercel (SPA)
-  base: mode === 'production' ? '/' : '/',
-  // Garante que todos os assets sejam servidos do mesmo diretório
-  assetsInclude: ['**/*'],
 }));
