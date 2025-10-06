@@ -53,13 +53,6 @@ const Registrations = () => {
     });
   };
 
-  const generateEmployeeId = () => {
-    // Gerar ID único baseado em timestamp e random
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `EMP${timestamp}${random}`;
-  };
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -71,37 +64,24 @@ const Registrations = () => {
     setIsCreating(true);
 
     try {
-      // 1. Criar usuário no auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: formData.password,
-        email_confirm: true,
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Usuário não foi criado');
-
-      // 2. Gerar employee_id único se não foi fornecido
-      const employeeId = formData.employee_id.trim() || generateEmployeeId();
-
-      // 3. Criar perfil vinculado ao usuário
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: authData.user.id,
-          full_name: formData.full_name,
+      // Chamar Edge Function para criar usuário
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
           email: formData.email,
-          employee_id: employeeId,
-          department: formData.department || null,
-          position: formData.position || null,
+          password: formData.password,
+          full_name: formData.full_name,
+          employee_id: formData.employee_id.trim() || undefined,
+          department: formData.department || undefined,
+          position: formData.position || undefined,
           role: formData.role,
           is_active: formData.is_active,
-        });
+        }
+      });
 
-      if (profileError) {
-        // Se falhar ao criar perfil, tentar deletar o usuário criado
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        throw profileError;
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao criar colaborador');
       }
 
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
@@ -111,10 +91,8 @@ const Registrations = () => {
     } catch (error: any) {
       console.error('Error creating profile:', error);
       
-      if (error.message?.includes('duplicate key')) {
+      if (error.message?.includes('duplicate key') || error.message?.includes('already registered')) {
         toast.error('Email ou ID de funcionário já cadastrado');
-      } else if (error.message?.includes('User already registered')) {
-        toast.error('Este email já está cadastrado no sistema');
       } else {
         toast.error('Erro ao criar colaborador: ' + error.message);
       }
@@ -128,7 +106,7 @@ const Registrations = () => {
     if (!selectedProfile) return;
     
     // Gerar employee_id único se estiver vazio
-    const employeeId = formData.employee_id.trim() || generateEmployeeId();
+    const employeeId = formData.employee_id.trim() || `EMP${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
     
     await updateProfile.mutateAsync({
       id: selectedProfile.id,
