@@ -137,16 +137,17 @@ const Registrations = () => {
   return (
     <AdminLayout>
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          {/* Header - Mobile otimizado */}
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Cadastros</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl lg:text-3xl font-bold">Cadastros</h1>
+              <p className="text-sm lg:text-base text-muted-foreground mt-1">
                 Gerencie colaboradores e suas informações
               </p>
             </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full lg:w-auto">
                   <Plus className="h-4 w-4 mr-2" />
                   Novo Colaborador
                 </Button>
