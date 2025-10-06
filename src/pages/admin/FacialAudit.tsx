@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, CheckCircle, X, Clock, Search, Filter, Calendar, TestTube, XCircle } from 'lucide-react';
+import { Eye, CheckCircle, X, Clock, Search, Filter, Calendar, TestTube } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -23,16 +21,9 @@ interface AuditRecord {
   liveness_passed: boolean;
   status: string;
   created_at: string;
-  time_entry_id?: string;
   profiles?: {
     full_name: string;
     email: string;
-  } | null;
-  time_entries?: {
-    id: string;
-    punch_type: string;
-    punch_time: string;
-    status: string;
   } | null;
 }
 
@@ -45,9 +36,6 @@ const FacialAudit = () => {
   const [dateFilter, setDateFilter] = useState<string>('');
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null);
   const [hasPrivilegedAccess, setHasPrivilegedAccess] = useState(false);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [recordToReject, setRecordToReject] = useState<AuditRecord | null>(null);
 
   useEffect(() => {
     loadAuditRecords();
@@ -89,18 +77,10 @@ const FacialAudit = () => {
       const isPrivileged = currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'manager');
       setHasPrivilegedAccess(!!isPrivileged);
 
-      // Load audits with time entry information
+      // 1) Load audits depending on role
       let query = supabase
         .from('facial_recognition_audit')
-        .select(`
-          *,
-          time_entries:time_entry_id (
-            id,
-            punch_type,
-            punch_time,
-            status
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (!isPrivileged && currentProfile?.id) {
@@ -112,7 +92,7 @@ const FacialAudit = () => {
 
       const records = (audits as any[]) ?? [];
 
-      // Build profile map for display
+      // 2) Build profile map for display
       const profileIds = Array.from(new Set(records.map(r => r.profile_id).filter(Boolean)));
       let profileMap: Record<string, { full_name: string; email: string }> = {};
       if (profileIds.length > 0) {
@@ -128,7 +108,7 @@ const FacialAudit = () => {
         }
       }
 
-      // Sign image URLs and attach profile info
+      // 3) Sign image URLs and attach profile info
       const withSignedUrls = await Promise.all(
         records.map(async (r) => {
           // Attach profile info
@@ -182,7 +162,6 @@ const FacialAudit = () => {
       setLoading(false);
     }
   };
-
   const filterRecords = () => {
     let filtered = auditRecords;
 
@@ -323,66 +302,6 @@ const FacialAudit = () => {
     }
   };
 
-  const handleRejectWithReason = async () => {
-    if (!recordToReject || !rejectionReason.trim()) {
-      toast.error('Por favor, informe o motivo da reprovação');
-      return;
-    }
-
-    try {
-      // Update audit record status
-      const { error: auditError } = await supabase
-        .from('facial_recognition_audit')
-        .update({ 
-          status: 'rejected',
-          reviewed_at: new Date().toISOString(),
-          recognition_result: {
-            ...recordToReject.recognition_result,
-            rejection_reason: rejectionReason
-          }
-        })
-        .eq('id', recordToReject.id);
-
-      if (auditError) throw auditError;
-
-      // If there's a linked time entry, update it to rejected as well
-      if (recordToReject.time_entry_id) {
-        const { error: timeEntryError } = await supabase
-          .from('time_entries')
-          .update({ 
-            status: 'rejected'
-          })
-          .eq('id', recordToReject.time_entry_id);
-
-        if (timeEntryError) {
-          console.error('Error updating time entry:', timeEntryError);
-          toast.error('Registro de auditoria rejeitado, mas erro ao atualizar batida de ponto');
-        }
-      }
-
-      // Update local state
-      setAuditRecords(prev => 
-        prev.map(record => 
-          record.id === recordToReject.id ? { ...record, status: 'rejected' } : record
-        )
-      );
-
-      toast.success('Batida de ponto reprovada com sucesso');
-      setRejectDialogOpen(false);
-      setRecordToReject(null);
-      setRejectionReason('');
-    } catch (error) {
-      console.error('Error rejecting record:', error);
-      toast.error('Erro ao reprovar registro');
-    }
-  };
-
-  const openRejectDialog = (record: AuditRecord) => {
-    setRecordToReject(record);
-    setRejectionReason('');
-    setRejectDialogOpen(true);
-  };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -402,16 +321,6 @@ const FacialAudit = () => {
     if (percentage >= 85) return <Badge className="bg-blue-100 text-blue-800">Alta</Badge>;
     if (percentage >= 75) return <Badge className="bg-yellow-100 text-yellow-800">Média</Badge>;
     return <Badge variant="destructive">Baixa</Badge>;
-  };
-
-  const getPunchTypeLabel = (type: string) => {
-    const labels = {
-      'IN': 'Entrada',
-      'OUT': 'Saída',
-      'BREAK_IN': 'Início Intervalo',
-      'BREAK_OUT': 'Fim Intervalo'
-    };
-    return labels[type as keyof typeof labels] || type;
   };
 
   if (loading) {
@@ -447,17 +356,17 @@ const FacialAudit = () => {
             <TestTube className="h-4 w-4 mr-2" />
             Criar Registro de Teste
           </Button>
-        </div>
+          </div>
 
-        {!hasPrivilegedAccess && (
-          <Alert className="mb-4">
-            <AlertDescription>
-              Você está vendo apenas seus próprios registros. Para ver todos, acesse com um usuário administrador ou gerente.
-            </AlertDescription>
-          </Alert>
-        )}
+          {!hasPrivilegedAccess && (
+            <Alert className="mb-4">
+              <AlertDescription>
+                Você está vendo apenas seus próprios registros. Para ver todos, acesse com um usuário administrador ou gerente.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {/* Stats */}
+          {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
@@ -567,7 +476,7 @@ const FacialAudit = () => {
           </CardContent>
         </Card>
 
-        {/* Audit Table */}
+          {/* Audit Table */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base md:text-lg">Registros de Auditoria ({filteredRecords.length})</CardTitle>
@@ -596,15 +505,6 @@ const FacialAudit = () => {
                           <div className="text-xs text-muted-foreground mt-1">
                             {new Date(record.created_at).toLocaleString('pt-BR')}
                           </div>
-                          {record.time_entries && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Ponto: {getPunchTypeLabel(record.time_entries.punch_type)} - {' '}
-                              {new Date(record.time_entries.punch_time).toLocaleTimeString('pt-BR', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </div>
-                          )}
                         </div>
                         <div className="flex-shrink-0">
                           {getStatusBadge(record.status)}
@@ -689,21 +589,6 @@ const FacialAudit = () => {
                                     <label className="text-sm font-medium">Prova de Vida</label>
                                     <p className="text-sm">{record.liveness_passed ? 'Passou' : 'Falhou'}</p>
                                   </div>
-                                  {record.time_entries && (
-                                    <div>
-                                      <label className="text-sm font-medium">Batida de Ponto</label>
-                                      <p className="text-sm">
-                                        {getPunchTypeLabel(record.time_entries.punch_type)} - {' '}
-                                        {new Date(record.time_entries.punch_time).toLocaleString('pt-BR')}
-                                      </p>
-                                      <Badge 
-                                        variant={record.time_entries.status === 'approved' ? 'default' : 'destructive'}
-                                        className="mt-1"
-                                      >
-                                        {record.time_entries.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
-                                      </Badge>
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                               {record.status === 'pending' && (
@@ -717,32 +602,13 @@ const FacialAudit = () => {
                                     Aprovar
                                   </Button>
                                   <Button
-                                    onClick={() => {
-                                      setSelectedRecord(null);
-                                      openRejectDialog(record);
-                                    }}
+                                    onClick={() => updateAuditStatus(record.id, 'rejected')}
                                     variant="destructive"
                                     className="flex-1"
                                     size="sm"
                                   >
                                     <X className="h-4 w-4 mr-2" />
                                     Rejeitar
-                                  </Button>
-                                </div>
-                              )}
-                              {record.status === 'approved' && (
-                                <div className="flex gap-2 pt-4 border-t">
-                                  <Button
-                                    onClick={() => {
-                                      setSelectedRecord(null);
-                                      openRejectDialog(record);
-                                    }}
-                                    variant="destructive"
-                                    className="w-full"
-                                    size="sm"
-                                  >
-                                    <XCircle className="h-4 w-4 mr-2" />
-                                    Reprovar Batida de Ponto
                                   </Button>
                                 </div>
                               )}
@@ -760,23 +626,13 @@ const FacialAudit = () => {
                               <CheckCircle className="h-3 w-3" />
                             </Button>
                             <Button
-                              onClick={() => openRejectDialog(record)}
+                              onClick={() => updateAuditStatus(record.id, 'rejected')}
                               size="sm"
                               variant="destructive"
                             >
                               <X className="h-3 w-3" />
                             </Button>
                           </>
-                        )}
-                        {record.status === 'approved' && (
-                          <Button
-                            onClick={() => openRejectDialog(record)}
-                            size="sm"
-                            variant="outline"
-                            className="border-red-300 text-red-700 hover:bg-red-50"
-                          >
-                            <XCircle className="h-3 w-3" />
-                          </Button>
                         )}
                       </div>
                     </div>
@@ -790,7 +646,6 @@ const FacialAudit = () => {
                       <TableRow>
                         <TableHead>Data/Hora</TableHead>
                         <TableHead>Usuário</TableHead>
-                        <TableHead>Tipo de Ponto</TableHead>
                         <TableHead>Confiança</TableHead>
                         <TableHead>Prova de Vida</TableHead>
                         <TableHead>Status</TableHead>
@@ -817,23 +672,6 @@ const FacialAudit = () => {
                               </div>
                             ) : (
                               <Badge variant="outline">Não identificado</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {record.time_entries ? (
-                              <div>
-                                <Badge variant="outline">
-                                  {getPunchTypeLabel(record.time_entries.punch_type)}
-                                </Badge>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {new Date(record.time_entries.punch_time).toLocaleTimeString('pt-BR', {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Sem ponto vinculado</span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -914,23 +752,6 @@ const FacialAudit = () => {
                                           <label className="text-sm font-medium">Prova de Vida</label>
                                           <p>{record.liveness_passed ? 'Passou' : 'Falhou'}</p>
                                         </div>
-                                        {record.time_entries && (
-                                          <div>
-                                            <label className="text-sm font-medium">Batida de Ponto</label>
-                                            <p className="text-sm">
-                                              {getPunchTypeLabel(record.time_entries.punch_type)}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                              {new Date(record.time_entries.punch_time).toLocaleString('pt-BR')}
-                                            </p>
-                                            <Badge 
-                                              variant={record.time_entries.status === 'approved' ? 'default' : 'destructive'}
-                                              className="mt-1"
-                                            >
-                                              {record.time_entries.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
-                                            </Badge>
-                                          </div>
-                                        )}
                                       </div>
                                     </div>
                                     {record.status === 'pending' && (
@@ -943,30 +764,12 @@ const FacialAudit = () => {
                                           Aprovar
                                         </Button>
                                         <Button
-                                          onClick={() => {
-                                            setSelectedRecord(null);
-                                            openRejectDialog(record);
-                                          }}
+                                          onClick={() => updateAuditStatus(record.id, 'rejected')}
                                           variant="destructive"
                                           className="flex-1"
                                         >
                                           <X className="h-4 w-4 mr-2" />
                                           Rejeitar
-                                        </Button>
-                                      </div>
-                                    )}
-                                    {record.status === 'approved' && (
-                                      <div className="flex gap-2 pt-4 border-t">
-                                        <Button
-                                          onClick={() => {
-                                            setSelectedRecord(null);
-                                            openRejectDialog(record);
-                                          }}
-                                          variant="destructive"
-                                          className="w-full"
-                                        >
-                                          <XCircle className="h-4 w-4 mr-2" />
-                                          Reprovar Batida de Ponto
                                         </Button>
                                       </div>
                                     )}
@@ -984,23 +787,13 @@ const FacialAudit = () => {
                                     <CheckCircle className="h-4 w-4" />
                                   </Button>
                                   <Button
-                                    onClick={() => openRejectDialog(record)}
+                                    onClick={() => updateAuditStatus(record.id, 'rejected')}
                                     size="sm"
                                     variant="destructive"
                                   >
                                     <X className="h-4 w-4" />
                                   </Button>
                                 </>
-                              )}
-                              {record.status === 'approved' && (
-                                <Button
-                                  onClick={() => openRejectDialog(record)}
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-red-300 text-red-700 hover:bg-red-50"
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
                               )}
                             </div>
                           </TableCell>
@@ -1013,66 +806,6 @@ const FacialAudit = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Rejection Dialog */}
-        <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Reprovar Batida de Ponto</DialogTitle>
-              <DialogDescription>
-                Informe o motivo da reprovação desta batida de ponto
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {recordToReject && (
-                <div className="bg-muted p-3 rounded-lg text-sm">
-                  <p className="font-medium">{recordToReject.profiles?.full_name || 'Não identificado'}</p>
-                  {recordToReject.time_entries && (
-                    <p className="text-muted-foreground">
-                      {getPunchTypeLabel(recordToReject.time_entries.punch_type)} - {' '}
-                      {new Date(recordToReject.time_entries.punch_time).toLocaleString('pt-BR')}
-                    </p>
-                  )}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="rejection-reason">Motivo da Reprovação *</Label>
-                <Textarea
-                  id="rejection-reason"
-                  placeholder="Descreva o motivo da reprovação..."
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  rows={4}
-                  required
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setRejectDialogOpen(false);
-                    setRecordToReject(null);
-                    setRejectionReason('');
-                  }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={handleRejectWithReason}
-                  disabled={!rejectionReason.trim()}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Confirmar Reprovação
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </AdminLayout>
   );
