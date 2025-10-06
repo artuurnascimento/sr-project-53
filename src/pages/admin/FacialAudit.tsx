@@ -310,62 +310,6 @@ const FacialAudit = () => {
                 />
               </div>
 
-              {/* Status Chips */}
-              <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-                <button
-                  onClick={() => handleKPIClick('all')}
-                  className={`
-                    flex-shrink-0 px-4 h-11 rounded-full text-sm font-medium transition-all
-                    ${statusFilter === 'all' 
-                      ? 'bg-[#0A7C66] text-white shadow-sm' 
-                      : 'bg-[#F3F4F6] text-[#374151] border border-[#E5E7EB]'
-                    }
-                  `}
-                  aria-label="Filtrar por status: Todos"
-                >
-                  Todos ({auditRecords.length})
-                </button>
-                <button
-                  onClick={() => handleKPIClick('pending')}
-                  className={`
-                    flex-shrink-0 px-4 h-11 rounded-full text-sm font-medium transition-all
-                    ${statusFilter === 'pending' 
-                      ? 'bg-[#F59E0B] text-white shadow-sm' 
-                      : 'bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]'
-                    }
-                  `}
-                  aria-label="Filtrar por status: Pendentes"
-                >
-                  Pendentes ({auditRecords.filter(r => r.status === 'pending').length})
-                </button>
-                <button
-                  onClick={() => handleKPIClick('approved')}
-                  className={`
-                    flex-shrink-0 px-4 h-11 rounded-full text-sm font-medium transition-all
-                    ${statusFilter === 'approved' 
-                      ? 'bg-[#10B981] text-white shadow-sm' 
-                      : 'bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0]'
-                    }
-                  `}
-                  aria-label="Filtrar por status: Aprovados"
-                >
-                  Aprovados ({auditRecords.filter(r => r.status === 'approved').length})
-                </button>
-                <button
-                  onClick={() => handleKPIClick('rejected')}
-                  className={`
-                    flex-shrink-0 px-4 h-11 rounded-full text-sm font-medium transition-all
-                    ${statusFilter === 'rejected' 
-                      ? 'bg-[#EF4444] text-white shadow-sm' 
-                      : 'bg-[#FEE2E2] text-[#991B1B] border border-[#FECACA]'
-                    }
-                  `}
-                  aria-label="Filtrar por status: Rejeitados"
-                >
-                  Rejeitados ({auditRecords.filter(r => r.status === 'rejected').length})
-                </button>
-              </div>
-
               {/* Date & Clear */}
               <div className="flex gap-2">
                 <Sheet>
