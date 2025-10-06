@@ -6,16 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const handler = async (req: Request): Promise<Response> => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('🔐 Starting create-user function...');
+    
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('❌ No authorization header');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }), 
+        JSON.stringify({ success: false, error: 'Unauthorized' }), 
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -31,45 +34,67 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
+    console.log('✅ Supabase admin client created');
+
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
     if (userError || !user) {
+      console.error('❌ Invalid token:', userError);
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }), 
+        JSON.stringify({ success: false, error: 'Invalid token' }), 
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { data: profile } = await supabaseAdmin
+    console.log('✅ User authenticated:', user.email);
+
+    const { data: currentUserProfile } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('user_id', user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
+    if (!currentUserProfile || !['admin', 'manager'].includes(currentUserProfile.role)) {
+      console.error('❌ User is not admin or manager:', currentUserProfile?.role);
       return new Response(
-        JSON.stringify({ error: 'Only admins can create users' }), 
+        JSON.stringify({ success: false, error: 'Only admins and managers can create users' }), 
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { email, password, full_name, employee_id, department, position, role, is_active } = await req.json();
+    console.log('✅ User has permission:', currentUserProfile.role);
+
+    const requestBody = await req.json();
+    const { email, password, full_name, employee_id, department, position, role, is_active } = requestBody;
+
+    console.log('📝 Creating user with role:', role);
 
     if (!email || !password || !full_name) {
       return new Response(
-        JSON.stringify({ error: 'Email, password and full_name are required' }), 
+        JSON.stringify({ success: false, error: 'Email, password and full_name are required' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (password.length < 6) {
       return new Response(
-        JSON.stringify({ error: 'Password must be at least 6 characters' }), 
+        JSON.stringify({ success: false, error: 'Password must be at least 6 characters' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    if (currentUserProfile.role === 'manager') {
+      if (role && role !== 'employee') {
+        console.error('❌ Manager trying to create non-employee:', role);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Managers can only create employees' }), 
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    console.log('👤 Creating auth user...');
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -80,22 +105,26 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (authError) {
-      console.error('Auth error:', authError);
+      console.error('❌ Auth error:', authError);
       return new Response(
-        JSON.stringify({ error: authError.message }), 
+        JSON.stringify({ success: false, error: authError.message }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!authData.user) {
+      console.error('❌ No user returned from auth');
       return new Response(
-        JSON.stringify({ error: 'Failed to create user' }), 
+        JSON.stringify({ success: false, error: 'Failed to create user' }), 
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('✅ Auth user created:', authData.user.id);
+
     const finalEmployeeId = employee_id?.trim() || `EMP${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
 
+    console.log('📋 Creating profile...');
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
@@ -110,14 +139,17 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     if (profileError) {
-      console.error('Profile error:', profileError);
+      console.error('❌ Profile error:', profileError);
+      
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       
       return new Response(
-        JSON.stringify({ error: profileError.message }), 
+        JSON.stringify({ success: false, error: profileError.message }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('✅ Profile created successfully');
 
     return new Response(
       JSON.stringify({ 
@@ -132,15 +164,13 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error('Error in create-user function:', error);
+    console.error('❌ Error in create-user function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }), 
+      JSON.stringify({ success: false, error: error.message || 'Internal server error' }), 
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }
-};
-
-serve(handler);
+});
