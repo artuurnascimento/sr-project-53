@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, CheckCircle, X, Clock, Search, Filter, Calendar, ChevronRight, ChevronLeft, Menu, Bell, User as UserIcon, Loader2 } from 'lucide-react';
+import { Eye, CheckCircle, X, Clock, Search, Filter, Calendar, ChevronRight, ChevronLeft, Menu, Bell, User as UserIcon, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,6 +24,7 @@ interface AuditRecord {
   confidence_score?: number;
   liveness_passed: boolean;
   status: string;
+  time_entry_id?: string;
   created_at: string;
   profiles?: {
     full_name: string;
@@ -41,6 +44,9 @@ const FacialAudit = () => {
   const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isRejecting, setIsRejecting] = useState(false);
   const itemsPerPage = 5;
 
   useEffect(() => {
@@ -63,7 +69,7 @@ const FacialAudit = () => {
   useEffect(() => {
     filterRecords();
     updateActiveFiltersCount();
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   }, [auditRecords, searchTerm, statusFilter, dateFilter]);
 
   const updateActiveFiltersCount = () => {
@@ -215,6 +221,66 @@ const FacialAudit = () => {
     }
   };
 
+  const handleRejectPunch = async () => {
+    if (!selectedRecord || !rejectionReason.trim()) {
+      toast.error('Por favor, informe o motivo da reprovação');
+      return;
+    }
+
+    setIsRejecting(true);
+
+    try {
+      // 1. Atualizar status do audit para rejected
+      const { error: auditError } = await supabase
+        .from('facial_recognition_audit')
+        .update({ 
+          status: 'rejected',
+          reviewed_at: new Date().toISOString(),
+          recognition_result: {
+            ...selectedRecord.recognition_result,
+            admin_rejection_reason: rejectionReason
+          }
+        })
+        .eq('id', selectedRecord.id);
+
+      if (auditError) throw auditError;
+
+      // 2. Se houver time_entry_id vinculado, atualizar o status do registro de ponto
+      if (selectedRecord.time_entry_id) {
+        const { error: timeEntryError } = await supabase
+          .from('time_entries')
+          .update({ 
+            status: 'rejected'
+          })
+          .eq('id', selectedRecord.time_entry_id);
+
+        if (timeEntryError) {
+          console.error('Error updating time entry:', timeEntryError);
+          // Não falhar se não conseguir atualizar o time_entry
+        }
+      }
+
+      // Atualizar estado local
+      setAuditRecords(prev => 
+        prev.map(record => 
+          record.id === selectedRecord.id 
+            ? { ...record, status: 'rejected' } 
+            : record
+        )
+      );
+
+      toast.success('Batimento de ponto reprovado com sucesso');
+      setIsRejectDialogOpen(false);
+      setRejectionReason('');
+      setSelectedRecord(null);
+    } catch (error: any) {
+      console.error('Error rejecting punch:', error);
+      toast.error('Erro ao reprovar batimento: ' + error.message);
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
   const handleKPIClick = (filterType: string) => {
     if (selectedKPI === filterType) {
       setSelectedKPI(null);
@@ -275,10 +341,8 @@ const FacialAudit = () => {
     return (
       <AdminLayout>
         <div className="min-h-screen bg-[#F9FAFB]">
-          {/* Mobile Loading */}
           <div className="lg:hidden">
             <div className="p-4 space-y-4">
-              {/* Skeleton KPIs */}
               <Card className="rounded-xl">
                 <CardContent className="p-4">
                   <div className="grid grid-cols-2 gap-3">
@@ -288,14 +352,12 @@ const FacialAudit = () => {
                   </div>
                 </CardContent>
               </Card>
-              {/* Skeleton Cards */}
               {[1,2,3].map(i => (
                 <div key={i} className="h-32 bg-white rounded-xl border animate-pulse" />
               ))}
             </div>
           </div>
           
-          {/* Desktop Loading */}
           <div className="hidden lg:flex items-center justify-center h-64">
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
@@ -312,10 +374,8 @@ const FacialAudit = () => {
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* ========== MOBILE LAYOUT ========== */}
         <div className="lg:hidden">
-          {/* Barra de Filtros Sticky */}
           <div className="sticky top-0 z-40 bg-white border-b border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             <div className="p-4 space-y-3">
-              {/* Search Input */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
                 <Input
@@ -327,7 +387,6 @@ const FacialAudit = () => {
                 />
               </div>
 
-              {/* Date & Clear */}
               <div className="flex gap-2">
                 <Sheet>
                   <SheetTrigger asChild>
@@ -416,13 +475,10 @@ const FacialAudit = () => {
             </div>
           )}
 
-          {/* Content */}
           <div className="p-4 space-y-4">
-            {/* KPIs Card */}
             <Card className="rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border-[#E5E7EB]">
               <CardContent className="p-4">
                 <div className="grid grid-cols-2 gap-3" role="region" aria-label="Estatísticas de auditoria">
-                  {/* Total */}
                   <button
                     onClick={() => handleKPIClick('all')}
                     className={`
@@ -443,7 +499,6 @@ const FacialAudit = () => {
                     </div>
                   </button>
 
-                  {/* Pendentes */}
                   <button
                     onClick={() => handleKPIClick('pending')}
                     className={`
@@ -466,7 +521,6 @@ const FacialAudit = () => {
                     </div>
                   </button>
 
-                  {/* Aprovados */}
                   <button
                     onClick={() => handleKPIClick('approved')}
                     className={`
@@ -489,7 +543,6 @@ const FacialAudit = () => {
                     </div>
                   </button>
 
-                  {/* Rejeitados */}
                   <button
                     onClick={() => handleKPIClick('rejected')}
                     className={`
@@ -515,7 +568,6 @@ const FacialAudit = () => {
               </CardContent>
             </Card>
 
-            {/* Records List */}
             <div role="list" aria-label="Registros de auditoria">
               {filteredRecords.length === 0 ? (
                 <Card className="rounded-xl shadow-sm border-[#E5E7EB]">
@@ -546,7 +598,6 @@ const FacialAudit = () => {
                     {paginatedRecords.map((record) => (
                       <Card key={record.id} className="rounded-xl shadow-sm border-[#E5E7EB] bg-white">
                         <CardContent className="p-4">
-                          {/* Header */}
                           <div className="flex items-start gap-3 mb-3">
                             {record.attempt_image_url && record.attempt_image_url !== 'no-image' ? (
                               <img 
@@ -575,7 +626,6 @@ const FacialAudit = () => {
                             </div>
                           </div>
 
-                          {/* Date/Time */}
                           <div className="flex items-center gap-2 text-xs text-[#6B7280] mb-3">
                             <Clock className="h-3 w-3" />
                             {new Date(record.created_at).toLocaleString('pt-BR', {
@@ -586,7 +636,6 @@ const FacialAudit = () => {
                             })}
                           </div>
 
-                          {/* Metrics */}
                           <div className="grid grid-cols-2 gap-3 mb-3 pb-3 border-b border-[#F3F4F6]">
                             <div>
                               <p className="text-xs text-[#6B7280] mb-1">Confiança</p>
@@ -615,7 +664,6 @@ const FacialAudit = () => {
                             </div>
                           </div>
 
-                          {/* Actions */}
                           {record.status === 'pending' ? (
                             <div className="flex gap-2">
                               <Button
@@ -635,76 +683,101 @@ const FacialAudit = () => {
                               </Button>
                             </div>
                           ) : (
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="w-full h-11 rounded-xl border-[#D1D5DB] text-sm"
-                                  onClick={() => setSelectedRecord(record)}
-                                >
-                                  Ver Detalhes
-                                  <ChevronRight className="h-4 w-4 ml-2" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-[95vw] max-h-[80vh] overflow-y-auto rounded-2xl">
-                                <DialogHeader>
-                                  <DialogTitle className="text-lg">Detalhes da Tentativa</DialogTitle>
-                                  <DialogDescription className="text-sm">
-                                    Visualize evidências e informações completas
-                                  </DialogDescription>
-                                </DialogHeader>
-                                {selectedRecord && (
-                                  <div className="space-y-4">
-                                    {/* Image */}
-                                    {selectedRecord.attempt_image_url && selectedRecord.attempt_image_url !== 'no-image' && (
-                                      <div className="rounded-xl overflow-hidden border border-[#E5E7EB]">
-                                        <img 
-                                          src={selectedRecord.attempt_image_url}
-                                          alt="Foto de reconhecimento"
-                                          className="w-full aspect-video object-contain bg-[#F9FAFB]"
-                                        />
-                                      </div>
-                                    )}
+                            <div className="flex gap-2">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className="flex-1 h-11 rounded-xl border-[#D1D5DB] text-sm"
+                                    onClick={() => setSelectedRecord(record)}
+                                  >
+                                    Ver Detalhes
+                                    <ChevronRight className="h-4 w-4 ml-2" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-[95vw] max-h-[80vh] overflow-y-auto rounded-2xl">
+                                  <DialogHeader>
+                                    <DialogTitle className="text-lg">Detalhes da Tentativa</DialogTitle>
+                                    <DialogDescription className="text-sm">
+                                      Visualize evidências e informações completas
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  {selectedRecord && (
+                                    <div className="space-y-4">
+                                      {selectedRecord.attempt_image_url && selectedRecord.attempt_image_url !== 'no-image' && (
+                                        <div className="rounded-xl overflow-hidden border border-[#E5E7EB]">
+                                          <img 
+                                            src={selectedRecord.attempt_image_url}
+                                            alt="Foto de reconhecimento"
+                                            className="w-full aspect-video object-contain bg-[#F9FAFB]"
+                                          />
+                                        </div>
+                                      )}
 
-                                    {/* Info Grid */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                      <div className="p-3 rounded-lg bg-[#F9FAFB]">
-                                        <p className="text-xs text-[#6B7280] mb-1">Confiança</p>
-                                        <p className="text-lg font-bold text-[#111827]">
-                                          {selectedRecord.confidence_score 
-                                            ? `${(selectedRecord.confidence_score * 100).toFixed(1)}%`
-                                            : 'N/A'
-                                          }
-                                        </p>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div className="p-3 rounded-lg bg-[#F9FAFB]">
+                                          <p className="text-xs text-[#6B7280] mb-1">Confiança</p>
+                                          <p className="text-lg font-bold text-[#111827]">
+                                            {selectedRecord.confidence_score 
+                                              ? `${(selectedRecord.confidence_score * 100).toFixed(1)}%`
+                                              : 'N/A'
+                                            }
+                                          </p>
+                                        </div>
+                                        <div className="p-3 rounded-lg bg-[#F9FAFB]">
+                                          <p className="text-xs text-[#6B7280] mb-1">Prova de Vida</p>
+                                          <p className="text-lg font-bold text-[#111827]">
+                                            {selectedRecord.liveness_passed ? '✓ Passou' : '✗ Falhou'}
+                                          </p>
+                                        </div>
                                       </div>
-                                      <div className="p-3 rounded-lg bg-[#F9FAFB]">
-                                        <p className="text-xs text-[#6B7280] mb-1">Prova de Vida</p>
-                                        <p className="text-lg font-bold text-[#111827]">
-                                          {selectedRecord.liveness_passed ? '✓ Passou' : '✗ Falhou'}
-                                        </p>
-                                      </div>
+
+                                      <details className="group">
+                                        <summary className="cursor-pointer text-sm font-medium text-[#111827] mb-2">
+                                          Resultado Técnico
+                                        </summary>
+                                        <pre className="text-xs bg-[#F9FAFB] p-3 rounded-lg overflow-auto max-h-32 border border-[#E5E7EB]">
+                                          {JSON.stringify(selectedRecord.recognition_result, null, 2)}
+                                        </pre>
+                                      </details>
+
+                                      {selectedRecord.status === 'approved' && selectedRecord.time_entry_id && (
+                                        <Button
+                                          variant="destructive"
+                                          className="w-full h-12 rounded-xl"
+                                          onClick={() => {
+                                            setIsRejectDialogOpen(true);
+                                          }}
+                                        >
+                                          <AlertTriangle className="h-4 w-4 mr-2" />
+                                          Reprovar Batimento de Ponto
+                                        </Button>
+                                      )}
                                     </div>
+                                  )}
+                                </DialogContent>
+                              </Dialog>
 
-                                    {/* Result JSON */}
-                                    <details className="group">
-                                      <summary className="cursor-pointer text-sm font-medium text-[#111827] mb-2">
-                                        Resultado Técnico
-                                      </summary>
-                                      <pre className="text-xs bg-[#F9FAFB] p-3 rounded-lg overflow-auto max-h-32 border border-[#E5E7EB]">
-                                        {JSON.stringify(selectedRecord.recognition_result, null, 2)}
-                                      </pre>
-                                    </details>
-                                  </div>
-                                )}
-                              </DialogContent>
-                            </Dialog>
+                              {record.status === 'approved' && record.time_entry_id && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="h-11 rounded-xl"
+                                  onClick={() => {
+                                    setSelectedRecord(record);
+                                    setIsRejectDialogOpen(true);
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </CardContent>
                       </Card>
                     ))}
                   </div>
 
-                  {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="flex items-center justify-center gap-2 pt-4">
                       <Button
@@ -764,7 +837,6 @@ const FacialAudit = () => {
                     </div>
                   )}
 
-                  {/* Page Info */}
                   {totalPages > 1 && (
                     <p className="text-center text-xs text-[#6B7280] mt-3">
                       Página {currentPage} de {totalPages} • {filteredRecords.length} registros
@@ -776,7 +848,7 @@ const FacialAudit = () => {
           </div>
         </div>
 
-        {/* ========== DESKTOP LAYOUT (Original) ========== */}
+        {/* ========== DESKTOP LAYOUT ========== */}
         <div className="hidden lg:block space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Auditoria Facial</h1>
@@ -793,7 +865,6 @@ const FacialAudit = () => {
             </Alert>
           )}
 
-          {/* Desktop Stats Cards */}
           <div className="grid grid-cols-4 gap-4">
             <Card className="bg-white shadow-sm border border-slate-200">
               <CardContent className="p-4">
@@ -866,7 +937,6 @@ const FacialAudit = () => {
             </Card>
           </div>
 
-          {/* Desktop Filters */}
           <Card className="bg-white shadow-sm border border-slate-200">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
@@ -918,7 +988,6 @@ const FacialAudit = () => {
             </CardContent>
           </Card>
 
-          {/* Desktop Table */}
           <Card className="bg-white shadow-sm border border-slate-200">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold text-slate-900">
@@ -1058,6 +1127,20 @@ const FacialAudit = () => {
                                         </Button>
                                       </div>
                                     )}
+                                    {record.status === 'approved' && record.time_entry_id && (
+                                      <div className="pt-4 border-t">
+                                        <Button
+                                          variant="destructive"
+                                          className="w-full"
+                                          onClick={() => {
+                                            setIsRejectDialogOpen(true);
+                                          }}
+                                        >
+                                          <AlertTriangle className="h-4 w-4 mr-2" />
+                                          Reprovar Batimento de Ponto
+                                        </Button>
+                                      </div>
+                                    )}
                                   </div>
                                 </DialogContent>
                               </Dialog>
@@ -1080,6 +1163,19 @@ const FacialAudit = () => {
                                   </Button>
                                 </>
                               )}
+                              
+                              {record.status === 'approved' && record.time_entry_id && (
+                                <Button
+                                  onClick={() => {
+                                    setSelectedRecord(record);
+                                    setIsRejectDialogOpen(true);
+                                  }}
+                                  size="sm"
+                                  variant="destructive"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1091,6 +1187,89 @@ const FacialAudit = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Rejection Dialog */}
+        <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                Reprovar Batimento de Ponto
+              </DialogTitle>
+              <DialogDescription>
+                Esta ação irá marcar o registro de ponto como rejeitado. Informe o motivo da reprovação.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {selectedRecord && (
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <p className="text-sm font-medium">
+                    {selectedRecord.profiles?.full_name || 'Não identificado'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(selectedRecord.created_at).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="rejection_reason">Motivo da Reprovação *</Label>
+                <Textarea
+                  id="rejection_reason"
+                  placeholder="Descreva o motivo da reprovação do batimento de ponto..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="min-h-24"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Este motivo será registrado no sistema e poderá ser visualizado pelo colaborador.
+                </p>
+              </div>
+
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  <strong>Atenção:</strong> Esta ação irá invalidar o registro de ponto do colaborador. 
+                  O colaborador precisará justificar ou registrar novamente.
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsRejectDialogOpen(false);
+                    setRejectionReason('');
+                    setSelectedRecord(null);
+                  }}
+                  disabled={isRejecting}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={handleRejectPunch}
+                  disabled={!rejectionReason.trim() || isRejecting}
+                >
+                  {isRejecting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Reprovando...
+                    </>
+                  ) : (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      Confirmar Reprovação
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
