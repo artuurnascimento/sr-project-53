@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, CheckCircle, X, Clock, Search, Filter, Calendar, ChevronRight, Menu, Bell, User as UserIcon, Loader2 } from 'lucide-react';
+import { Eye, CheckCircle, X, Clock, Search, Filter, Calendar, ChevronRight, ChevronLeft, Menu, Bell, User as UserIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +40,8 @@ const FacialAudit = () => {
   const [hasPrivilegedAccess, setHasPrivilegedAccess] = useState(false);
   const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     loadAuditRecords();
@@ -61,6 +63,7 @@ const FacialAudit = () => {
   useEffect(() => {
     filterRecords();
     updateActiveFiltersCount();
+    setCurrentPage(1); // Reset to first page when filters change
   }, [auditRecords, searchTerm, statusFilter, dateFilter]);
 
   const updateActiveFiltersCount = () => {
@@ -251,6 +254,20 @@ const FacialAudit = () => {
     if (percentage >= 85) return <Badge className="bg-blue-100 text-blue-800 text-xs">Alta</Badge>;
     if (percentage >= 75) return <Badge className="bg-yellow-100 text-yellow-800 text-xs">Média</Badge>;
     return <Badge variant="destructive" className="text-xs">Baixa</Badge>;
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   // Loading State
@@ -524,167 +541,236 @@ const FacialAudit = () => {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-3">
-                  {filteredRecords.map((record) => (
-                    <Card key={record.id} className="rounded-xl shadow-sm border-[#E5E7EB] bg-white">
-                      <CardContent className="p-4">
-                        {/* Header */}
-                        <div className="flex items-start gap-3 mb-3">
-                          {record.attempt_image_url && record.attempt_image_url !== 'no-image' ? (
-                            <img 
-                              src={record.attempt_image_url}
-                              alt="Foto facial"
-                              className="w-12 h-12 rounded-full object-cover border-2 border-[#E5E7EB] flex-shrink-0"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48"%3E%3Crect fill="%23E5E7EB" width="48" height="48" rx="24"/%3E%3Ctext fill="%239CA3AF" x="50%" y="50%" text-anchor="middle" dy=".3em" font-size="20"%3E?%3C/text%3E%3C/svg%3E';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
-                              <UserIcon className="h-6 w-6 text-[#9CA3AF]" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm text-[#111827] truncate">
-                              {record.profiles?.full_name || 'Não identificado'}
-                            </p>
-                            <p className="text-xs text-[#6B7280] truncate">
-                              {record.profiles?.email || 'Sem email'}
-                            </p>
-                          </div>
-                          <div className="flex-shrink-0">
-                            {getStatusBadge(record.status)}
-                          </div>
-                        </div>
-
-                        {/* Date/Time */}
-                        <div className="flex items-center gap-2 text-xs text-[#6B7280] mb-3">
-                          <Clock className="h-3 w-3" />
-                          {new Date(record.created_at).toLocaleString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-
-                        {/* Metrics */}
-                        <div className="grid grid-cols-2 gap-3 mb-3 pb-3 border-b border-[#F3F4F6]">
-                          <div>
-                            <p className="text-xs text-[#6B7280] mb-1">Confiança</p>
-                            {record.confidence_score ? (
-                              <div className="space-y-1">
-                                <p className="text-sm font-semibold text-[#111827]">
-                                  {(record.confidence_score * 100).toFixed(1)}%
-                                </p>
-                                <Progress 
-                                  value={record.confidence_score * 100} 
-                                  className="h-1.5"
-                                />
-                              </div>
+                <>
+                  <div className="space-y-3">
+                    {paginatedRecords.map((record) => (
+                      <Card key={record.id} className="rounded-xl shadow-sm border-[#E5E7EB] bg-white">
+                        <CardContent className="p-4">
+                          {/* Header */}
+                          <div className="flex items-start gap-3 mb-3">
+                            {record.attempt_image_url && record.attempt_image_url !== 'no-image' ? (
+                              <img 
+                                src={record.attempt_image_url}
+                                alt="Foto facial"
+                                className="w-12 h-12 rounded-full object-cover border-2 border-[#E5E7EB] flex-shrink-0"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48"%3E%3Crect fill="%23E5E7EB" width="48" height="48" rx="24"/%3E%3Ctext fill="%239CA3AF" x="50%" y="50%" text-anchor="middle" dy=".3em" font-size="20"%3E?%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
                             ) : (
-                              <p className="text-sm text-[#9CA3AF]">N/A</p>
+                              <div className="w-12 h-12 rounded-full bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
+                                <UserIcon className="h-6 w-6 text-[#9CA3AF]" />
+                              </div>
                             )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm text-[#111827] truncate">
+                                {record.profiles?.full_name || 'Não identificado'}
+                              </p>
+                              <p className="text-xs text-[#6B7280] truncate">
+                                {record.profiles?.email || 'Sem email'}
+                              </p>
+                            </div>
+                            <div className="flex-shrink-0">
+                              {getStatusBadge(record.status)}
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs text-[#6B7280] mb-1">Prova de Vida</p>
-                            <Badge 
-                              variant={record.liveness_passed ? "default" : "destructive"} 
-                              className="text-xs"
-                            >
-                              {record.liveness_passed ? 'Passou' : 'Falhou'}
-                            </Badge>
+
+                          {/* Date/Time */}
+                          <div className="flex items-center gap-2 text-xs text-[#6B7280] mb-3">
+                            <Clock className="h-3 w-3" />
+                            {new Date(record.created_at).toLocaleString('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
                           </div>
-                        </div>
 
-                        {/* Actions */}
-                        {record.status === 'pending' ? (
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={() => updateAuditStatus(record.id, 'approved')}
-                              className="flex-1 h-11 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white shadow-sm"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Aprovar
-                            </Button>
-                            <Button
-                              onClick={() => updateAuditStatus(record.id, 'rejected')}
-                              variant="destructive"
-                              className="flex-1 h-11 rounded-xl shadow-sm"
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Rejeitar
-                            </Button>
-                          </div>
-                        ) : (
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className="w-full h-11 rounded-xl border-[#D1D5DB] text-sm"
-                                onClick={() => setSelectedRecord(record)}
-                              >
-                                Ver Detalhes
-                                <ChevronRight className="h-4 w-4 ml-2" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-[95vw] max-h-[80vh] overflow-y-auto rounded-2xl">
-                              <DialogHeader>
-                                <DialogTitle className="text-lg">Detalhes da Tentativa</DialogTitle>
-                                <DialogDescription className="text-sm">
-                                  Visualize evidências e informações completas
-                                </DialogDescription>
-                              </DialogHeader>
-                              {selectedRecord && (
-                                <div className="space-y-4">
-                                  {/* Image */}
-                                  {selectedRecord.attempt_image_url && selectedRecord.attempt_image_url !== 'no-image' && (
-                                    <div className="rounded-xl overflow-hidden border border-[#E5E7EB]">
-                                      <img 
-                                        src={selectedRecord.attempt_image_url}
-                                        alt="Foto de reconhecimento"
-                                        className="w-full aspect-video object-contain bg-[#F9FAFB]"
-                                      />
-                                    </div>
-                                  )}
-
-                                  {/* Info Grid */}
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div className="p-3 rounded-lg bg-[#F9FAFB]">
-                                      <p className="text-xs text-[#6B7280] mb-1">Confiança</p>
-                                      <p className="text-lg font-bold text-[#111827]">
-                                        {selectedRecord.confidence_score 
-                                          ? `${(selectedRecord.confidence_score * 100).toFixed(1)}%`
-                                          : 'N/A'
-                                        }
-                                      </p>
-                                    </div>
-                                    <div className="p-3 rounded-lg bg-[#F9FAFB]">
-                                      <p className="text-xs text-[#6B7280] mb-1">Prova de Vida</p>
-                                      <p className="text-lg font-bold text-[#111827]">
-                                        {selectedRecord.liveness_passed ? '✓ Passou' : '✗ Falhou'}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  {/* Result JSON */}
-                                  <details className="group">
-                                    <summary className="cursor-pointer text-sm font-medium text-[#111827] mb-2">
-                                      Resultado Técnico
-                                    </summary>
-                                    <pre className="text-xs bg-[#F9FAFB] p-3 rounded-lg overflow-auto max-h-32 border border-[#E5E7EB]">
-                                      {JSON.stringify(selectedRecord.recognition_result, null, 2)}
-                                    </pre>
-                                  </details>
+                          {/* Metrics */}
+                          <div className="grid grid-cols-2 gap-3 mb-3 pb-3 border-b border-[#F3F4F6]">
+                            <div>
+                              <p className="text-xs text-[#6B7280] mb-1">Confiança</p>
+                              {record.confidence_score ? (
+                                <div className="space-y-1">
+                                  <p className="text-sm font-semibold text-[#111827]">
+                                    {(record.confidence_score * 100).toFixed(1)}%
+                                  </p>
+                                  <Progress 
+                                    value={record.confidence_score * 100} 
+                                    className="h-1.5"
+                                  />
                                 </div>
+                              ) : (
+                                <p className="text-sm text-[#9CA3AF]">N/A</p>
                               )}
-                            </DialogContent>
-                          </Dialog>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                            </div>
+                            <div>
+                              <p className="text-xs text-[#6B7280] mb-1">Prova de Vida</p>
+                              <Badge 
+                                variant={record.liveness_passed ? "default" : "destructive"} 
+                                className="text-xs"
+                              >
+                                {record.liveness_passed ? 'Passou' : 'Falhou'}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          {record.status === 'pending' ? (
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => updateAuditStatus(record.id, 'approved')}
+                                className="flex-1 h-11 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white shadow-sm"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Aprovar
+                              </Button>
+                              <Button
+                                onClick={() => updateAuditStatus(record.id, 'rejected')}
+                                variant="destructive"
+                                className="flex-1 h-11 rounded-xl shadow-sm"
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Rejeitar
+                              </Button>
+                            </div>
+                          ) : (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="w-full h-11 rounded-xl border-[#D1D5DB] text-sm"
+                                  onClick={() => setSelectedRecord(record)}
+                                >
+                                  Ver Detalhes
+                                  <ChevronRight className="h-4 w-4 ml-2" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-[95vw] max-h-[80vh] overflow-y-auto rounded-2xl">
+                                <DialogHeader>
+                                  <DialogTitle className="text-lg">Detalhes da Tentativa</DialogTitle>
+                                  <DialogDescription className="text-sm">
+                                    Visualize evidências e informações completas
+                                  </DialogDescription>
+                                </DialogHeader>
+                                {selectedRecord && (
+                                  <div className="space-y-4">
+                                    {/* Image */}
+                                    {selectedRecord.attempt_image_url && selectedRecord.attempt_image_url !== 'no-image' && (
+                                      <div className="rounded-xl overflow-hidden border border-[#E5E7EB]">
+                                        <img 
+                                          src={selectedRecord.attempt_image_url}
+                                          alt="Foto de reconhecimento"
+                                          className="w-full aspect-video object-contain bg-[#F9FAFB]"
+                                        />
+                                      </div>
+                                    )}
+
+                                    {/* Info Grid */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div className="p-3 rounded-lg bg-[#F9FAFB]">
+                                        <p className="text-xs text-[#6B7280] mb-1">Confiança</p>
+                                        <p className="text-lg font-bold text-[#111827]">
+                                          {selectedRecord.confidence_score 
+                                            ? `${(selectedRecord.confidence_score * 100).toFixed(1)}%`
+                                            : 'N/A'
+                                          }
+                                        </p>
+                                      </div>
+                                      <div className="p-3 rounded-lg bg-[#F9FAFB]">
+                                        <p className="text-xs text-[#6B7280] mb-1">Prova de Vida</p>
+                                        <p className="text-lg font-bold text-[#111827]">
+                                          {selectedRecord.liveness_passed ? '✓ Passou' : '✗ Falhou'}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Result JSON */}
+                                    <details className="group">
+                                      <summary className="cursor-pointer text-sm font-medium text-[#111827] mb-2">
+                                        Resultado Técnico
+                                      </summary>
+                                      <pre className="text-xs bg-[#F9FAFB] p-3 rounded-lg overflow-auto max-h-32 border border-[#E5E7EB]">
+                                        {JSON.stringify(selectedRecord.recognition_result, null, 2)}
+                                      </pre>
+                                    </details>
+                                  </div>
+                                )}
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 pt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="h-10 w-10 p-0 rounded-lg"
+                        aria-label="Página anterior"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => goToPage(pageNum)}
+                              className={`
+                                w-10 h-10 rounded-lg text-sm font-medium transition-colors
+                                ${currentPage === pageNum 
+                                  ? 'bg-[#0F3C4C] text-white' 
+                                  : 'bg-white text-[#6B7280] border border-[#E5E7EB]'
+                                }
+                              `}
+                              aria-label={`Ir para página ${pageNum}`}
+                              aria-current={currentPage === pageNum ? 'page' : undefined}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="h-10 w-10 p-0 rounded-lg"
+                        aria-label="Próxima página"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Page Info */}
+                  {totalPages > 1 && (
+                    <p className="text-center text-xs text-[#6B7280] mt-3">
+                      Página {currentPage} de {totalPages} • {filteredRecords.length} registros
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
