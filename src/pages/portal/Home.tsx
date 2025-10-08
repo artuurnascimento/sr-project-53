@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2, Shield, Camera } from 'lucide-react';
+import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2, Shield, Camera, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import PortalLayout from '@/components/layout/PortalLayout';
 import FacialRecognitionModal from '@/components/FacialRecognitionModal';
 import LocationMap from '@/components/LocationMap';
@@ -38,6 +39,8 @@ const PortalHome = () => {
   const [validatedWorkLocation, setValidatedWorkLocation] = useState<WorkLocation | null>(null);
   const [hasFacialRegistration, setHasFacialRegistration] = useState(false);
   const [checkingFacialRegistration, setCheckingFacialRegistration] = useState(true);
+  const [showComprovanteModal, setShowComprovanteModal] = useState(false);
+  const [currentComprovanteId, setCurrentComprovanteId] = useState<string | null>(null);
 
   const createTimeEntry = useCreateTimeEntry();
   const { data: todayEntries, refetch: refetchToday } = useTodayTimeEntries(profile?.id);
@@ -323,16 +326,22 @@ const PortalHome = () => {
       };
 
       const result = await createTimeEntry.mutateAsync(entry);
-      
-      // Chamar edge function para gerar comprovante (background)
+
+      // Chamar edge function para gerar comprovante
       if (result?.id) {
-        supabase.functions.invoke('gerar-comprovante-ponto', {
-          body: { timeEntryId: result.id }
-        }).catch(err => {
+        try {
+          await supabase.functions.invoke('gerar-comprovante-ponto', {
+            body: { timeEntryId: result.id }
+          });
+
+          setCurrentComprovanteId(result.id);
+          setShowComprovanteModal(true);
+        } catch (err) {
           console.error('Erro ao gerar comprovante:', err);
-        });
+          toast.error('Ponto registrado, mas houve erro ao gerar o comprovante');
+        }
       }
-      
+
       // If we have an audit ID, link it to the time entry using secure function
       if (auditId && result?.id) {
         const { error: linkError } = await supabase.rpc('link_audit_to_time_entry', {
@@ -677,7 +686,7 @@ const PortalHome = () => {
         </Card>
 
         {/* Facial Recognition Modal */}
-        <FacialRecognitionModal 
+        <FacialRecognitionModal
           isOpen={showFacialModal}
           onClose={() => {
             setShowFacialModal(false);
@@ -686,6 +695,60 @@ const PortalHome = () => {
           onSuccess={handleFacialSuccess}
           expectedUserId={profile?.id}
         />
+
+        {/* Comprovante Modal */}
+        <Dialog open={showComprovanteModal} onOpenChange={setShowComprovanteModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                Ponto Registrado com Sucesso!
+              </DialogTitle>
+              <DialogDescription>
+                Seu comprovante de ponto foi gerado e está disponível para visualização.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <Alert className="border-green-200 bg-green-50">
+                <FileText className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  <p className="font-semibold mb-1">Comprovante Disponível</p>
+                  <p className="text-sm">
+                    Acesse seu comprovante agora ou visualize-o posteriormente no histórico.
+                  </p>
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={() => {
+                    if (currentComprovanteId) {
+                      window.open(`/comprovante?id=${currentComprovanteId}`, '_blank');
+                    }
+                  }}
+                  className="w-full"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Ver Comprovante Agora
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowComprovanteModal(false);
+                    setCurrentComprovanteId(null);
+                  }}
+                  className="w-full"
+                >
+                  Fechar
+                </Button>
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Você pode acessar todos os seus comprovantes na página de Histórico
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </PortalLayout>
   );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Clock, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Download, ChevronLeft, ChevronRight, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import PortalLayout from '@/components/layout/PortalLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTimeEntries } from '@/hooks/useTimeTracking';
+import { toast } from 'sonner';
 
 const History = () => {
   const { profile } = useAuth();
@@ -95,7 +96,7 @@ const History = () => {
       'pending': 'secondary',
       'rejected': 'destructive'
     } as const;
-    
+
     const labels = {
       'approved': 'Aprovado',
       'pending': 'Pendente',
@@ -107,6 +108,14 @@ const History = () => {
         {labels[status as keyof typeof labels] || status}
       </Badge>
     );
+  };
+
+  const handleViewComprovante = (entryId: string, comprovanteUrl?: string) => {
+    if (comprovanteUrl) {
+      window.open(comprovanteUrl, '_blank');
+    } else {
+      window.open(`/comprovante?id=${entryId}`, '_blank');
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -245,21 +254,31 @@ const History = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
+                    <div className="space-y-2">
                       {dayEntries.map((entry) => (
-                        <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg border">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
                             <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm truncate">
+                              <div className="font-medium text-sm">
                                 {new Date(entry.punch_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                               </div>
-                              <div className="text-xs text-muted-foreground truncate">
+                              <div className="text-xs text-muted-foreground">
                                 {getEventTypeLabel(entry.punch_type)}
                               </div>
                             </div>
                           </div>
-                          <div className="ml-2 flex-shrink-0">{getStatusBadge(entry.status)}</div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {getStatusBadge(entry.status)}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewComprovante(entry.id, entry.comprovante_pdf)}
+                              title="Ver comprovante"
+                            >
+                              <FileText className="h-3 w-3 md:h-4 md:w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
