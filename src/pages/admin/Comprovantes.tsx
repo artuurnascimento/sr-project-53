@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { Mail, Download, RefreshCw, FileText, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AdminLayout from "@/components/layout/AdminLayout";
 
 export default function Comprovantes() {
   const queryClient = useQueryClient();
@@ -164,13 +165,14 @@ export default function Comprovantes() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Gestão de Comprovantes</h1>
-        <p className="text-muted-foreground mt-2">
-          Gerencie comprovantes de ponto e configurações de envio automático
-        </p>
-      </div>
+    <AdminLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Gestão de Comprovantes</h1>
+          <p className="text-muted-foreground mt-2">
+            Gerencie comprovantes de ponto e configurações de envio automático
+          </p>
+        </div>
 
       <Tabs defaultValue="colaboradores" className="space-y-6">
         <TabsList>
@@ -399,6 +401,7 @@ export default function Comprovantes() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
