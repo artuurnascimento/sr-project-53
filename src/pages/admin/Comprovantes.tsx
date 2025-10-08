@@ -250,6 +250,14 @@ export default function Comprovantes() {
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                 </div>
+              ) : comprovantes.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Nenhum comprovante gerado</h3>
+                  <p className="text-muted-foreground">
+                    Os comprovantes de ponto aparecerão aqui quando os colaboradores registrarem seus pontos.
+                  </p>
+                </div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -320,36 +328,46 @@ export default function Comprovantes() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data/Hora</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Mensagem</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {errorLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell>
-                        {new Date(log.criado_em).toLocaleString('pt-BR')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">{log.tipo}</Badge>
-                      </TableCell>
-                      <TableCell className="max-w-md truncate">
-                        {log.mensagem}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="outline">
-                          <RefreshCw className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
+              {errorLogs.length === 0 ? (
+                <div className="text-center py-12">
+                  <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Nenhum erro registrado</h3>
+                  <p className="text-muted-foreground">
+                    Os erros do sistema aparecerão aqui quando ocorrerem.
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data/Hora</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Mensagem</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {errorLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell>
+                          {new Date(log.criado_em).toLocaleString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="destructive">{log.tipo}</Badge>
+                        </TableCell>
+                        <TableCell className="max-w-md truncate">
+                          {log.mensagem}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="outline">
+                            <RefreshCw className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
