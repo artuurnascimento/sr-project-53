@@ -4,12 +4,16 @@ import { toast } from 'sonner';
 
 export interface Colaborador {
   id: string;
-  nome: string;
+  full_name: string;
   email: string;
+  employee_id?: string;
+  department?: string;
+  position?: string;
+  role: 'employee' | 'admin' | 'manager';
   envio_resumo: 'diario' | 'semanal' | 'mensal' | 'todos';
-  ativo: boolean;
-  criado_em: string;
-  atualizado_em: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export const useColaboradores = () => {
@@ -21,9 +25,9 @@ export const useColaboradores = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('colaboradores')
+        .from('profiles')
         .select('*')
-        .order('nome');
+        .order('full_name');
 
       if (error) throw error;
       setColaboradores((data || []) as Colaborador[]);
@@ -39,28 +43,10 @@ export const useColaboradores = () => {
     fetchColaboradores();
   }, []);
 
-  const createColaborador = async (colaborador: Omit<Colaborador, 'id' | 'criado_em' | 'atualizado_em'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('colaboradores')
-        .insert([colaborador])
-        .select()
-        .single();
-
-      if (error) throw error;
-      setColaboradores(prev => [...prev, data as Colaborador]);
-      toast.success('Colaborador criado com sucesso');
-      return data;
-    } catch (err) {
-      toast.error('Erro ao criar colaborador');
-      throw err;
-    }
-  };
-
   const updateColaborador = async (id: string, updates: Partial<Colaborador>) => {
     try {
       const { data, error } = await supabase
-        .from('colaboradores')
+        .from('profiles')
         .update(updates)
         .eq('id', id)
         .select()
@@ -76,29 +62,11 @@ export const useColaboradores = () => {
     }
   };
 
-  const deleteColaborador = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('colaboradores')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      setColaboradores(prev => prev.filter(c => c.id !== id));
-      toast.success('Colaborador excluído com sucesso');
-    } catch (err) {
-      toast.error('Erro ao excluir colaborador');
-      throw err;
-    }
-  };
-
   return {
     colaboradores,
     loading,
     error,
     fetchColaboradores,
-    createColaborador,
-    updateColaborador,
-    deleteColaborador
+    updateColaborador
   };
 };

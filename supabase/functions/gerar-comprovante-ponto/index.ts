@@ -1,16 +1,18 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import PDFDocument from "https://cdn.skypack.dev/pdfkit@0.13.0";
-import QRCode from "https://esm.sh/qrcode@1.5.3";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
   }
 
   try {
@@ -20,113 +22,138 @@ serve(async (req) => {
 
     const { timeEntryId } = await req.json();
 
-    // Buscar dados do registro de ponto
+    if (!timeEntryId) {
+      throw new Error('timeEntryId é obrigatório');
+    }
+
     const { data: timeEntry, error: timeEntryError } = await supabase
       .from('v_time_entries_completo')
       .select('*')
       .eq('id', timeEntryId)
-      .single();
+      .maybeSingle();
 
-    if (timeEntryError || !timeEntry) {
+    if (timeEntryError) {
+      console.error('Erro ao buscar registro:', timeEntryError);
+      throw new Error('Erro ao buscar registro de ponto');
+    }
+
+    if (!timeEntry) {
       throw new Error('Registro de ponto não encontrado');
     }
 
-    // Gerar QR Code para validação
-    const appDomain = Deno.env.get('APP_DOMAIN') || supabaseUrl.replace('.supabase.co', '.lovableproject.com');
+    const appDomain = Deno.env.get('APP_DOMAIN') ||
+      supabaseUrl.replace('.supabase.co', '.lovableproject.com');
+
     const qrCodeUrl = `${appDomain}/comprovante?id=${timeEntryId}`;
-    const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl, { width: 150 });
-    const qrCodeBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64');
 
-    // Criar PDF
-    const chunks: Uint8Array[] = [];
-    const doc = new PDFDocument({ margin: 50 });
-
-    doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
-    
-    const pdfPromise = new Promise<Buffer>((resolve) => {
-      doc.on('end', () => {
-        resolve(Buffer.concat(chunks));
-      });
-    });
-
-    // Cabeçalho
-    doc.fontSize(20).text('Comprovante de Ponto Eletrônico', { align: 'center' });
-    doc.moveDown(2);
-
-    // Informações do colaborador
-    doc.fontSize(14).text(`Colaborador: ${timeEntry.employee_name}`, { continued: false });
-    doc.fontSize(12).text(`E-mail: ${timeEntry.employee_email}`);
-    doc.moveDown();
-
-    // Informações do registro
-    const tipoLabel = {
+    const tipoLabel: Record<string, string> = {
       'IN': 'Entrada',
       'OUT': 'Saída',
       'BREAK_OUT': 'Início de Pausa',
       'BREAK_IN': 'Fim de Pausa'
-    }[timeEntry.punch_type] || timeEntry.punch_type;
+    };
 
-    doc.fontSize(12).text(`Tipo: ${tipoLabel}`);
     const dataHora = new Date(timeEntry.punch_time);
-    doc.text(`Data: ${dataHora.toLocaleDateString('pt-BR')}`);
-    doc.text(`Hora: ${dataHora.toLocaleTimeString('pt-BR')}`);
-    
-    if (timeEntry.location_address) {
-      doc.text(`Localização: ${timeEntry.location_address}`);
-    }
-    
-    doc.moveDown();
-    doc.text(`Código de Verificação: ${timeEntryId}`);
-    doc.moveDown(2);
+    const data = dataHora.toLocaleDateString('pt-BR');
+    const hora = dataHora.toLocaleTimeString('pt-BR');
 
-    // QR Code
-    doc.image(qrCodeBuffer, { fit: [150, 150], align: 'center' });
-    doc.moveDown();
-    doc.fontSize(10).text('Escaneie o QR Code para validar', { align: 'center' });
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .content { margin: 20px 0; }
+    .info-row { margin: 10px 0; }
+    .label { font-weight: bold; }
+    .qrcode { text-align: center; margin: 30px 0; }
+    .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Comprovante de Ponto Eletrônico</h1>
+  </div>
+  <div class="content">
+    <div class="info-row">
+      <span class="label">Colaborador:</span> ${timeEntry.employee_name}
+    </div>
+    <div class="info-row">
+      <span class="label">E-mail:</span> ${timeEntry.employee_email}
+    </div>
+    <div class="info-row">
+      <span class="label">Tipo:</span> ${tipoLabel[timeEntry.punch_type] || timeEntry.punch_type}
+    </div>
+    <div class="info-row">
+      <span class="label">Data:</span> ${data}
+    </div>
+    <div class="info-row">
+      <span class="label">Hora:</span> ${hora}
+    </div>
+    ${timeEntry.location_address ? `
+    <div class="info-row">
+      <span class="label">Localização:</span> ${timeEntry.location_address}
+    </div>
+    ` : ''}
+    <div class="info-row">
+      <span class="label">Código de Verificação:</span> ${timeEntryId}
+    </div>
+  </div>
+  <div class="qrcode">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}" alt="QR Code">
+    <p>Escaneie o QR Code para validar</p>
+  </div>
+  <div class="footer">
+    <p>Documento gerado automaticamente</p>
+    <p>Hash: ${timeEntryId.substring(0, 8).toUpperCase()}</p>
+  </div>
+</body>
+</html>
+    `;
 
-    // Rodapé
-    doc.moveDown(2);
-    doc.fontSize(8).text('Documento gerado automaticamente', { align: 'center' });
-    doc.text(`Hash: ${timeEntryId.substring(0, 8).toUpperCase()}`, { align: 'center' });
+    const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+    const fileName = `comprovante-${timeEntryId}.html`;
 
-    doc.end();
-
-    const pdfBuffer = await pdfPromise;
-
-    // Upload para Supabase Storage
-    const fileName = `comprovante-${timeEntryId}.pdf`;
     const { error: uploadError } = await supabase.storage
       .from('comprovantes')
-      .upload(fileName, pdfBuffer, {
-        contentType: 'application/pdf',
+      .upload(fileName, htmlBlob, {
+        contentType: 'text/html',
         upsert: true
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Erro ao fazer upload:', uploadError);
+      throw new Error('Erro ao salvar comprovante');
+    }
 
-    // Obter URL pública
     const { data: { publicUrl } } = supabase.storage
       .from('comprovantes')
       .getPublicUrl(fileName);
 
-    // Atualizar registro do ponto
-    await supabase
+    const { error: updateError } = await supabase
       .from('time_entries')
-      .update({ comprovante_pdf: publicUrl })
+      .update({
+        comprovante_pdf: publicUrl,
+        email_enviado: false
+      })
       .eq('id', timeEntryId);
 
-    // Registrar log
+    if (updateError) {
+      console.error('Erro ao atualizar registro:', updateError);
+    }
+
     await supabase
       .from('logs_sistema')
       .insert({
-        tipo: 'pdf',
+        tipo: 'comprovante',
         status: 'success',
         referencia_id: timeEntryId,
         mensagem: 'Comprovante gerado com sucesso',
         payload: { url: publicUrl }
       });
 
-    // Chamar função de envio de e-mail
     try {
       await supabase.functions.invoke('enviar-email-ponto', {
         body: { timeEntryId, pdfUrl: publicUrl }
@@ -136,15 +163,34 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, pdfUrl: publicUrl }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: true,
+        pdfUrl: publicUrl,
+        message: 'Comprovante gerado com sucesso'
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
     );
 
   } catch (error) {
-    console.error('Erro:', error);
+    console.error('Erro na função:', error);
+
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        success: false
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 });

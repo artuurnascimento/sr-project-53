@@ -2,36 +2,25 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export interface Ponto {
+export interface TimeEntry {
   id: string;
-  colaborador_id: string;
-  tipo: 'entrada' | 'saida' | 'pausa' | 'retorno';
-  data_hora: string;
-  localizacao?: string;
+  employee_id: string;
+  punch_type: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT';
+  punch_time: string;
+  location_address?: string;
+  location_lat?: number;
+  location_lng?: number;
   comprovante_pdf?: string;
   email_enviado: boolean;
-  criado_em: string;
-  colaboradores?: {
-    nome: string;
-    email: string;
-  };
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  employee_name?: string;
+  employee_email?: string;
+  envio_resumo?: string;
 }
 
-export interface PontoCompleto {
-  id: string;
-  colaborador_id: string;
-  tipo: 'entrada' | 'saida' | 'pausa' | 'retorno';
-  data_hora: string;
-  localizacao?: string;
-  comprovante_pdf?: string;
-  email_enviado: boolean;
-  colaborador_nome: string;
-  colaborador_email: string;
-  envio_resumo: string;
-}
-
-export const usePontos = (colaboradorId?: string, dataInicio?: string, dataFim?: string) => {
-  const [pontos, setPontos] = useState<PontoCompleto[]>([]);
+export const usePontos = (employeeId?: string, dataInicio?: string, dataFim?: string) => {
+  const [pontos, setPontos] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -39,26 +28,26 @@ export const usePontos = (colaboradorId?: string, dataInicio?: string, dataFim?:
     try {
       setLoading(true);
       let query = supabase
-        .from('v_pontos_completo')
+        .from('v_time_entries_completo')
         .select('*')
-        .order('data_hora', { ascending: false });
+        .order('punch_time', { ascending: false });
 
-      if (colaboradorId) {
-        query = query.eq('colaborador_id', colaboradorId);
+      if (employeeId) {
+        query = query.eq('employee_id', employeeId);
       }
 
       if (dataInicio) {
-        query = query.gte('data_hora', dataInicio);
+        query = query.gte('punch_time', dataInicio);
       }
 
       if (dataFim) {
-        query = query.lte('data_hora', dataFim);
+        query = query.lte('punch_time', dataFim);
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
-      setPontos((data || []) as PontoCompleto[]);
+      setPontos((data || []) as TimeEntry[]);
     } catch (err) {
       setError(err as Error);
       toast.error('Erro ao carregar pontos');
@@ -69,33 +58,39 @@ export const usePontos = (colaboradorId?: string, dataInicio?: string, dataFim?:
 
   useEffect(() => {
     fetchPontos();
-  }, [colaboradorId, dataInicio, dataFim]);
+  }, [employeeId, dataInicio, dataFim]);
 
   const registrarPonto = async (
-    colaboradorId: string, 
-    tipo: Ponto['tipo'], 
-    localizacao?: string
+    employeeId: string,
+    punchType: 'IN' | 'OUT' | 'BREAK_IN' | 'BREAK_OUT',
+    locationData?: {
+      address?: string;
+      lat?: number;
+      lng?: number;
+    }
   ) => {
     try {
-      const { data: ponto, error: pontoError } = await supabase
-        .from('pontos')
+      const { data: timeEntry, error: timeEntryError } = await supabase
+        .from('time_entries')
         .insert([{
-          colaborador_id: colaboradorId,
-          tipo,
-          data_hora: new Date().toISOString(),
-          localizacao,
+          employee_id: employeeId,
+          punch_type: punchType,
+          punch_time: new Date().toISOString(),
+          location_address: locationData?.address,
+          location_lat: locationData?.lat,
+          location_lng: locationData?.lng,
+          status: 'approved',
           email_enviado: false
         }])
         .select()
         .single();
 
-      if (pontoError) throw pontoError;
+      if (timeEntryError) throw timeEntryError;
 
-      // Chamar edge function para gerar comprovante e enviar e-mail
       try {
-        const { data: comprovanteData, error: comprovanteError } = await supabase.functions
+        const { error: comprovanteError } = await supabase.functions
           .invoke('gerar-comprovante-ponto', {
-            body: { pontoId: ponto.id }
+            body: { timeEntryId: timeEntry.id }
           });
 
         if (comprovanteError) {
@@ -107,7 +102,7 @@ export const usePontos = (colaboradorId?: string, dataInicio?: string, dataFim?:
 
       await fetchPontos();
       toast.success('Ponto registrado com sucesso');
-      return ponto;
+      return timeEntry;
     } catch (err) {
       toast.error('Erro ao registrar ponto');
       throw err;
