@@ -5,14 +5,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
-import About from "./pages/About";
 import Services from "./pages/Services";
+import About from "./pages/About";
 import Contact from "./pages/Contact";
-import Cases from "./pages/Cases";
 import Gallery from "./pages/Gallery";
+import Cases from "./pages/Cases";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfUse from "./pages/TermsOfUse";
 import NotFound from "./pages/NotFound";
+import Comprovante from "./pages/Comprovante";
 import Auth from "./pages/Auth";
 import DashboardRedirect from "./components/DashboardRedirect";
 
@@ -30,6 +31,7 @@ import AdminRegistrations from "./pages/admin/Registrations";
 import AdminIntegrations from "./pages/admin/Integrations";
 import FacialAudit from "./pages/admin/FacialAudit";
 import WorkLocations from "./pages/admin/WorkLocations";
+import Comprovantes from "./pages/admin/Comprovantes";
 import FaceRegistration from "./pages/portal/FaceRegistration";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -51,6 +53,7 @@ const App = () => (
             <Route path="/galeria" element={<Gallery />} />
             <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
             <Route path="/termos-uso" element={<TermsOfUse />} />
+            <Route path="/comprovante" element={<Comprovante />} />
             <Route path="/auth" element={<Auth />} />
             
             {/* Redirect route - handles automatic role-based redirect */}
@@ -127,6 +130,11 @@ const App = () => (
             <Route path="/admin/auditoria" element={
               <ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/dashboard">
                 <FacialAudit />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/comprovantes" element={
+              <ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/dashboard">
+                <Comprovantes />
               </ProtectedRoute>
             } />
             

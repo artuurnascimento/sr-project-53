@@ -18,21 +18,22 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { pontoId } = await req.json();
+    const { timeEntryId } = await req.json();
 
-    // Buscar dados do ponto
-    const { data: ponto, error: pontoError } = await supabase
-      .from('v_pontos_completo')
+    // Buscar dados do registro de ponto
+    const { data: timeEntry, error: timeEntryError } = await supabase
+      .from('v_time_entries_completo')
       .select('*')
-      .eq('id', pontoId)
+      .eq('id', timeEntryId)
       .single();
 
-    if (pontoError || !ponto) {
-      throw new Error('Ponto não encontrado');
+    if (timeEntryError || !timeEntry) {
+      throw new Error('Registro de ponto não encontrado');
     }
 
-    // Gerar QR Code
-    const qrCodeUrl = `${supabaseUrl.replace('https://', 'https://').replace('.supabase.co', '')}/comprovante/${pontoId}`;
+    // Gerar QR Code para validação
+    const appDomain = Deno.env.get('APP_DOMAIN') || supabaseUrl.replace('.supabase.co', '.lovableproject.com');
+    const qrCodeUrl = `${appDomain}/comprovante?id=${timeEntryId}`;
     const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl, { width: 150 });
     const qrCodeBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64');
 
@@ -53,29 +54,29 @@ serve(async (req) => {
     doc.moveDown(2);
 
     // Informações do colaborador
-    doc.fontSize(14).text(`Colaborador: ${ponto.colaborador_nome}`, { continued: false });
-    doc.fontSize(12).text(`E-mail: ${ponto.colaborador_email}`);
+    doc.fontSize(14).text(`Colaborador: ${timeEntry.employee_name}`, { continued: false });
+    doc.fontSize(12).text(`E-mail: ${timeEntry.employee_email}`);
     doc.moveDown();
 
     // Informações do registro
     const tipoLabel = {
-      'entrada': 'Entrada',
-      'saida': 'Saída',
-      'pausa': 'Pausa',
-      'retorno': 'Retorno'
-    }[ponto.tipo] || ponto.tipo;
+      'IN': 'Entrada',
+      'OUT': 'Saída',
+      'BREAK_OUT': 'Início de Pausa',
+      'BREAK_IN': 'Fim de Pausa'
+    }[timeEntry.punch_type] || timeEntry.punch_type;
 
     doc.fontSize(12).text(`Tipo: ${tipoLabel}`);
-    const dataHora = new Date(ponto.data_hora);
+    const dataHora = new Date(timeEntry.punch_time);
     doc.text(`Data: ${dataHora.toLocaleDateString('pt-BR')}`);
     doc.text(`Hora: ${dataHora.toLocaleTimeString('pt-BR')}`);
     
-    if (ponto.localizacao) {
-      doc.text(`Localização: ${ponto.localizacao}`);
+    if (timeEntry.location_address) {
+      doc.text(`Localização: ${timeEntry.location_address}`);
     }
     
     doc.moveDown();
-    doc.text(`Código de Verificação: ${pontoId}`);
+    doc.text(`Código de Verificação: ${timeEntryId}`);
     doc.moveDown(2);
 
     // QR Code
@@ -86,14 +87,14 @@ serve(async (req) => {
     // Rodapé
     doc.moveDown(2);
     doc.fontSize(8).text('Documento gerado automaticamente', { align: 'center' });
-    doc.text(`Hash: ${pontoId.substring(0, 8).toUpperCase()}`, { align: 'center' });
+    doc.text(`Hash: ${timeEntryId.substring(0, 8).toUpperCase()}`, { align: 'center' });
 
     doc.end();
 
     const pdfBuffer = await pdfPromise;
 
     // Upload para Supabase Storage
-    const fileName = `comprovante-${pontoId}.pdf`;
+    const fileName = `comprovante-${timeEntryId}.pdf`;
     const { error: uploadError } = await supabase.storage
       .from('comprovantes')
       .upload(fileName, pdfBuffer, {
@@ -110,9 +111,9 @@ serve(async (req) => {
 
     // Atualizar registro do ponto
     await supabase
-      .from('pontos')
+      .from('time_entries')
       .update({ comprovante_pdf: publicUrl })
-      .eq('id', pontoId);
+      .eq('id', timeEntryId);
 
     // Registrar log
     await supabase
@@ -120,7 +121,7 @@ serve(async (req) => {
       .insert({
         tipo: 'pdf',
         status: 'success',
-        referencia_id: pontoId,
+        referencia_id: timeEntryId,
         mensagem: 'Comprovante gerado com sucesso',
         payload: { url: publicUrl }
       });
@@ -128,7 +129,7 @@ serve(async (req) => {
     // Chamar função de envio de e-mail
     try {
       await supabase.functions.invoke('enviar-email-ponto', {
-        body: { pontoId, pdfUrl: publicUrl }
+        body: { timeEntryId, pdfUrl: publicUrl }
       });
     } catch (emailError) {
       console.error('Erro ao enviar e-mail:', emailError);

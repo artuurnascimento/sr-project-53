@@ -324,6 +324,15 @@ const PortalHome = () => {
 
       const result = await createTimeEntry.mutateAsync(entry);
       
+      // Chamar edge function para gerar comprovante (background)
+      if (result?.id) {
+        supabase.functions.invoke('gerar-comprovante-ponto', {
+          body: { timeEntryId: result.id }
+        }).catch(err => {
+          console.error('Erro ao gerar comprovante:', err);
+        });
+      }
+      
       // If we have an audit ID, link it to the time entry using secure function
       if (auditId && result?.id) {
         const { error: linkError } = await supabase.rpc('link_audit_to_time_entry', {

@@ -21,27 +21,27 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const { pontoId, pdfUrl } = await req.json();
+    const { timeEntryId, pdfUrl } = await req.json();
 
-    // Buscar dados do ponto
-    const { data: ponto, error: pontoError } = await supabase
-      .from('v_pontos_completo')
+    // Buscar dados do registro de ponto
+    const { data: timeEntry, error: timeEntryError } = await supabase
+      .from('v_time_entries_completo')
       .select('*')
-      .eq('id', pontoId)
+      .eq('id', timeEntryId)
       .single();
 
-    if (pontoError || !ponto) {
-      throw new Error('Ponto não encontrado');
+    if (timeEntryError || !timeEntry) {
+      throw new Error('Registro de ponto não encontrado');
     }
 
     const tipoLabel = {
-      'entrada': 'Entrada',
-      'saida': 'Saída',
-      'pausa': 'Pausa',
-      'retorno': 'Retorno'
-    }[ponto.tipo] || ponto.tipo;
+      'IN': 'Entrada',
+      'OUT': 'Saída',
+      'BREAK_OUT': 'Início de Pausa',
+      'BREAK_IN': 'Fim de Pausa'
+    }[timeEntry.punch_type] || timeEntry.punch_type;
 
-    const dataHora = new Date(ponto.data_hora);
+    const dataHora = new Date(timeEntry.punch_time);
     const dataFormatada = dataHora.toLocaleDateString('pt-BR');
     const horaFormatada = dataHora.toLocaleTimeString('pt-BR');
 
@@ -54,21 +54,21 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'Ponto Eletrônico <onboarding@resend.dev>',
-        to: [ponto.colaborador_email],
+        to: [timeEntry.employee_email],
         subject: `Comprovante de Ponto - ${dataFormatada}`,
         html: `
           <h1>Comprovante de Ponto Eletrônico</h1>
-          <p>Olá <strong>${ponto.colaborador_nome}</strong>,</p>
+          <p>Olá <strong>${timeEntry.employee_name}</strong>,</p>
           <p>Seu registro de ponto foi confirmado com sucesso:</p>
           <ul>
             <li><strong>Tipo:</strong> ${tipoLabel}</li>
             <li><strong>Data:</strong> ${dataFormatada}</li>
             <li><strong>Hora:</strong> ${horaFormatada}</li>
-            ${ponto.localizacao ? `<li><strong>Localização:</strong> ${ponto.localizacao}</li>` : ''}
+            ${timeEntry.location_address ? `<li><strong>Localização:</strong> ${timeEntry.location_address}</li>` : ''}
           </ul>
           <p>Seu comprovante está disponível no link abaixo:</p>
           <p><a href="${pdfUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Baixar Comprovante</a></p>
-          <p>Código de verificação: <code>${pontoId}</code></p>
+          <p>Código de verificação: <code>${timeEntryId}</code></p>
           <hr>
           <p style="font-size: 12px; color: #666;">Este é um e-mail automático, por favor não responda.</p>
         `
@@ -82,9 +82,9 @@ serve(async (req) => {
 
     // Atualizar registro
     await supabase
-      .from('pontos')
+      .from('time_entries')
       .update({ email_enviado: true })
-      .eq('id', pontoId);
+      .eq('id', timeEntryId);
 
     // Registrar log
     await supabase
@@ -92,9 +92,9 @@ serve(async (req) => {
       .insert({
         tipo: 'email',
         status: 'success',
-        referencia_id: pontoId,
+        referencia_id: timeEntryId,
         mensagem: 'E-mail enviado com sucesso',
-        payload: { email: ponto.colaborador_email }
+        payload: { email: timeEntry.employee_email }
       });
 
     return new Response(

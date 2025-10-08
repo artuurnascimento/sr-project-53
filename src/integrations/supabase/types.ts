@@ -516,6 +516,7 @@ export type Database = {
           department: string | null
           email: string
           employee_id: string | null
+          envio_resumo: string
           face_embedding: string | null
           facial_reference_url: string | null
           full_name: string
@@ -532,6 +533,7 @@ export type Database = {
           department?: string | null
           email: string
           employee_id?: string | null
+          envio_resumo?: string
           face_embedding?: string | null
           facial_reference_url?: string | null
           full_name: string
@@ -548,6 +550,7 @@ export type Database = {
           department?: string | null
           email?: string
           employee_id?: string | null
+          envio_resumo?: string
           face_embedding?: string | null
           facial_reference_url?: string | null
           full_name?: string
@@ -705,7 +708,9 @@ export type Database = {
       }
       time_entries: {
         Row: {
+          comprovante_pdf: string | null
           created_at: string | null
+          email_enviado: boolean
           employee_id: string
           id: string
           location_address: string | null
@@ -718,7 +723,9 @@ export type Database = {
           work_location_id: string | null
         }
         Insert: {
+          comprovante_pdf?: string | null
           created_at?: string | null
+          email_enviado?: boolean
           employee_id: string
           id?: string
           location_address?: string | null
@@ -731,7 +738,9 @@ export type Database = {
           work_location_id?: string | null
         }
         Update: {
+          comprovante_pdf?: string | null
           created_at?: string | null
+          email_enviado?: boolean
           employee_id?: string
           id?: string
           location_address?: string | null
@@ -798,6 +807,29 @@ export type Database = {
       }
     }
     Views: {
+      v_daily_summary: {
+        Row: {
+          break_ins: number | null
+          break_outs: number | null
+          clock_ins: number | null
+          clock_outs: number | null
+          date: string | null
+          employee_id: string | null
+          employee_name: string | null
+          first_entry: string | null
+          last_entry: string | null
+          total_entries: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_pontos_completo: {
         Row: {
           colaborador_email: string | null
@@ -840,6 +872,31 @@ export type Database = {
             columns: ["colaborador_id"]
             isOneToOne: false
             referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_time_entries_completo: {
+        Row: {
+          comprovante_pdf: string | null
+          email_enviado: boolean | null
+          employee_email: string | null
+          employee_id: string | null
+          employee_name: string | null
+          envio_resumo: string | null
+          id: string | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          punch_time: string | null
+          punch_type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

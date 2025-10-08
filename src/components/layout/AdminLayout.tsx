@@ -1,5 +1,5 @@
 import { ReactNode, useState, useEffect } from 'react';
-import { Home, CheckCircle, FileText, UserPlus, Settings, Search, LogOut, Menu, Bell, User, MapPin } from 'lucide-react';
+import { Home, CheckCircle, FileText, UserPlus, Settings, Search, LogOut, Menu, Bell, User, MapPin, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
@@ -105,7 +105,8 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { path: '/admin/cadastros', icon: UserPlus, label: 'Cadastros' },
     { path: '/admin/localizacoes', icon: MapPin, label: 'Localizações' },
     { path: '/admin/integracoes', icon: Settings, label: 'Integrações' },
-    { path: '/admin/auditoria', icon: Search, label: 'Auditoria' }
+    { path: '/admin/auditoria', icon: Search, label: 'Auditoria' },
+    { path: '/admin/comprovantes', icon: FileCheck, label: 'Comprovantes' }
   ];
 
   const isActive = (path: string) => {
