@@ -109,6 +109,36 @@ export type Database = {
           },
         ]
       }
+      colaboradores: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          criado_em: string
+          email: string
+          envio_resumo: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          email: string
+          envio_resumo?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          email?: string
+          envio_resumo?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       facial_recognition_audit: {
         Row: {
           attempt_image_url: string
@@ -345,6 +375,39 @@ export type Database = {
           },
         ]
       }
+      logs_sistema: {
+        Row: {
+          criado_em: string
+          dados: Json | null
+          id: string
+          mensagem: string | null
+          payload: Json | null
+          referencia_id: string | null
+          status: string
+          tipo: string
+        }
+        Insert: {
+          criado_em?: string
+          dados?: Json | null
+          id?: string
+          mensagem?: string | null
+          payload?: Json | null
+          referencia_id?: string | null
+          status: string
+          tipo: string
+        }
+        Update: {
+          criado_em?: string
+          dados?: Json | null
+          id?: string
+          mensagem?: string | null
+          payload?: Json | null
+          referencia_id?: string | null
+          status?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       operations: {
         Row: {
           active: boolean | null
@@ -404,6 +467,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pontos: {
+        Row: {
+          colaborador_id: string
+          comprovante_pdf: string | null
+          criado_em: string
+          data_hora: string
+          email_enviado: boolean
+          id: string
+          localizacao: string | null
+          tipo: string
+        }
+        Insert: {
+          colaborador_id: string
+          comprovante_pdf?: string | null
+          criado_em?: string
+          data_hora?: string
+          email_enviado?: boolean
+          id?: string
+          localizacao?: string | null
+          tipo: string
+        }
+        Update: {
+          colaborador_id?: string
+          comprovante_pdf?: string | null
+          criado_em?: string
+          data_hora?: string
+          email_enviado?: boolean
+          id?: string
+          localizacao?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pontos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -661,7 +765,10 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          latitude: number | null
+          longitude: number | null
           name: string
+          radius_meters: number | null
           type: string
           updated_at: string
         }
@@ -669,7 +776,10 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name: string
+          radius_meters?: number | null
           type: string
           updated_at?: string
         }
@@ -677,7 +787,10 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name?: string
+          radius_meters?: number | null
           type?: string
           updated_at?: string
         }
@@ -685,7 +798,52 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_pontos_completo: {
+        Row: {
+          colaborador_email: string | null
+          colaborador_id: string | null
+          colaborador_nome: string | null
+          comprovante_pdf: string | null
+          data_hora: string | null
+          email_enviado: boolean | null
+          envio_resumo: string | null
+          id: string | null
+          localizacao: string | null
+          tipo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pontos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_resumo_diario: {
+        Row: {
+          colaborador_id: string | null
+          colaborador_nome: string | null
+          data: string | null
+          entradas: number | null
+          pausas: number | null
+          primeiro_registro: string | null
+          retornos: number | null
+          saidas: number | null
+          total_registros: number | null
+          ultimo_registro: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pontos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       binary_quantize: {
@@ -790,7 +948,11 @@ export type Database = {
       }
       l2_normalize: {
         Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: unknown
+        Returns: string
+      }
+      limpar_logs_antigos: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       link_audit_to_time_entry: {
         Args: { _audit_id: string; _time_entry_id: string }
