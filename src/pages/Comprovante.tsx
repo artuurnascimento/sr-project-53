@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { XCircle, FileImage, FileText } from "lucide-react";
 import { toast } from "sonner";
@@ -110,14 +109,14 @@ export default function Comprovante() {
     return labels[tipo] || tipo;
   };
 
-  const getTipoBadgeVariant = (tipo: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      'IN': 'default',
-      'OUT': 'secondary',
-      'BREAK_OUT': 'outline',
-      'BREAK_IN': 'outline'
+  const getTipoBadgeStyle = (tipo: string) => {
+    const styles: Record<string, { backgroundColor: string; color: string; border: string }> = {
+      'IN': { backgroundColor: '#0F3C4C', color: '#FAFAFA', border: 'none' },
+      'OUT': { backgroundColor: '#0A6B5C', color: '#FAFAFA', border: 'none' },
+      'BREAK_OUT': { backgroundColor: 'transparent', color: '#1E293B', border: '1px solid #E2E8F0' },
+      'BREAK_IN': { backgroundColor: 'transparent', color: '#1E293B', border: '1px solid #E2E8F0' }
     };
-    return variants[tipo] || 'default';
+    return styles[tipo] || styles['IN'];
   };
 
   if (loading) {
@@ -213,9 +212,12 @@ export default function Comprovante() {
 
               <div className="flex items-center gap-3">
                 <div className="w-5 flex-shrink-0"></div>
-                <Badge variant={getTipoBadgeVariant(comprovante.punch_type)} className="text-base py-1.5 px-4">
+                <div
+                  className="inline-flex items-center rounded-full px-4 py-1.5 text-base font-semibold"
+                  style={getTipoBadgeStyle(comprovante.punch_type)}
+                >
                   {getTipoLabel(comprovante.punch_type)}
-                </Badge>
+                </div>
               </div>
             </div>
 
