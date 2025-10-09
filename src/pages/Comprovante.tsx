@@ -211,8 +211,9 @@ export default function Comprovante() {
                 </div>
               </div>
 
-              <div>
-                <Badge variant={getTipoBadgeVariant(comprovante.punch_type)} className="text-base py-1.5 px-4 inline-flex">
+              <div className="flex items-center gap-3">
+                <div className="w-5 flex-shrink-0"></div>
+                <Badge variant={getTipoBadgeVariant(comprovante.punch_type)} className="text-base py-1.5 px-4">
                   {getTipoLabel(comprovante.punch_type)}
                 </Badge>
               </div>
