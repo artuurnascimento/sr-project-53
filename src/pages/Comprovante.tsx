@@ -212,25 +212,24 @@ export default function Comprovante() {
                   </div>
                 </div>
 
-                <div style={{ paddingLeft: '32px' }}>
-                  <span
-                    style={{
-                      ...getTipoBadgeStyle(comprovante.punch_type),
-                      display: 'inline-block',
-                      borderRadius: '9999px',
-                      paddingLeft: '16px',
-                      paddingRight: '16px',
-                      paddingTop: '6px',
-                      paddingBottom: '6px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      whiteSpace: 'nowrap',
-                      lineHeight: '1.5'
-                    }}
-                  >
-                    {getTipoLabel(comprovante.punch_type)}
-                  </span>
-                </div>
+                <span
+                  style={{
+                    ...getTipoBadgeStyle(comprovante.punch_type),
+                    display: 'inline-block',
+                    borderRadius: '9999px',
+                    paddingLeft: '16px',
+                    paddingRight: '16px',
+                    paddingTop: '6px',
+                    paddingBottom: '6px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    whiteSpace: 'nowrap',
+                    lineHeight: '1.5',
+                    marginLeft: '32px'
+                  }}
+                >
+                  {getTipoLabel(comprovante.punch_type)}
+                </span>
               </div>
 
               {/* QR Code */}
