@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, Download, MapPin, Clock, User, Calendar, FileImage, FileText } from "lucide-react";
+import { XCircle, FileImage, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { downloadComprovanteAsImage, downloadComprovanteAsPDF } from "@/utils/comprovanteExport";
 
@@ -164,7 +164,21 @@ export default function Comprovante() {
         {/* Conteúdo do Comprovante - Será capturado */}
         <Card className="w-full" id="comprovante-content" style={{ maxWidth: '672px', margin: '0 auto' }}>
           <CardHeader className="text-center border-b">
-            <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
+            <div className="flex justify-center mb-4">
+              <svg
+                width="64"
+                height="64"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="hsl(var(--primary))"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
             <CardTitle className="text-3xl mb-2">
               Comprovante Válido
             </CardTitle>
@@ -177,15 +191,28 @@ export default function Comprovante() {
             {/* Informações do Colaborador */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-muted-foreground" />
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="flex-shrink-0"
+                >
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
                 <div>
                   <p className="text-sm text-muted-foreground">Colaborador</p>
                   <p className="font-semibold text-lg">{comprovante.employee_name}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <Badge variant={getTipoBadgeVariant(comprovante.punch_type)} className="text-base py-1 px-3">
+              <div>
+                <Badge variant={getTipoBadgeVariant(comprovante.punch_type)} className="text-base py-1.5 px-4 inline-flex">
                   {getTipoLabel(comprovante.punch_type)}
                 </Badge>
               </div>
@@ -194,7 +221,22 @@ export default function Comprovante() {
             {/* Data e Hora */}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-muted-foreground" />
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="flex-shrink-0"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
                 <div>
                   <p className="text-sm text-muted-foreground">Data</p>
                   <p className="font-medium">{dataHora.toLocaleDateString('pt-BR')}</p>
@@ -202,7 +244,20 @@ export default function Comprovante() {
               </div>
 
               <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-muted-foreground" />
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="flex-shrink-0"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
                 <div>
                   <p className="text-sm text-muted-foreground">Hora</p>
                   <p className="font-medium">{dataHora.toLocaleTimeString('pt-BR')}</p>
@@ -213,7 +268,20 @@ export default function Comprovante() {
             {/* Localização */}
             {comprovante.location_address && (
               <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
-                <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="flex-shrink-0 mt-0.5"
+                >
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Localização</p>
                   <p className="font-medium">{comprovante.location_address}</p>
