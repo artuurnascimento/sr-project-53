@@ -12,6 +12,8 @@ export interface TimeEntry {
   location_address?: string;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
+  comprovante_pdf?: string;
+  email_enviado?: boolean;
   profiles?: {
     full_name: string;
     department?: string;

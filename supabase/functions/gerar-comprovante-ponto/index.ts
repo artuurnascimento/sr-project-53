@@ -113,13 +113,14 @@ Deno.serve(async (req: Request) => {
 </html>
     `;
 
-    const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+    const encoder = new TextEncoder();
+    const htmlData = encoder.encode(htmlContent);
     const fileName = `comprovante-${timeEntryId}.html`;
 
     const { error: uploadError } = await supabase.storage
       .from('comprovantes')
-      .upload(fileName, htmlBlob, {
-        contentType: 'text/html',
+      .upload(fileName, htmlData, {
+        contentType: 'text/html; charset=utf-8',
         upsert: true
       });
 
