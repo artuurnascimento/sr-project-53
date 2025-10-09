@@ -13,16 +13,21 @@ const waitForImages = async (element: HTMLElement): Promise<void> => {
   await Promise.all(promises);
 };
 
-const convertCanvasToImage = (element: HTMLElement): void => {
-  const canvases = element.querySelectorAll('canvas');
-  canvases.forEach((canvas) => {
-    const img = document.createElement('img');
-    img.src = canvas.toDataURL('image/png');
-    img.width = canvas.width;
-    img.height = canvas.height;
-    img.style.cssText = canvas.style.cssText;
-    img.className = canvas.className;
-    canvas.parentNode?.replaceChild(img, canvas);
+const convertCanvasToImage = (originalElement: HTMLElement, clonedElement: HTMLElement): void => {
+  const originalCanvases = originalElement.querySelectorAll('canvas');
+  const clonedCanvases = clonedElement.querySelectorAll('canvas');
+
+  originalCanvases.forEach((originalCanvas, index) => {
+    const clonedCanvas = clonedCanvases[index];
+    if (clonedCanvas) {
+      const img = document.createElement('img');
+      img.src = originalCanvas.toDataURL('image/png');
+      img.width = originalCanvas.width;
+      img.height = originalCanvas.height;
+      img.style.cssText = originalCanvas.style.cssText;
+      img.className = originalCanvas.className;
+      clonedCanvas.parentNode?.replaceChild(img, clonedCanvas);
+    }
   });
 };
 
@@ -76,7 +81,7 @@ export const downloadComprovanteAsImage = async (elementId: string, fileName: st
   document.body.appendChild(clonedElement);
 
   resolveCSSVariables(clonedElement);
-  convertCanvasToImage(clonedElement);
+  convertCanvasToImage(element, clonedElement);
 
   await waitForImages(clonedElement);
   await waitForFonts();
@@ -133,7 +138,7 @@ export const downloadComprovanteAsPDF = async (elementId: string, fileName: stri
   document.body.appendChild(clonedElement);
 
   resolveCSSVariables(clonedElement);
-  convertCanvasToImage(clonedElement);
+  convertCanvasToImage(element, clonedElement);
 
   await waitForImages(clonedElement);
   await waitForFonts();

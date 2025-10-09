@@ -190,8 +190,8 @@ export default function Comprovante() {
           <CardContent className="p-6 space-y-6">
             {/* Informações do Colaborador com QR Code */}
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-3 flex-1">
-                <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-3">
                   <svg
                     width="20"
                     height="20"
@@ -206,14 +206,13 @@ export default function Comprovante() {
                     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                   </svg>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm text-muted-foreground">Colaborador</p>
                     <p className="font-semibold text-lg">{comprovante.employee_name}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 mt-1">
-                  <div className="w-5 flex-shrink-0"></div>
+                <div className="pl-8">
                   <span
                     className="inline-block rounded-full px-4 py-1.5 text-base font-semibold whitespace-nowrap"
                     style={getTipoBadgeStyle(comprovante.punch_type)}
@@ -224,11 +223,10 @@ export default function Comprovante() {
               </div>
 
               {/* QR Code */}
-              <div className="flex-shrink-0 bg-white p-2 rounded-lg border-2 border-gray-200">
+              <div className="flex-shrink-0 bg-white p-2 rounded-lg border-2 border-gray-200" style={{ width: '112px', height: '112px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <QRCode
                   value={`${window.location.origin}/comprovante?id=${comprovante.id}`}
                   size={96}
-                  className="w-20 h-20 sm:w-24 sm:h-24"
                 />
               </div>
             </div>
