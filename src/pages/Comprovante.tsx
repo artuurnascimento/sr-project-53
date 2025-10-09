@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, Download, MapPin, Clock, User, Calendar } from "lucide-react";
+import { CheckCircle, XCircle, Download, MapPin, Clock, User, Calendar, FileImage, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { downloadComprovanteAsImage, downloadComprovanteAsPDF } from "@/utils/comprovanteExport";
 
 interface ComprovanteData {
   id: string;
@@ -73,11 +74,29 @@ export default function Comprovante() {
     }
   };
 
-  const handleDownloadPDF = () => {
-    if (comprovante?.comprovante_pdf) {
-      window.open(comprovante.comprovante_pdf, '_blank');
-    } else {
-      toast.error("PDF não disponível");
+  const handleDownloadPDF = async () => {
+    try {
+      await downloadComprovanteAsPDF(
+        'comprovante-content',
+        `comprovante-ponto-${new Date().toISOString().split('T')[0]}.pdf`
+      );
+      toast.success('PDF baixado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao baixar PDF:', error);
+      toast.error('Erro ao baixar PDF');
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    try {
+      await downloadComprovanteAsImage(
+        'comprovante-content',
+        `comprovante-ponto-${new Date().toISOString().split('T')[0]}.png`
+      );
+      toast.success('Imagem baixada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao baixar imagem:', error);
+      toast.error('Erro ao baixar imagem');
     }
   };
 
@@ -141,7 +160,7 @@ export default function Comprovante() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-2xl" id="comprovante-content">
         <CardHeader className="text-center border-b">
           <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
           <CardTitle className="text-3xl mb-2">
@@ -206,17 +225,27 @@ export default function Comprovante() {
             <code className="text-xs font-mono">{comprovante.id}</code>
           </div>
 
-          {/* Botão de Download */}
-          {comprovante.comprovante_pdf && (
-            <Button 
+          {/* Botões de Download */}
+          <div className="grid grid-cols-2 gap-3">
+            <Button
               onClick={handleDownloadPDF}
+              variant="default"
               className="w-full"
               size="lg"
             >
-              <Download className="w-4 h-4 mr-2" />
-              Baixar Comprovante em PDF
+              <FileText className="w-4 h-4 mr-2" />
+              Baixar PDF
             </Button>
-          )}
+            <Button
+              onClick={handleDownloadImage}
+              variant="outline"
+              className="w-full"
+              size="lg"
+            >
+              <FileImage className="w-4 h-4 mr-2" />
+              Baixar Imagem
+            </Button>
+          </div>
 
           {/* Aviso */}
           <p className="text-xs text-center text-muted-foreground pt-4 border-t">

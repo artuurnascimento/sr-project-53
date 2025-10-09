@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2, Shield, Camera, FileText, ExternalLink } from 'lucide-react';
+import { Clock, MapPin, Wifi, WifiOff, User, CheckCircle, AlertCircle, Loader2, Shield, Camera, FileText, ExternalLink, FileImage, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { downloadComprovanteAsImage, downloadComprovanteAsPDF } from '@/utils/comprovanteExport';
 
 interface WorkLocation {
   id: string;
@@ -767,7 +768,7 @@ const PortalHome = () => {
                   <span className="text-xs text-muted-foreground">Escaneie para validar no celular</span>
                 </div>
               )}
-              
+
               <div className="flex flex-col gap-2">
                 <Button
                   onClick={() => {
@@ -780,6 +781,60 @@ const PortalHome = () => {
                   <FileText className="h-4 w-4 mr-2" />
                   Ver Comprovante Agora
                 </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      const comprovanteWindow = window.open(`/comprovante?id=${currentComprovanteId}`, '_blank');
+                      if (comprovanteWindow) {
+                        setTimeout(async () => {
+                          try {
+                            const element = comprovanteWindow.document.getElementById('comprovante-content');
+                            if (element) {
+                              await downloadComprovanteAsPDF(
+                                'comprovante-content',
+                                `comprovante-ponto-${new Date().toISOString().split('T')[0]}.pdf`
+                              );
+                              toast.success('PDF baixado com sucesso!');
+                            }
+                          } catch (error) {
+                            toast.error('Abra o comprovante para baixar o PDF');
+                          }
+                        }, 1000);
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      const comprovanteWindow = window.open(`/comprovante?id=${currentComprovanteId}`, '_blank');
+                      if (comprovanteWindow) {
+                        setTimeout(async () => {
+                          try {
+                            const element = comprovanteWindow.document.getElementById('comprovante-content');
+                            if (element) {
+                              await downloadComprovanteAsImage(
+                                'comprovante-content',
+                                `comprovante-ponto-${new Date().toISOString().split('T')[0]}.png`
+                              );
+                              toast.success('Imagem baixada com sucesso!');
+                            }
+                          } catch (error) {
+                            toast.error('Abra o comprovante para baixar a imagem');
+                          }
+                        }, 1000);
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <FileImage className="h-4 w-4 mr-2" />
+                    Imagem
+                  </Button>
+                </div>
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -791,7 +846,7 @@ const PortalHome = () => {
                   Fechar
                 </Button>
               </div>
-              
+
               <p className="text-xs text-center text-muted-foreground">
                 Você pode acessar todos os seus comprovantes na página de Histórico
               </p>

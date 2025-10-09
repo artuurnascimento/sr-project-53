@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Calendar, Clock, Download, ChevronLeft, ChevronRight, FileText, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, Download, ChevronLeft, ChevronRight, FileText, ExternalLink, FileImage, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import PortalLayout from '@/components/layout/PortalLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTimeEntries } from '@/hooks/useTimeTracking';
 import { toast } from 'sonner';
+import { downloadComprovanteAsImage, downloadComprovanteAsPDF } from '@/utils/comprovanteExport';
 
 const History = () => {
   const { profile } = useAuth();
@@ -115,6 +117,46 @@ const History = () => {
       window.open(comprovanteUrl, '_blank');
     } else {
       window.open(`/comprovante?id=${entryId}`, '_blank');
+    }
+  };
+
+  const handleDownloadPDF = async (entryId: string) => {
+    const comprovanteWindow = window.open(`/comprovante?id=${entryId}`, '_blank');
+    if (comprovanteWindow) {
+      setTimeout(async () => {
+        try {
+          const element = comprovanteWindow.document.getElementById('comprovante-content');
+          if (element) {
+            await downloadComprovanteAsPDF(
+              'comprovante-content',
+              `comprovante-ponto-${entryId}.pdf`
+            );
+            toast.success('PDF baixado com sucesso!');
+          }
+        } catch (error) {
+          toast.error('Abra o comprovante para baixar o PDF');
+        }
+      }, 1500);
+    }
+  };
+
+  const handleDownloadImage = async (entryId: string) => {
+    const comprovanteWindow = window.open(`/comprovante?id=${entryId}`, '_blank');
+    if (comprovanteWindow) {
+      setTimeout(async () => {
+        try {
+          const element = comprovanteWindow.document.getElementById('comprovante-content');
+          if (element) {
+            await downloadComprovanteAsImage(
+              'comprovante-content',
+              `comprovante-ponto-${entryId}.png`
+            );
+            toast.success('Imagem baixada com sucesso!');
+          }
+        } catch (error) {
+          toast.error('Abra o comprovante para baixar a imagem');
+        }
+      }, 1500);
     }
   };
 
@@ -270,14 +312,37 @@ const History = () => {
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {getStatusBadge(entry.status)}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewComprovante(entry.id, entry.comprovante_pdf)}
-                              title="Ver comprovante"
-                            >
-                              <FileText className="h-3 w-3 md:h-4 md:w-4" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  title="Opções do comprovante"
+                                >
+                                  <Download className="h-3 w-3 md:h-4 md:w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleViewComprovante(entry.id, entry.comprovante_pdf)}
+                                >
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Ver Comprovante
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleDownloadPDF(entry.id)}
+                                >
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Baixar PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleDownloadImage(entry.id)}
+                                >
+                                  <FileImage className="h-4 w-4 mr-2" />
+                                  Baixar Imagem
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       ))}
