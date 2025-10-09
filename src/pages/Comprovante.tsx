@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { XCircle, FileImage, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { downloadComprovanteAsImage, downloadComprovanteAsPDF } from "@/utils/comprovanteExport";
+import { QRCodeCanvas } from "qrcode.react";
 
 interface ComprovanteData {
   id: string;
@@ -187,37 +188,50 @@ export default function Comprovante() {
           </CardHeader>
 
           <CardContent className="p-6 space-y-6">
-            {/* Informações do Colaborador */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#737373"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="flex-shrink-0"
-                >
-                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                <div>
-                  <p className="text-sm text-muted-foreground">Colaborador</p>
-                  <p className="font-semibold text-lg">{comprovante.employee_name}</p>
+            {/* Informações do Colaborador com QR Code */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-3 flex-1">
+                <div className="flex items-center gap-3">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#737373"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="flex-shrink-0"
+                  >
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Colaborador</p>
+                    <p className="font-semibold text-lg">{comprovante.employee_name}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-5 flex-shrink-0"></div>
+                  <div
+                    className="inline-flex items-center rounded-full px-4 py-1.5 text-base font-semibold"
+                    style={getTipoBadgeStyle(comprovante.punch_type)}
+                  >
+                    {getTipoLabel(comprovante.punch_type)}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="w-5 flex-shrink-0"></div>
-                <div
-                  className="inline-flex items-center rounded-full px-4 py-1.5 text-base font-semibold"
-                  style={getTipoBadgeStyle(comprovante.punch_type)}
-                >
-                  {getTipoLabel(comprovante.punch_type)}
-                </div>
+              {/* QR Code */}
+              <div className="flex-shrink-0 bg-white p-2 rounded-lg border-2 border-gray-200">
+                <QRCodeCanvas
+                  value={`${window.location.origin}/comprovante?id=${comprovante.id}`}
+                  size={96}
+                  level="H"
+                  includeMargin={false}
+                  className="w-20 h-20 sm:w-24 sm:h-24"
+                />
               </div>
             </div>
 
