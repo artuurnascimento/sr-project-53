@@ -235,16 +235,16 @@ export default function WorkSchedules() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Horários de Trabalho</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-2xl md:text-3xl font-bold">Horários de Trabalho</h1>
+            <p className="text-muted-foreground mt-2 text-sm md:text-base">
               Configure os horários de entrada, saída e intervalos para cada colaborador
             </p>
           </div>
-          <Button onClick={handleOpenBulkDialog} size="lg">
+          <Button onClick={handleOpenBulkDialog} size="lg" className="w-full md:w-auto">
             <Users className="w-4 h-4 mr-2" />
-            Configurar para Todos
+            <span className="md:inline">Configurar para Todos</span>
           </Button>
         </div>
 
@@ -273,47 +273,141 @@ export default function WorkSchedules() {
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Colaborador</TableHead>
-                    <TableHead>Entrada</TableHead>
-                    <TableHead>Saída</TableHead>
-                    <TableHead>Início Intervalo</TableHead>
-                    <TableHead>Fim Intervalo</TableHead>
-                    <TableHead>Tolerância</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Desktop View */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Colaborador</TableHead>
+                        <TableHead>Entrada</TableHead>
+                        <TableHead>Saída</TableHead>
+                        <TableHead>Início Intervalo</TableHead>
+                        <TableHead>Fim Intervalo</TableHead>
+                        <TableHead>Tolerância</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {schedules.map((schedule) => (
+                        <TableRow key={schedule.id}>
+                          <TableCell className="font-medium">
+                            <div>
+                              <p>{schedule.profiles?.full_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {schedule.profiles?.email}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{schedule.clock_in_time.substring(0, 5)}</TableCell>
+                          <TableCell>{schedule.clock_out_time.substring(0, 5)}</TableCell>
+                          <TableCell>{schedule.break_start_time.substring(0, 5)}</TableCell>
+                          <TableCell>{schedule.break_end_time.substring(0, 5)}</TableCell>
+                          <TableCell>{schedule.tolerance_minutes} min</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditSchedule(schedule)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile View */}
+                <div className="md:hidden space-y-3">
                   {schedules.map((schedule) => (
-                    <TableRow key={schedule.id}>
-                      <TableCell className="font-medium">
-                        <div>
-                          <p>{schedule.profiles?.full_name}</p>
-                          <p className="text-xs text-muted-foreground">
+                    <div
+                      key={schedule.id}
+                      className="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      {/* Header com Nome e Botão Editar */}
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 text-base truncate">
+                            {schedule.profiles?.full_name}
+                          </h3>
+                          <p className="text-xs text-gray-500 truncate mt-0.5">
                             {schedule.profiles?.email}
                           </p>
                         </div>
-                      </TableCell>
-                      <TableCell>{schedule.clock_in_time.substring(0, 5)}</TableCell>
-                      <TableCell>{schedule.clock_out_time.substring(0, 5)}</TableCell>
-                      <TableCell>{schedule.break_start_time.substring(0, 5)}</TableCell>
-                      <TableCell>{schedule.break_end_time.substring(0, 5)}</TableCell>
-                      <TableCell>{schedule.tolerance_minutes} min</TableCell>
-                      <TableCell className="text-right">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleEditSchedule(schedule)}
+                          className="ml-2 flex-shrink-0"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+
+                      {/* Grid 2x2 para Horários */}
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-xs uppercase tracking-wide text-gray-500 font-medium">
+                              Entrada
+                            </span>
+                          </div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {schedule.clock_in_time.substring(0, 5)}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-xs uppercase tracking-wide text-gray-500 font-medium">
+                              Saída
+                            </span>
+                          </div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {schedule.clock_out_time.substring(0, 5)}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-xs uppercase tracking-wide text-gray-500 font-medium">
+                              Intervalo Início
+                            </span>
+                          </div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {schedule.break_start_time.substring(0, 5)}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-xs uppercase tracking-wide text-gray-500 font-medium">
+                              Intervalo Fim
+                            </span>
+                          </div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {schedule.break_end_time.substring(0, 5)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tolerância */}
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <span className="text-xs uppercase tracking-wide text-gray-500 font-medium">
+                          Tolerância
+                        </span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {schedule.tolerance_minutes} minutos
+                        </span>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -328,32 +422,64 @@ export default function WorkSchedules() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Colaborador</TableHead>
-                    <TableHead>E-mail</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {profilesWithoutSchedule.map((profile) => (
-                    <TableRow key={profile.id}>
-                      <TableCell className="font-medium">{profile.full_name}</TableCell>
-                      <TableCell>{profile.email}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          onClick={() => handleAddSchedule(profile)}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Configurar Horário
-                        </Button>
-                      </TableCell>
+              {/* Desktop View */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Colaborador</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {profilesWithoutSchedule.map((profile) => (
+                      <TableRow key={profile.id}>
+                        <TableCell className="font-medium">{profile.full_name}</TableCell>
+                        <TableCell>{profile.email}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddSchedule(profile)}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Configurar Horário
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="md:hidden space-y-3">
+                {profilesWithoutSchedule.map((profile) => (
+                  <div
+                    key={profile.id}
+                    className="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex flex-col gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 text-base truncate">
+                          {profile.full_name}
+                        </h3>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                          {profile.email}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddSchedule(profile)}
+                        className="w-full"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Configurar Horário
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}
