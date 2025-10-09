@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { XCircle, FileImage, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { downloadComprovanteAsImage, downloadComprovanteAsPDF } from "@/utils/comprovanteExport";
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCode } from "@/components/QRCode";
 
 interface ComprovanteData {
   id: string;
@@ -225,11 +225,9 @@ export default function Comprovante() {
 
               {/* QR Code */}
               <div className="flex-shrink-0 bg-white p-2 rounded-lg border-2 border-gray-200">
-                <QRCodeCanvas
+                <QRCode
                   value={`${window.location.origin}/comprovante?id=${comprovante.id}`}
                   size={96}
-                  level="H"
-                  includeMargin={false}
                   className="w-20 h-20 sm:w-24 sm:h-24"
                 />
               </div>
