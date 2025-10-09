@@ -212,10 +212,21 @@ export default function Comprovante() {
                   </div>
                 </div>
 
-                <div className="pl-8">
+                <div style={{ paddingLeft: '32px' }}>
                   <span
-                    className="inline-block rounded-full px-4 py-1.5 text-base font-semibold whitespace-nowrap"
-                    style={getTipoBadgeStyle(comprovante.punch_type)}
+                    style={{
+                      ...getTipoBadgeStyle(comprovante.punch_type),
+                      display: 'inline-block',
+                      borderRadius: '9999px',
+                      paddingLeft: '16px',
+                      paddingRight: '16px',
+                      paddingTop: '6px',
+                      paddingBottom: '6px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      whiteSpace: 'nowrap',
+                      lineHeight: '1.5'
+                    }}
                   >
                     {getTipoLabel(comprovante.punch_type)}
                   </span>
