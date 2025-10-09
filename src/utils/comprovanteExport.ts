@@ -19,6 +19,36 @@ const waitForFonts = async (): Promise<void> => {
   }
 };
 
+const resolveCSSVariables = (element: HTMLElement): void => {
+  const computedStyle = window.getComputedStyle(element);
+  const elements = element.querySelectorAll('*');
+
+  elements.forEach((el) => {
+    const htmlEl = el as HTMLElement;
+    const style = window.getComputedStyle(htmlEl);
+
+    if (style.stroke && style.stroke.includes('var(')) {
+      const computedColor = window.getComputedStyle(htmlEl).stroke;
+      htmlEl.style.stroke = computedColor;
+    }
+
+    if (style.fill && style.fill.includes('var(')) {
+      const computedColor = window.getComputedStyle(htmlEl).fill;
+      htmlEl.style.fill = computedColor;
+    }
+
+    if (style.color && style.color.includes('var(')) {
+      const computedColor = window.getComputedStyle(htmlEl).color;
+      htmlEl.style.color = computedColor;
+    }
+
+    if (style.backgroundColor && style.backgroundColor.includes('var(')) {
+      const computedColor = window.getComputedStyle(htmlEl).backgroundColor;
+      htmlEl.style.backgroundColor = computedColor;
+    }
+  });
+};
+
 export const downloadComprovanteAsImage = async (elementId: string, fileName: string = 'comprovante-ponto.png') => {
   const element = document.getElementById(elementId);
 
@@ -26,27 +56,34 @@ export const downloadComprovanteAsImage = async (elementId: string, fileName: st
     throw new Error('Elemento não encontrado');
   }
 
-  await waitForImages(element);
+  const clonedElement = element.cloneNode(true) as HTMLElement;
+  clonedElement.style.position = 'absolute';
+  clonedElement.style.left = '-9999px';
+  clonedElement.style.top = '0';
+  document.body.appendChild(clonedElement);
+
+  resolveCSSVariables(clonedElement);
+
+  await waitForImages(clonedElement);
   await waitForFonts();
+  await new Promise(resolve => setTimeout(resolve, 1500));
 
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  const canvas = await html2canvas(element, {
+  const canvas = await html2canvas(clonedElement, {
     backgroundColor: '#ffffff',
-    scale: 3,
-    logging: false,
+    scale: 2,
+    logging: true,
     useCORS: true,
-    allowTaint: true,
-    foreignObjectRendering: true,
-    imageTimeout: 15000,
+    allowTaint: false,
+    foreignObjectRendering: false,
+    imageTimeout: 30000,
     removeContainer: true,
-    windowWidth: element.scrollWidth,
-    windowHeight: element.scrollHeight,
+    windowWidth: clonedElement.offsetWidth,
+    windowHeight: clonedElement.offsetHeight,
     scrollX: 0,
     scrollY: 0,
-    width: element.scrollWidth,
-    height: element.scrollHeight,
   });
+
+  document.body.removeChild(clonedElement);
 
   return new Promise<void>((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -75,27 +112,34 @@ export const downloadComprovanteAsPDF = async (elementId: string, fileName: stri
     throw new Error('Elemento não encontrado');
   }
 
-  await waitForImages(element);
+  const clonedElement = element.cloneNode(true) as HTMLElement;
+  clonedElement.style.position = 'absolute';
+  clonedElement.style.left = '-9999px';
+  clonedElement.style.top = '0';
+  document.body.appendChild(clonedElement);
+
+  resolveCSSVariables(clonedElement);
+
+  await waitForImages(clonedElement);
   await waitForFonts();
+  await new Promise(resolve => setTimeout(resolve, 1500));
 
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  const canvas = await html2canvas(element, {
+  const canvas = await html2canvas(clonedElement, {
     backgroundColor: '#ffffff',
-    scale: 3,
-    logging: false,
+    scale: 2,
+    logging: true,
     useCORS: true,
-    allowTaint: true,
-    foreignObjectRendering: true,
-    imageTimeout: 15000,
+    allowTaint: false,
+    foreignObjectRendering: false,
+    imageTimeout: 30000,
     removeContainer: true,
-    windowWidth: element.scrollWidth,
-    windowHeight: element.scrollHeight,
+    windowWidth: clonedElement.offsetWidth,
+    windowHeight: clonedElement.offsetHeight,
     scrollX: 0,
     scrollY: 0,
-    width: element.scrollWidth,
-    height: element.scrollHeight,
   });
+
+  document.body.removeChild(clonedElement);
 
   const imgData = canvas.toDataURL('image/png');
 
