@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, Edit, Plus, Save } from "lucide-react";
+import { Clock, Edit, Plus, Save, Users } from "lucide-react";
 import AdminLayout from "@/components/layout/AdminLayout";
 
 interface WorkSchedule {
@@ -50,6 +50,7 @@ export default function WorkSchedules() {
   const queryClient = useQueryClient();
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     clock_in_time: "08:00",
     clock_out_time: "17:00",
@@ -103,7 +104,7 @@ export default function WorkSchedules() {
     }
   });
 
-  // Mutation para criar/atualizar horário
+  // Mutation para criar/atualizar horário individual
   const saveSchedule = useMutation({
     mutationFn: async (data: {
       profile_id: string;
@@ -119,7 +120,7 @@ export default function WorkSchedules() {
           ...data,
           is_active: true,
         });
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -132,6 +133,50 @@ export default function WorkSchedules() {
     },
     onError: (error: any) => {
       toast.error(`Erro ao salvar horário: ${error.message}`);
+    }
+  });
+
+  // Mutation para configurar horário para todos os colaboradores
+  const saveBulkSchedule = useMutation({
+    mutationFn: async (data: {
+      clock_in_time: string;
+      clock_out_time: string;
+      break_start_time: string;
+      break_end_time: string;
+      tolerance_minutes: number;
+    }) => {
+      const { data: allProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_active', true);
+
+      if (profilesError) throw profilesError;
+      if (!allProfiles || allProfiles.length === 0) {
+        throw new Error('Nenhum colaborador ativo encontrado');
+      }
+
+      const schedules = allProfiles.map(profile => ({
+        profile_id: profile.id,
+        ...data,
+        is_active: true,
+      }));
+
+      const { error } = await supabase
+        .from('work_schedules')
+        .upsert(schedules);
+
+      if (error) throw error;
+      return allProfiles.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['work-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['profiles-without-schedule'] });
+      toast.success(`Horário configurado para ${count} colaborador(es) com sucesso`);
+      setIsBulkDialogOpen(false);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast.error(`Erro ao configurar horários: ${error.message}`);
     }
   });
 
@@ -177,14 +222,30 @@ export default function WorkSchedules() {
     });
   };
 
+  const handleBulkSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveBulkSchedule.mutate(formData);
+  };
+
+  const handleOpenBulkDialog = () => {
+    resetForm();
+    setIsBulkDialogOpen(true);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Horários de Trabalho</h1>
-          <p className="text-muted-foreground mt-2">
-            Configure os horários de entrada, saída e intervalos para cada colaborador
-          </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold">Horários de Trabalho</h1>
+            <p className="text-muted-foreground mt-2">
+              Configure os horários de entrada, saída e intervalos para cada colaborador
+            </p>
+          </div>
+          <Button onClick={handleOpenBulkDialog} size="lg">
+            <Users className="w-4 h-4 mr-2" />
+            Configurar para Todos
+          </Button>
         </div>
 
         {/* Colaboradores com horário configurado */}
@@ -297,7 +358,7 @@ export default function WorkSchedules() {
           </Card>
         )}
 
-        {/* Dialog de configuração */}
+        {/* Dialog de configuração individual */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -387,6 +448,108 @@ export default function WorkSchedules() {
                 <Button type="submit" disabled={saveSchedule.isPending}>
                   <Save className="w-4 h-4 mr-2" />
                   {saveSchedule.isPending ? 'Salvando...' : 'Salvar Horário'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de configuração em massa */}
+        <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Configurar Horário para Todos
+              </DialogTitle>
+              <DialogDescription>
+                Este horário será aplicado a todos os colaboradores ativos do sistema
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleBulkSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="bulk_clock_in_time">Entrada</Label>
+                  <Input
+                    id="bulk_clock_in_time"
+                    type="time"
+                    value={formData.clock_in_time}
+                    onChange={(e) => setFormData({ ...formData, clock_in_time: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bulk_clock_out_time">Saída</Label>
+                  <Input
+                    id="bulk_clock_out_time"
+                    type="time"
+                    value={formData.clock_out_time}
+                    onChange={(e) => setFormData({ ...formData, clock_out_time: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="bulk_break_start_time">Início Intervalo</Label>
+                  <Input
+                    id="bulk_break_start_time"
+                    type="time"
+                    value={formData.break_start_time}
+                    onChange={(e) => setFormData({ ...formData, break_start_time: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bulk_break_end_time">Fim Intervalo</Label>
+                  <Input
+                    id="bulk_break_end_time"
+                    type="time"
+                    value={formData.break_end_time}
+                    onChange={(e) => setFormData({ ...formData, break_end_time: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="bulk_tolerance_minutes">Tolerância (minutos)</Label>
+                <Input
+                  id="bulk_tolerance_minutes"
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={formData.tolerance_minutes}
+                  onChange={(e) => setFormData({ ...formData, tolerance_minutes: parseInt(e.target.value) })}
+                  required
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tempo de tolerância antes/depois do horário configurado
+                </p>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800">
+                  <strong>Atenção:</strong> Esta ação irá sobrescrever os horários de todos os colaboradores ativos.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsBulkDialogOpen(false);
+                    resetForm();
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={saveBulkSchedule.isPending}>
+                  <Save className="w-4 h-4 mr-2" />
+                  {saveBulkSchedule.isPending ? 'Configurando...' : 'Aplicar a Todos'}
                 </Button>
               </div>
             </form>
