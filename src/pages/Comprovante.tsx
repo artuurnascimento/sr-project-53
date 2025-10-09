@@ -160,100 +160,103 @@ export default function Comprovante() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl" id="comprovante-content">
-        <CardHeader className="text-center border-b">
-          <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
-          <CardTitle className="text-3xl mb-2">
-            Comprovante Válido
-          </CardTitle>
-          <p className="text-muted-foreground">
-            Registro de Ponto Eletrônico Verificado
-          </p>
-        </CardHeader>
+      <div className="w-full max-w-2xl space-y-4">
+        {/* Conteúdo do Comprovante - Será capturado */}
+        <Card className="w-full" id="comprovante-content" style={{ maxWidth: '672px', margin: '0 auto' }}>
+          <CardHeader className="text-center border-b">
+            <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
+            <CardTitle className="text-3xl mb-2">
+              Comprovante Válido
+            </CardTitle>
+            <p className="text-muted-foreground">
+              Registro de Ponto Eletrônico Verificado
+            </p>
+          </CardHeader>
 
-        <CardContent className="p-6 space-y-6">
-          {/* Informações do Colaborador */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <User className="w-5 h-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Colaborador</p>
-                <p className="font-semibold text-lg">{comprovante.employee_name}</p>
+          <CardContent className="p-6 space-y-6">
+            {/* Informações do Colaborador */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <User className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Colaborador</p>
+                  <p className="font-semibold text-lg">{comprovante.employee_name}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Badge variant={getTipoBadgeVariant(comprovante.punch_type)} className="text-base py-1 px-3">
+                  {getTipoLabel(comprovante.punch_type)}
+                </Badge>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Badge variant={getTipoBadgeVariant(comprovante.punch_type)} className="text-base py-1 px-3">
-                {getTipoLabel(comprovante.punch_type)}
-              </Badge>
-            </div>
-          </div>
+            {/* Data e Hora */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Data</p>
+                  <p className="font-medium">{dataHora.toLocaleDateString('pt-BR')}</p>
+                </div>
+              </div>
 
-          {/* Data e Hora */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Data</p>
-                <p className="font-medium">{dataHora.toLocaleDateString('pt-BR')}</p>
+              <div className="flex items-center gap-3">
+                <Clock className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Hora</p>
+                  <p className="font-medium">{dataHora.toLocaleTimeString('pt-BR')}</p>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Clock className="w-5 h-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Hora</p>
-                <p className="font-medium">{dataHora.toLocaleTimeString('pt-BR')}</p>
+            {/* Localização */}
+            {comprovante.location_address && (
+              <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
+                <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">Localização</p>
+                  <p className="font-medium">{comprovante.location_address}</p>
+                </div>
               </div>
+            )}
+
+            {/* Código de Verificação */}
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">Código de Verificação</p>
+              <code className="text-xs font-mono break-all">{comprovante.id}</code>
             </div>
-          </div>
 
-          {/* Localização */}
-          {comprovante.location_address && (
-            <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
-              <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Localização</p>
-                <p className="font-medium">{comprovante.location_address}</p>
-              </div>
+            {/* Aviso */}
+            <div className="text-xs text-center text-muted-foreground pt-4 border-t">
+              <p>Este documento foi gerado automaticamente e possui validade legal.</p>
+              <p className="mt-1">Hash de verificação: {comprovante.id.substring(0, 8).toUpperCase()}</p>
             </div>
-          )}
+          </CardContent>
+        </Card>
 
-          {/* Código de Verificação */}
-          <div className="p-4 bg-muted rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Código de Verificação</p>
-            <code className="text-xs font-mono">{comprovante.id}</code>
-          </div>
-
-          {/* Botões de Download */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              onClick={handleDownloadPDF}
-              variant="default"
-              className="w-full"
-              size="lg"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Baixar PDF
-            </Button>
-            <Button
-              onClick={handleDownloadImage}
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              <FileImage className="w-4 h-4 mr-2" />
-              Baixar Imagem
-            </Button>
-          </div>
-
-          {/* Aviso */}
-          <p className="text-xs text-center text-muted-foreground pt-4 border-t">
-            Este documento foi gerado automaticamente e possui validade legal.<br />
-            Hash de verificação: {comprovante.id.substring(0, 8).toUpperCase()}
-          </p>
-        </CardContent>
-      </Card>
+        {/* Botões de Download - Fora do conteúdo capturado */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            onClick={handleDownloadPDF}
+            variant="default"
+            className="w-full"
+            size="lg"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Baixar PDF
+          </Button>
+          <Button
+            onClick={handleDownloadImage}
+            variant="outline"
+            className="w-full"
+            size="lg"
+          >
+            <FileImage className="w-4 h-4 mr-2" />
+            Baixar Imagem
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

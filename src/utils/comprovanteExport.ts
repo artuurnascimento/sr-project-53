@@ -13,6 +13,12 @@ const waitForImages = async (element: HTMLElement): Promise<void> => {
   await Promise.all(promises);
 };
 
+const waitForFonts = async (): Promise<void> => {
+  if (document.fonts) {
+    await document.fonts.ready;
+  }
+};
+
 export const downloadComprovanteAsImage = async (elementId: string, fileName: string = 'comprovante-ponto.png') => {
   const element = document.getElementById(elementId);
 
@@ -21,18 +27,25 @@ export const downloadComprovanteAsImage = async (elementId: string, fileName: st
   }
 
   await waitForImages(element);
+  await waitForFonts();
 
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, 800));
 
   const canvas = await html2canvas(element, {
     backgroundColor: '#ffffff',
-    scale: 2,
-    logging: true,
+    scale: 3,
+    logging: false,
     useCORS: true,
     allowTaint: false,
     foreignObjectRendering: false,
     imageTimeout: 15000,
     removeContainer: true,
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight,
+    scrollX: 0,
+    scrollY: 0,
+    width: element.scrollWidth,
+    height: element.scrollHeight,
   });
 
   return new Promise<void>((resolve, reject) => {
@@ -63,18 +76,25 @@ export const downloadComprovanteAsPDF = async (elementId: string, fileName: stri
   }
 
   await waitForImages(element);
+  await waitForFonts();
 
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, 800));
 
   const canvas = await html2canvas(element, {
     backgroundColor: '#ffffff',
-    scale: 2,
-    logging: true,
+    scale: 3,
+    logging: false,
     useCORS: true,
     allowTaint: false,
     foreignObjectRendering: false,
     imageTimeout: 15000,
     removeContainer: true,
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight,
+    scrollX: 0,
+    scrollY: 0,
+    width: element.scrollWidth,
+    height: element.scrollHeight,
   });
 
   const imgData = canvas.toDataURL('image/png');
@@ -83,27 +103,25 @@ export const downloadComprovanteAsPDF = async (elementId: string, fileName: stri
     throw new Error('Erro ao gerar imagem do comprovante');
   }
 
+  const pdfWidth = 210;
+  const pdfHeight = 297;
+  const imgWidth = canvas.width;
+  const imgHeight = canvas.height;
+
+  const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+  const imgWidthScaled = imgWidth * ratio;
+  const imgHeightScaled = imgHeight * ratio;
+
   const pdf = new jsPDF({
-    orientation: 'portrait',
+    orientation: imgHeight > imgWidth ? 'portrait' : 'landscape',
     unit: 'mm',
     format: 'a4'
   });
 
-  const imgWidth = 210;
-  const pageHeight = 297;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-  let heightLeft = imgHeight;
-  let position = 0;
+  const xOffset = (pdfWidth - imgWidthScaled) / 2;
+  const yOffset = 10;
 
-  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight;
-
-  while (heightLeft >= 0) {
-    position = heightLeft - imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-  }
+  pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidthScaled, imgHeightScaled, undefined, 'FAST');
 
   pdf.save(fileName);
 };
