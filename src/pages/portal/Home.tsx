@@ -781,60 +781,9 @@ const PortalHome = () => {
                   <FileText className="h-4 w-4 mr-2" />
                   Ver Comprovante Agora
                 </Button>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      const comprovanteWindow = window.open(`/comprovante?id=${currentComprovanteId}`, '_blank');
-                      if (comprovanteWindow) {
-                        setTimeout(async () => {
-                          try {
-                            const element = comprovanteWindow.document.getElementById('comprovante-content');
-                            if (element) {
-                              await downloadComprovanteAsPDF(
-                                'comprovante-content',
-                                `comprovante-ponto-${new Date().toISOString().split('T')[0]}.pdf`
-                              );
-                              toast.success('PDF baixado com sucesso!');
-                            }
-                          } catch (error) {
-                            toast.error('Abra o comprovante para baixar o PDF');
-                          }
-                        }, 1000);
-                      }
-                    }}
-                    className="w-full"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    PDF
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      const comprovanteWindow = window.open(`/comprovante?id=${currentComprovanteId}`, '_blank');
-                      if (comprovanteWindow) {
-                        setTimeout(async () => {
-                          try {
-                            const element = comprovanteWindow.document.getElementById('comprovante-content');
-                            if (element) {
-                              await downloadComprovanteAsImage(
-                                'comprovante-content',
-                                `comprovante-ponto-${new Date().toISOString().split('T')[0]}.png`
-                              );
-                              toast.success('Imagem baixada com sucesso!');
-                            }
-                          } catch (error) {
-                            toast.error('Abra o comprovante para baixar a imagem');
-                          }
-                        }, 1000);
-                      }
-                    }}
-                    className="w-full"
-                  >
-                    <FileImage className="h-4 w-4 mr-2" />
-                    Imagem
-                  </Button>
-                </div>
+                <p className="text-sm text-muted-foreground text-center">
+                  Para baixar como PDF ou Imagem, abra o comprovante e use os botões de download
+                </p>
                 <Button
                   variant="outline"
                   onClick={() => {

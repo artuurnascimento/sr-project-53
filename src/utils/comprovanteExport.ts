@@ -1,6 +1,18 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
+const waitForImages = async (element: HTMLElement): Promise<void> => {
+  const images = element.querySelectorAll('img');
+  const promises = Array.from(images).map((img) => {
+    if (img.complete) return Promise.resolve();
+    return new Promise((resolve) => {
+      img.onload = () => resolve(undefined);
+      img.onerror = () => resolve(undefined);
+    });
+  });
+  await Promise.all(promises);
+};
+
 export const downloadComprovanteAsImage = async (elementId: string, fileName: string = 'comprovante-ponto.png') => {
   const element = document.getElementById(elementId);
 
@@ -8,13 +20,19 @@ export const downloadComprovanteAsImage = async (elementId: string, fileName: st
     throw new Error('Elemento não encontrado');
   }
 
+  await waitForImages(element);
+
+  await new Promise(resolve => setTimeout(resolve, 500));
+
   const canvas = await html2canvas(element, {
     backgroundColor: '#ffffff',
     scale: 2,
-    logging: false,
+    logging: true,
     useCORS: true,
-    allowTaint: true,
-    foreignObjectRendering: true,
+    allowTaint: false,
+    foreignObjectRendering: false,
+    imageTimeout: 15000,
+    removeContainer: true,
   });
 
   return new Promise<void>((resolve, reject) => {
@@ -44,16 +62,27 @@ export const downloadComprovanteAsPDF = async (elementId: string, fileName: stri
     throw new Error('Elemento não encontrado');
   }
 
+  await waitForImages(element);
+
+  await new Promise(resolve => setTimeout(resolve, 500));
+
   const canvas = await html2canvas(element, {
     backgroundColor: '#ffffff',
     scale: 2,
-    logging: false,
+    logging: true,
     useCORS: true,
-    allowTaint: true,
-    foreignObjectRendering: true,
+    allowTaint: false,
+    foreignObjectRendering: false,
+    imageTimeout: 15000,
+    removeContainer: true,
   });
 
   const imgData = canvas.toDataURL('image/png');
+
+  if (!imgData || imgData === 'data:,') {
+    throw new Error('Erro ao gerar imagem do comprovante');
+  }
+
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',

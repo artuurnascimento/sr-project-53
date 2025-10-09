@@ -120,44 +120,14 @@ const History = () => {
     }
   };
 
-  const handleDownloadPDF = async (entryId: string) => {
-    const comprovanteWindow = window.open(`/comprovante?id=${entryId}`, '_blank');
-    if (comprovanteWindow) {
-      setTimeout(async () => {
-        try {
-          const element = comprovanteWindow.document.getElementById('comprovante-content');
-          if (element) {
-            await downloadComprovanteAsPDF(
-              'comprovante-content',
-              `comprovante-ponto-${entryId}.pdf`
-            );
-            toast.success('PDF baixado com sucesso!');
-          }
-        } catch (error) {
-          toast.error('Abra o comprovante para baixar o PDF');
-        }
-      }, 1500);
-    }
+  const handleDownloadPDF = (entryId: string) => {
+    toast.info('Abrindo comprovante... Use os botões na página para baixar PDF');
+    window.open(`/comprovante?id=${entryId}`, '_blank');
   };
 
-  const handleDownloadImage = async (entryId: string) => {
-    const comprovanteWindow = window.open(`/comprovante?id=${entryId}`, '_blank');
-    if (comprovanteWindow) {
-      setTimeout(async () => {
-        try {
-          const element = comprovanteWindow.document.getElementById('comprovante-content');
-          if (element) {
-            await downloadComprovanteAsImage(
-              'comprovante-content',
-              `comprovante-ponto-${entryId}.png`
-            );
-            toast.success('Imagem baixada com sucesso!');
-          }
-        } catch (error) {
-          toast.error('Abra o comprovante para baixar a imagem');
-        }
-      }, 1500);
-    }
+  const handleDownloadImage = (entryId: string) => {
+    toast.info('Abrindo comprovante... Use os botões na página para baixar Imagem');
+    window.open(`/comprovante?id=${entryId}`, '_blank');
   };
 
   const formatDate = (dateStr: string) => {
