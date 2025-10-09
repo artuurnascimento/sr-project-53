@@ -805,6 +805,53 @@ export type Database = {
         }
         Relationships: []
       }
+      work_schedules: {
+        Row: {
+          break_end_time: string
+          break_start_time: string
+          clock_in_time: string
+          clock_out_time: string
+          created_at: string
+          id: string
+          is_active: boolean
+          profile_id: string
+          tolerance_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          break_end_time?: string
+          break_start_time?: string
+          clock_in_time?: string
+          clock_out_time?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          profile_id: string
+          tolerance_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          break_end_time?: string
+          break_start_time?: string
+          clock_in_time?: string
+          clock_out_time?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          profile_id?: string
+          tolerance_minutes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_schedules_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       v_daily_summary: {

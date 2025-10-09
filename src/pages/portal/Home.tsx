@@ -253,13 +253,50 @@ const PortalHome = () => {
     getLocation();
   }, [geofencingConfig, workLocations]);
 
-  // Verificar quais tipos de batimento já foram feitos hoje
+  // Buscar horário de trabalho configurado
+  const { data: workSchedule } = useQuery({
+    queryKey: ['work-schedule', profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('work_schedules')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.id,
+  });
+
+  // Verificar quais tipos de batimento já foram feitos hoje (exceto entrada)
   const getPunchTypesUsedToday = () => {
     if (!todayEntries) return new Set<string>();
     
     const usedTypes = new Set<string>();
+    const now = new Date();
+    
     todayEntries.forEach(entry => {
-      usedTypes.add(entry.punch_type);
+      const entryDate = new Date(entry.punch_time);
+      
+      // Para entrada (IN), verificar se já bateu HOJE dentro do horário configurado
+      if (entry.punch_type === 'IN' && workSchedule) {
+        const [schedHour, schedMin] = workSchedule.clock_in_time.split(':').map(Number);
+        const scheduledTime = new Date(now);
+        scheduledTime.setHours(schedHour, schedMin, 0, 0);
+        
+        // Se já bateu entrada hoje no horário configurado, marcar como usado
+        if (entryDate.toDateString() === now.toDateString() &&
+            entryDate >= new Date(scheduledTime.getTime() - workSchedule.tolerance_minutes * 60000)) {
+          usedTypes.add('IN');
+        }
+      } else {
+        // Outros tipos seguem a regra normal (uma vez por dia)
+        usedTypes.add(entry.punch_type);
+      }
     });
     
     return usedTypes;
