@@ -13,6 +13,19 @@ const waitForImages = async (element: HTMLElement): Promise<void> => {
   await Promise.all(promises);
 };
 
+const convertCanvasToImage = (element: HTMLElement): void => {
+  const canvases = element.querySelectorAll('canvas');
+  canvases.forEach((canvas) => {
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    img.width = canvas.width;
+    img.height = canvas.height;
+    img.style.cssText = canvas.style.cssText;
+    img.className = canvas.className;
+    canvas.parentNode?.replaceChild(img, canvas);
+  });
+};
+
 const waitForFonts = async (): Promise<void> => {
   if (document.fonts) {
     await document.fonts.ready;
@@ -63,10 +76,11 @@ export const downloadComprovanteAsImage = async (elementId: string, fileName: st
   document.body.appendChild(clonedElement);
 
   resolveCSSVariables(clonedElement);
+  convertCanvasToImage(clonedElement);
 
   await waitForImages(clonedElement);
   await waitForFonts();
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  await new Promise(resolve => setTimeout(resolve, 500));
 
   const canvas = await html2canvas(clonedElement, {
     backgroundColor: '#ffffff',
@@ -119,10 +133,11 @@ export const downloadComprovanteAsPDF = async (elementId: string, fileName: stri
   document.body.appendChild(clonedElement);
 
   resolveCSSVariables(clonedElement);
+  convertCanvasToImage(clonedElement);
 
   await waitForImages(clonedElement);
   await waitForFonts();
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  await new Promise(resolve => setTimeout(resolve, 500));
 
   const canvas = await html2canvas(clonedElement, {
     backgroundColor: '#ffffff',

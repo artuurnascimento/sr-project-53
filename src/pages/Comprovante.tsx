@@ -212,14 +212,14 @@ export default function Comprovante() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-1">
                   <div className="w-5 flex-shrink-0"></div>
-                  <div
-                    className="inline-flex items-center rounded-full px-4 py-1.5 text-base font-semibold"
+                  <span
+                    className="inline-block rounded-full px-4 py-1.5 text-base font-semibold whitespace-nowrap"
                     style={getTipoBadgeStyle(comprovante.punch_type)}
                   >
                     {getTipoLabel(comprovante.punch_type)}
-                  </div>
+                  </span>
                 </div>
               </div>
 
