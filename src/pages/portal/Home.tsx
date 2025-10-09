@@ -719,6 +719,18 @@ const PortalHome = () => {
                 </AlertDescription>
               </Alert>
 
+              {currentComprovanteId && (
+                <div className="flex flex-col items-center gap-2">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`${window.location.origin}/comprovante?id=${currentComprovanteId}`)}`}
+                    alt="QR Code do Comprovante de Ponto"
+                    loading="lazy"
+                    className="rounded-md border"
+                  />
+                  <span className="text-xs text-muted-foreground">Escaneie para validar no celular</span>
+                </div>
+              )}
+              
               <div className="flex flex-col gap-2">
                 <Button
                   onClick={() => {
@@ -742,7 +754,7 @@ const PortalHome = () => {
                   Fechar
                 </Button>
               </div>
-
+              
               <p className="text-xs text-center text-muted-foreground">
                 Você pode acessar todos os seus comprovantes na página de Histórico
               </p>
