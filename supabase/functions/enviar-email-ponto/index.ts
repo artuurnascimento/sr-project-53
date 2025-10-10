@@ -51,6 +51,10 @@ Deno.serve(async (req: Request) => {
       second: '2-digit'
     });
 
+    // Em modo de teste do Resend, enviar para o e-mail verificado
+    const emailDestino = 'arturnascimentobusiness@gmail.com';
+    const isTestMode = to !== emailDestino;
+
     // Enviar e-mail usando Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -60,8 +64,8 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         from: 'Sirius Ambiental - Ponto Eletrônico <onboarding@resend.dev>',
-        to: [to],
-        subject: `Comprovante de Ponto - ${dataFormatada}`,
+        to: [emailDestino],
+        subject: `Comprovante de Ponto - ${dataFormatada}${isTestMode ? ' [TESTE]' : ''}`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -78,6 +82,7 @@ Deno.serve(async (req: Request) => {
               .button { display: inline-block; background-color: #0F3C4C; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
               .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
               .verification-code { background-color: #e8f4f8; padding: 10px; border-radius: 5px; font-family: monospace; word-break: break-all; }
+              .test-notice { background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0; color: #856404; }
             </style>
           </head>
           <body>
@@ -87,6 +92,7 @@ Deno.serve(async (req: Request) => {
                 <p>Sirius Ambiental</p>
               </div>
               <div class="content">
+                ${isTestMode ? '<div class="test-notice"><strong>MODO TESTE:</strong> Este e-mail seria enviado para: <strong>' + to + '</strong></div>' : ''}
                 <p>Olá <strong>${employee_name}</strong>,</p>
                 <p>Seu registro de ponto foi confirmado com sucesso!</p>
 
@@ -134,8 +140,10 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'E-mail enviado com sucesso',
-        email_id: emailData.id
+        message: isTestMode ? 'E-mail de teste enviado para arturnascimentobusiness@gmail.com' : 'E-mail enviado com sucesso',
+        email_id: emailData.id,
+        test_mode: isTestMode,
+        original_recipient: to
       }),
       {
         headers: {
