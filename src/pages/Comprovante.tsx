@@ -122,6 +122,22 @@ export default function Comprovante() {
       clonedElement.style.top = '0';
       document.body.appendChild(clonedElement);
 
+      const originalCanvases = element.querySelectorAll('canvas');
+      const clonedCanvases = clonedElement.querySelectorAll('canvas');
+
+      originalCanvases.forEach((originalCanvas, index) => {
+        const clonedCanvas = clonedCanvases[index];
+        if (clonedCanvas) {
+          const img = document.createElement('img');
+          img.src = originalCanvas.toDataURL('image/png');
+          img.width = originalCanvas.width;
+          img.height = originalCanvas.height;
+          img.style.cssText = originalCanvas.style.cssText;
+          img.className = originalCanvas.className;
+          clonedCanvas.parentNode?.replaceChild(img, clonedCanvas);
+        }
+      });
+
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const canvas = await html2canvas(clonedElement, {
@@ -130,6 +146,7 @@ export default function Comprovante() {
         logging: false,
         useCORS: true,
         allowTaint: false,
+        foreignObjectRendering: false,
       });
 
       document.body.removeChild(clonedElement);
