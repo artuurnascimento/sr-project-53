@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import AdminLayout from '@/components/layout/AdminLayout';
 
 const LogoManagement = () => {
   const [logos, setLogos] = useState<Record<string, LogoConfig>>({});
@@ -89,7 +90,8 @@ const LogoManagement = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <AdminLayout>
+      <div className="max-w-7xl mx-auto p-6">
       <div className="flex justify-between items-start mb-8 pb-6 border-b-2 border-gray-200">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">🎨 Gerenciamento de Logos</h1>
@@ -191,7 +193,8 @@ const LogoManagement = () => {
           onSave={handleLogoSaved}
         />
       )}
-    </div>
+      </div>
+    </AdminLayout>
   );
 };
 

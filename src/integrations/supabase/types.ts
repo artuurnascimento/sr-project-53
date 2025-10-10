@@ -670,6 +670,39 @@ export type Database = {
         }
         Relationships: []
       }
+      system_logos: {
+        Row: {
+          background_color: string
+          created_at: string
+          height: string
+          id: string
+          location: string
+          updated_at: string
+          url: string
+          width: string
+        }
+        Insert: {
+          background_color?: string
+          created_at?: string
+          height?: string
+          id?: string
+          location: string
+          updated_at?: string
+          url: string
+          width?: string
+        }
+        Update: {
+          background_color?: string
+          created_at?: string
+          height?: string
+          id?: string
+          location?: string
+          updated_at?: string
+          url?: string
+          width?: string
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           active: boolean | null
