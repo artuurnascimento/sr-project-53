@@ -341,6 +341,7 @@ export default function Comprovantes() {
                           <TableHead>Colaborador</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Data/Hora</TableHead>
+                          <TableHead>Hash</TableHead>
                           <TableHead>Status E-mail</TableHead>
                           <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
@@ -360,6 +361,11 @@ export default function Comprovantes() {
                               {new Date(comprovante.punch_time).toLocaleString('pt-BR')}
                             </TableCell>
                             <TableCell>
+                              <code className="text-xs bg-muted px-2 py-1 rounded">
+                                {comprovante.id.substring(0, 8).toUpperCase()}
+                              </code>
+                            </TableCell>
+                            <TableCell>
                               {comprovante.email_enviado ? (
                                 <Badge variant="default">Enviado</Badge>
                               ) : (
@@ -371,7 +377,17 @@ export default function Comprovantes() {
                                 <Button
                                   size="sm"
                                   variant="outline"
+                                  onClick={() => window.open(`/comprovante?id=${comprovante.id}`, '_blank')}
+                                  title="Ver Comprovante"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   onClick={() => window.open(comprovante.comprovante_pdf, '_blank')}
+                                  title="Baixar Comprovante"
+                                  disabled={!comprovante.comprovante_pdf}
                                 >
                                   <Download className="w-4 h-4" />
                                 </Button>
@@ -380,6 +396,7 @@ export default function Comprovantes() {
                                   variant="outline"
                                   onClick={() => resendEmail.mutate(comprovante.id)}
                                   disabled={resendEmail.isPending}
+                                  title="Reenviar E-mail"
                                 >
                                   <Mail className="w-4 h-4" />
                                 </Button>
@@ -416,11 +433,19 @@ export default function Comprovantes() {
                         </div>
 
                         {/* Data/Hora */}
-                        <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-2 mb-3">
                           <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
                           <span className="text-sm text-gray-600">
                             {new Date(comprovante.punch_time).toLocaleString('pt-BR')}
                           </span>
+                        </div>
+
+                        {/* Hash de Verificação */}
+                        <div className="flex items-center gap-2 mb-4 p-2 bg-muted rounded">
+                          <span className="text-xs text-muted-foreground">Hash:</span>
+                          <code className="text-xs font-mono">
+                            {comprovante.id.substring(0, 8).toUpperCase()}
+                          </code>
                         </div>
 
                         {/* Ações */}
@@ -428,8 +453,18 @@ export default function Comprovantes() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => window.open(comprovante.comprovante_pdf, '_blank')}
                             className="flex-1"
+                            onClick={() => window.open(`/comprovante?id=${comprovante.id}`, '_blank')}
+                          >
+                            <FileText className="w-4 h-4 mr-1" />
+                            Ver
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            disabled={!comprovante.comprovante_pdf}
+                            onClick={() => window.open(comprovante.comprovante_pdf, '_blank')}
                           >
                             <Download className="w-4 h-4 mr-2" />
                             Baixar
@@ -442,7 +477,7 @@ export default function Comprovantes() {
                             className="flex-1"
                           >
                             <Mail className="w-4 h-4 mr-2" />
-                            Reenviar
+                            Enviar
                           </Button>
                         </div>
                       </div>

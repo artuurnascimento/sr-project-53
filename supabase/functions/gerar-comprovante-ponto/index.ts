@@ -7,6 +7,116 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+// Função para gerar uma imagem simples do comprovante usando Canvas
+async function gerarImagemComprovante(timeEntry: any, qrCodeUrl: string, timeEntryId: string) {
+  const tipoLabel: Record<string, string> = {
+    'IN': 'Entrada',
+    'OUT': 'Saída',
+    'BREAK_OUT': 'Início de Pausa',
+    'BREAK_IN': 'Fim de Pausa'
+  };
+
+  const dataHora = new Date(timeEntry.punch_time);
+  const data = dataHora.toLocaleDateString('pt-BR');
+  const hora = dataHora.toLocaleTimeString('pt-BR');
+
+  // Gerar SVG para conversão em PNG
+  const svgContent = `
+    <svg width="800" height="1000" xmlns="http://www.w3.org/2000/svg">
+      <!-- Background branco -->
+      <rect width="800" height="1000" fill="#ffffff"/>
+      
+      <!-- Cabeçalho -->
+      <rect x="0" y="0" width="800" height="120" fill="#0F3C4C"/>
+      <text x="400" y="50" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="middle">
+        Comprovante de Ponto Eletrônico
+      </text>
+      <text x="400" y="85" font-family="Arial, sans-serif" font-size="18" fill="#ffffff" text-anchor="middle">
+        Sirius Ambiental
+      </text>
+      
+      <!-- Colaborador -->
+      <text x="50" y="180" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333333">
+        Colaborador:
+      </text>
+      <text x="50" y="210" font-family="Arial, sans-serif" font-size="20" fill="#0F3C4C">
+        ${timeEntry.employee_name}
+      </text>
+      
+      <!-- Tipo de Registro -->
+      <rect x="50" y="230" width="200" height="40" rx="20" fill="#0A6B5C"/>
+      <text x="150" y="255" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ffffff" text-anchor="middle">
+        ${tipoLabel[timeEntry.punch_type] || timeEntry.punch_type}
+      </text>
+      
+      <!-- Data -->
+      <text x="50" y="320" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333333">
+        Data:
+      </text>
+      <text x="50" y="350" font-family="Arial, sans-serif" font-size="20" fill="#0F3C4C">
+        ${data}
+      </text>
+      
+      <!-- Hora -->
+      <text x="400" y="320" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333333">
+        Hora:
+      </text>
+      <text x="400" y="350" font-family="Arial, sans-serif" font-size="20" fill="#0F3C4C">
+        ${hora}
+      </text>
+      
+      ${timeEntry.location_lat && timeEntry.location_lng ? `
+      <!-- Localização -->
+      <text x="50" y="410" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333333">
+        Localização:
+      </text>
+      <text x="50" y="440" font-family="Arial, sans-serif" font-size="16" fill="#555555">
+        Lat: ${timeEntry.location_lat.toFixed(6)}, Lng: ${timeEntry.location_lng.toFixed(6)}
+      </text>
+      ` : ''}
+      
+      <!-- QR Code Placeholder -->
+      <rect x="300" y="500" width="200" height="200" fill="#f0f0f0" stroke="#cccccc" stroke-width="2"/>
+      <text x="400" y="600" font-family="Arial, sans-serif" font-size="14" fill="#666666" text-anchor="middle">
+        QR Code
+      </text>
+      <text x="400" y="620" font-family="Arial, sans-serif" font-size="12" fill="#999999" text-anchor="middle">
+        Escaneie para validar
+      </text>
+      
+      <!-- Código de Verificação -->
+      <rect x="50" y="750" width="700" height="80" fill="#f8f9fa" rx="8"/>
+      <text x="400" y="780" font-family="Arial, sans-serif" font-size="14" fill="#666666" text-anchor="middle">
+        Código de Verificação
+      </text>
+      <text x="400" y="810" font-family="monospace" font-size="12" fill="#333333" text-anchor="middle">
+        ${timeEntryId}
+      </text>
+      
+      <!-- Rodapé -->
+      <line x1="50" y1="870" x2="750" y2="870" stroke="#e0e0e0" stroke-width="1"/>
+      <text x="400" y="900" font-family="Arial, sans-serif" font-size="12" fill="#999999" text-anchor="middle">
+        Documento gerado automaticamente
+      </text>
+      <text x="400" y="920" font-family="Arial, sans-serif" font-size="12" fill="#999999" text-anchor="middle">
+        Hash: ${timeEntryId.substring(0, 8).toUpperCase()}
+      </text>
+      <text x="400" y="940" font-family="Arial, sans-serif" font-size="11" fill="#cccccc" text-anchor="middle">
+        ${new Date().toLocaleString('pt-BR')}
+      </text>
+    </svg>
+  `;
+
+  // Converter SVG para PNG usando um serviço externo ou retornar SVG como base64
+  const svgBase64 = btoa(unescape(encodeURIComponent(svgContent)));
+  
+  return {
+    contentType: 'image/svg+xml',
+    data: new TextEncoder().encode(svgContent),
+    fileName: `comprovante-${timeEntryId}.svg`
+  };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -46,81 +156,13 @@ Deno.serve(async (req: Request) => {
 
     const qrCodeUrl = `${appDomain}/comprovante?id=${timeEntryId}`;
 
-    const tipoLabel: Record<string, string> = {
-      'IN': 'Entrada',
-      'OUT': 'Saída',
-      'BREAK_OUT': 'Início de Pausa',
-      'BREAK_IN': 'Fim de Pausa'
-    };
-
-    const dataHora = new Date(timeEntry.punch_time);
-    const data = dataHora.toLocaleDateString('pt-BR');
-    const hora = dataHora.toLocaleTimeString('pt-BR');
-
-    const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 40px; }
-    .header { text-align: center; margin-bottom: 30px; }
-    .content { margin: 20px 0; }
-    .info-row { margin: 10px 0; }
-    .label { font-weight: bold; }
-    .qrcode { text-align: center; margin: 30px 0; }
-    .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #666; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>Comprovante de Ponto Eletrônico</h1>
-  </div>
-  <div class="content">
-    <div class="info-row">
-      <span class="label">Colaborador:</span> ${timeEntry.employee_name}
-    </div>
-    <div class="info-row">
-      <span class="label">E-mail:</span> ${timeEntry.employee_email}
-    </div>
-    <div class="info-row">
-      <span class="label">Tipo:</span> ${tipoLabel[timeEntry.punch_type] || timeEntry.punch_type}
-    </div>
-    <div class="info-row">
-      <span class="label">Data:</span> ${data}
-    </div>
-    <div class="info-row">
-      <span class="label">Hora:</span> ${hora}
-    </div>
-    ${timeEntry.location_address ? `
-    <div class="info-row">
-      <span class="label">Localização:</span> ${timeEntry.location_address}
-    </div>
-    ` : ''}
-    <div class="info-row">
-      <span class="label">Código de Verificação:</span> ${timeEntryId}
-    </div>
-  </div>
-  <div class="qrcode">
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}" alt="QR Code">
-    <p>Escaneie o QR Code para validar</p>
-  </div>
-  <div class="footer">
-    <p>Documento gerado automaticamente</p>
-    <p>Hash: ${timeEntryId.substring(0, 8).toUpperCase()}</p>
-  </div>
-</body>
-</html>
-    `;
-
-    const encoder = new TextEncoder();
-    const htmlData = encoder.encode(htmlContent);
-    const fileName = `comprovante-${timeEntryId}.html`;
+    // Gerar imagem do comprovante
+    const imagemComprovante = await gerarImagemComprovante(timeEntry, qrCodeUrl, timeEntryId);
 
     const { error: uploadError } = await supabase.storage
       .from('comprovantes')
-      .upload(fileName, htmlData, {
-        contentType: 'text/html; charset=utf-8',
+      .upload(imagemComprovante.fileName, imagemComprovante.data, {
+        contentType: imagemComprovante.contentType,
         upsert: true
       });
 
@@ -131,7 +173,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: { publicUrl } } = supabase.storage
       .from('comprovantes')
-      .getPublicUrl(fileName);
+      .getPublicUrl(imagemComprovante.fileName);
 
     const { error: updateError } = await supabase
       .from('time_entries')
