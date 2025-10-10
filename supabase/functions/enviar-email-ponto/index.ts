@@ -15,6 +15,7 @@ interface EmailRequest {
   verification_code: string;
   latitude?: string;
   longitude?: string;
+  comprovante_image?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -40,7 +41,8 @@ Deno.serve(async (req: Request) => {
       comprovante_url,
       verification_code,
       latitude,
-      longitude
+      longitude,
+      comprovante_image
     }: EmailRequest = await req.json();
 
     const dataHora = new Date(punch_time);
@@ -55,31 +57,21 @@ Deno.serve(async (req: Request) => {
       second: '2-digit'
     });
 
-    // Hash de verificação (primeiros 8 caracteres)
     const hashVerificacao = verification_code.substring(0, 8).toUpperCase();
 
-    // Tipo de ponto formatado
     const tipoFormatado = punch_type === 'entrada' ? 'Entrada' : 
                           punch_type === 'saida' ? 'Saída' : 
                           punch_type === 'pausa_inicio' ? 'Início Pausa' : 
                           'Fim Pausa';
 
-    // Em modo de teste do Resend, enviar para o e-mail verificado
     const emailDestino = 'arturnascimentobusiness@gmail.com';
     const isTestMode = to !== emailDestino;
 
-    // Enviar e-mail usando Resend
-    const emailResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'Sirius Ambiental - Ponto Eletrônico <onboarding@resend.dev>',
-        to: [emailDestino],
-        subject: `Comprovante de Ponto - ${dataFormatada}${isTestMode ? ' [TESTE]' : ''}`,
-        html: `
+    const emailPayload: any = {
+      from: 'Sirius Ambiental - Ponto Eletrônico <onboarding@resend.dev>',
+      to: [emailDestino],
+      subject: `Comprovante de Ponto - ${dataFormatada}${isTestMode ? ' [TESTE]' : ''}`,
+      html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -209,8 +201,24 @@ Deno.serve(async (req: Request) => {
   </div>
 </body>
 </html>
-        `
-      })
+      `
+    };
+
+    if (comprovante_image) {
+      emailPayload.attachments = [{
+        filename: `comprovante-ponto-${dataFormatada.replace(/\//g, '-')}.png`,
+        content: comprovante_image,
+        content_type: 'image/png'
+      }];
+    }
+
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(emailPayload)
     });
 
     if (!emailResponse.ok) {

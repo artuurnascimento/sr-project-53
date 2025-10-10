@@ -109,6 +109,33 @@ export default function Comprovante() {
 
     setSendingEmail(true);
     try {
+      const element = document.getElementById('comprovante-content');
+      if (!element) {
+        throw new Error('Elemento do comprovante não encontrado');
+      }
+
+      const html2canvas = (await import('html2canvas')).default;
+
+      const clonedElement = element.cloneNode(true) as HTMLElement;
+      clonedElement.style.position = 'absolute';
+      clonedElement.style.left = '-9999px';
+      clonedElement.style.top = '0';
+      document.body.appendChild(clonedElement);
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const canvas = await html2canvas(clonedElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: false,
+      });
+
+      document.body.removeChild(clonedElement);
+
+      const imageBase64 = canvas.toDataURL('image/png').split(',')[1];
+
       const response = await supabase.functions.invoke('enviar-email-ponto', {
         body: {
           to: comprovante.employee_email,
@@ -118,7 +145,8 @@ export default function Comprovante() {
           comprovante_url: `${window.location.origin}/comprovante?id=${comprovante.id}`,
           verification_code: comprovante.id,
           latitude: comprovante.location_lat?.toFixed(6),
-          longitude: comprovante.location_lng?.toFixed(6)
+          longitude: comprovante.location_lng?.toFixed(6),
+          comprovante_image: imageBase64
         }
       });
 
