@@ -33,6 +33,7 @@ import FacialAudit from "./pages/admin/FacialAudit";
 import WorkLocations from "./pages/admin/WorkLocations";
 import WorkSchedules from "./pages/admin/WorkSchedules";
 import Comprovantes from "./pages/admin/Comprovantes";
+import LogoManagement from "./pages/admin/LogoManagement";
 import FaceRegistration from "./pages/portal/FaceRegistration";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -143,7 +144,12 @@ const App = () => (
                 <Comprovantes />
               </ProtectedRoute>
             } />
-            
+            <Route path="/admin/configuracoes/logos" element={
+              <ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/dashboard">
+                <LogoManagement />
+              </ProtectedRoute>
+            } />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
