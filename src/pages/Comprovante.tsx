@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { XCircle, FileImage, FileText } from "lucide-react";
+import { XCircle, FileImage, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { downloadComprovanteAsImage, downloadComprovanteAsPDF } from "@/utils/comprovanteExport";
 import { QRCode } from "@/components/QRCode";
@@ -27,6 +27,7 @@ export default function Comprovante() {
   const [loading, setLoading] = useState(true);
   const [comprovante, setComprovante] = useState<ComprovanteData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -103,6 +104,35 @@ export default function Comprovante() {
     }
   };
 
+  const handleSendEmail = async () => {
+    if (!comprovante) return;
+
+    setSendingEmail(true);
+    try {
+      const response = await supabase.functions.invoke('enviar-email-ponto', {
+        body: {
+          to: comprovante.employee_email,
+          employee_name: comprovante.employee_name,
+          punch_type: getTipoLabel(comprovante.punch_type),
+          punch_time: comprovante.punch_time,
+          comprovante_url: `${window.location.origin}/comprovante?id=${comprovante.id}`,
+          verification_code: comprovante.id
+        }
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      toast.success('E-mail enviado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao enviar e-mail:', error);
+      toast.error('Erro ao enviar e-mail');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const getTipoLabel = (tipo: string) => {
     const labels: Record<string, string> = {
       'IN': 'Entrada',
@@ -167,7 +197,7 @@ export default function Comprovante() {
         {/* Conteúdo do Comprovante - Será capturado */}
         <Card className="w-full" id="comprovante-content" style={{ maxWidth: '672px', margin: '0 auto' }}>
           <CardHeader className="text-center border-b">
-            <div className="flex justify-between items-start mb-6 px-4">
+            <div className="flex justify-between items-center mb-6 px-4">
               <svg
                 width="64"
                 height="64"
@@ -335,8 +365,8 @@ export default function Comprovante() {
           </CardContent>
         </Card>
 
-        {/* Botões de Download - Fora do conteúdo capturado */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Botões de Download e Envio - Fora do conteúdo capturado */}
+        <div className="grid grid-cols-3 gap-3">
           <Button
             onClick={handleDownloadPDF}
             variant="default"
@@ -354,6 +384,16 @@ export default function Comprovante() {
           >
             <FileImage className="w-4 h-4 mr-2" />
             Baixar Imagem
+          </Button>
+          <Button
+            onClick={handleSendEmail}
+            variant="outline"
+            className="w-full"
+            size="lg"
+            disabled={sendingEmail}
+          >
+            <Mail className="w-4 h-4 mr-2" />
+            {sendingEmail ? 'Enviando...' : 'Enviar E-mail'}
           </Button>
         </div>
       </div>

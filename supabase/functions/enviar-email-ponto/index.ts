@@ -1,49 +1,55 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+interface EmailRequest {
+  to: string;
+  employee_name: string;
+  punch_type: string;
+  punch_time: string;
+  comprovante_url: string;
+  verification_code: string;
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    
+
     if (!resendApiKey) {
       throw new Error('RESEND_API_KEY não configurada');
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { timeEntryId, pdfUrl } = await req.json();
+    const {
+      to,
+      employee_name,
+      punch_type,
+      punch_time,
+      comprovante_url,
+      verification_code
+    }: EmailRequest = await req.json();
 
-    // Buscar dados do registro de ponto
-    const { data: timeEntry, error: timeEntryError } = await supabase
-      .from('v_time_entries_completo')
-      .select('*')
-      .eq('id', timeEntryId)
-      .single();
-
-    if (timeEntryError || !timeEntry) {
-      throw new Error('Registro de ponto não encontrado');
-    }
-
-    const tipoLabel = {
-      'IN': 'Entrada',
-      'OUT': 'Saída',
-      'BREAK_OUT': 'Início de Pausa',
-      'BREAK_IN': 'Fim de Pausa'
-    }[timeEntry.punch_type] || timeEntry.punch_type;
-
-    const dataHora = new Date(timeEntry.punch_time);
-    const dataFormatada = dataHora.toLocaleDateString('pt-BR');
-    const horaFormatada = dataHora.toLocaleTimeString('pt-BR');
+    const dataHora = new Date(punch_time);
+    const dataFormatada = dataHora.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    const horaFormatada = dataHora.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
 
     // Enviar e-mail usando Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -53,24 +59,67 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Ponto Eletrônico <onboarding@resend.dev>',
-        to: [timeEntry.employee_email],
+        from: 'Sirius Ambiental - Ponto Eletrônico <onboarding@resend.dev>',
+        to: [to],
         subject: `Comprovante de Ponto - ${dataFormatada}`,
         html: `
-          <h1>Comprovante de Ponto Eletrônico</h1>
-          <p>Olá <strong>${timeEntry.employee_name}</strong>,</p>
-          <p>Seu registro de ponto foi confirmado com sucesso:</p>
-          <ul>
-            <li><strong>Tipo:</strong> ${tipoLabel}</li>
-            <li><strong>Data:</strong> ${dataFormatada}</li>
-            <li><strong>Hora:</strong> ${horaFormatada}</li>
-            ${timeEntry.location_address ? `<li><strong>Localização:</strong> ${timeEntry.location_address}</li>` : ''}
-          </ul>
-          <p>Seu comprovante está disponível no link abaixo:</p>
-          <p><a href="${pdfUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Baixar Comprovante</a></p>
-          <p>Código de verificação: <code>${timeEntryId}</code></p>
-          <hr>
-          <p style="font-size: 12px; color: #666;">Este é um e-mail automático, por favor não responda.</p>
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background-color: #0F3C4C; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+              .info-box { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+              .info-item { margin: 10px 0; }
+              .info-label { font-weight: bold; color: #0F3C4C; }
+              .button { display: inline-block; background-color: #0F3C4C; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+              .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+              .verification-code { background-color: #e8f4f8; padding: 10px; border-radius: 5px; font-family: monospace; word-break: break-all; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Comprovante de Ponto Eletrônico</h1>
+                <p>Sirius Ambiental</p>
+              </div>
+              <div class="content">
+                <p>Olá <strong>${employee_name}</strong>,</p>
+                <p>Seu registro de ponto foi confirmado com sucesso!</p>
+
+                <div class="info-box">
+                  <div class="info-item">
+                    <span class="info-label">Tipo:</span> ${punch_type}
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Data:</span> ${dataFormatada}
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Hora:</span> ${horaFormatada}
+                  </div>
+                </div>
+
+                <p>Você pode visualizar e baixar seu comprovante completo através do link abaixo:</p>
+                <p style="text-align: center;">
+                  <a href="${comprovante_url}" class="button">Visualizar Comprovante</a>
+                </p>
+
+                <div class="info-item">
+                  <span class="info-label">Código de Verificação:</span>
+                  <div class="verification-code">${verification_code}</div>
+                </div>
+
+                <div class="footer">
+                  <p>Este documento foi gerado automaticamente e possui validade legal.</p>
+                  <p>Este é um e-mail automático. Por favor, não responda.</p>
+                </div>
+              </div>
+            </div>
+          </body>
+          </html>
         `
       })
     });
@@ -80,52 +129,37 @@ serve(async (req) => {
       throw new Error(`Erro ao enviar e-mail: ${JSON.stringify(errorData)}`);
     }
 
-    // Atualizar registro
-    await supabase
-      .from('time_entries')
-      .update({ email_enviado: true })
-      .eq('id', timeEntryId);
-
-    // Registrar log
-    await supabase
-      .from('logs_sistema')
-      .insert({
-        tipo: 'email',
-        status: 'success',
-        referencia_id: timeEntryId,
-        mensagem: 'E-mail enviado com sucesso',
-        payload: { email: timeEntry.employee_email }
-      });
+    const emailData = await emailResponse.json();
 
     return new Response(
-      JSON.stringify({ success: true }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: true,
+        message: 'E-mail enviado com sucesso',
+        email_id: emailData.id
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
     );
 
   } catch (error) {
-    console.error('Erro:', error);
-    
-    // Registrar erro no log
-    try {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      
-      await supabase
-        .from('logs_sistema')
-        .insert({
-          tipo: 'email',
-          status: 'error',
-          mensagem: error.message,
-          payload: { error: error.message }
-        });
-    } catch (logError) {
-      console.error('Erro ao registrar log:', logError);
-    }
+    console.error('Erro ao enviar e-mail:', error);
 
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        error: error.message || 'Erro ao enviar e-mail',
+        success: false
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 });
