@@ -7,6 +7,7 @@ import { XCircle, FileImage, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { downloadComprovanteAsImage, downloadComprovanteAsPDF } from "@/utils/comprovanteExport";
 import { QRCode } from "@/components/QRCode";
+import logoName from "@/assets/logo-name.png";
 
 interface ComprovanteData {
   id: string;
@@ -166,20 +167,29 @@ export default function Comprovante() {
         {/* Conteúdo do Comprovante - Será capturado */}
         <Card className="w-full" id="comprovante-content" style={{ maxWidth: '672px', margin: '0 auto' }}>
           <CardHeader className="text-center border-b">
-            <div className="flex justify-center mb-4">
-              <svg
-                width="64"
-                height="64"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#0F3C4C"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-center">
+                <svg
+                  width="64"
+                  height="64"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0F3C4C"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              </div>
+              <div className="flex justify-end">
+                <img
+                  src={logoName}
+                  alt="Sirius Ambiental"
+                  style={{ height: '48px', width: 'auto' }}
+                />
+              </div>
             </div>
             <CardTitle className="text-3xl mb-2">
               Comprovante Válido
