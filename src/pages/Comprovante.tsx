@@ -15,6 +15,8 @@ interface ComprovanteData {
   punch_type: string;
   punch_time: string;
   location_address?: string;
+  location_lat?: number;
+  location_lng?: number;
   comprovante_pdf?: string;
 }
 
@@ -289,7 +291,7 @@ export default function Comprovante() {
             </div>
 
             {/* Localização */}
-            {comprovante.location_address && (
+            {(comprovante.location_address || (comprovante.location_lat && comprovante.location_lng)) && (
               <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
                 <svg
                   width="20"
@@ -307,7 +309,19 @@ export default function Comprovante() {
                 </svg>
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Localização</p>
-                  <p className="font-medium">{comprovante.location_address}</p>
+                  {comprovante.location_address && (
+                    <p className="font-medium">{comprovante.location_address}</p>
+                  )}
+                  {comprovante.location_lat && comprovante.location_lng && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Coordenadas: {comprovante.location_lat.toFixed(6)}, {comprovante.location_lng.toFixed(6)}
+                    </p>
+                  )}
+                  {!comprovante.location_address && comprovante.location_lat && comprovante.location_lng && (
+                    <p className="font-medium text-sm">
+                      Lat: {comprovante.location_lat.toFixed(6)}, Lng: {comprovante.location_lng.toFixed(6)}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
