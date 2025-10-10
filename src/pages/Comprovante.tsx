@@ -167,16 +167,28 @@ export default function Comprovante() {
         {/* Conteúdo do Comprovante - Será capturado */}
         <Card className="w-full" id="comprovante-content" style={{ maxWidth: '672px', margin: '0 auto' }}>
           <CardHeader className="text-center border-b">
-            <div className="flex flex-col items-center mb-4">
-              <img
-                src={logoName}
-                alt="Sirius Ambiental"
-                style={{ height: '48px', width: 'auto', marginBottom: '16px' }}
-              />
-              <CardTitle className="text-3xl mb-2">
-                Comprovante Válido
-              </CardTitle>
+            <div className="flex justify-between items-start mb-6 px-4">
+              <svg
+                width="64"
+                height="64"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0F3C4C"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <div className="text-right">
+                <div className="text-2xl font-bold" style={{ color: '#0F3C4C' }}>Sirius</div>
+                <div className="text-sm" style={{ color: '#0F3C4C' }}>Ambiental</div>
+              </div>
             </div>
+            <CardTitle className="text-3xl mb-2">
+              Comprovante Válido
+            </CardTitle>
             <p className="text-muted-foreground">
               Registro de Ponto Eletrônico Verificado
             </p>
