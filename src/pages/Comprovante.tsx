@@ -113,10 +113,12 @@ export default function Comprovante() {
         body: {
           to: comprovante.employee_email,
           employee_name: comprovante.employee_name,
-          punch_type: getTipoLabel(comprovante.punch_type),
+          punch_type: comprovante.punch_type,
           punch_time: comprovante.punch_time,
           comprovante_url: `${window.location.origin}/comprovante?id=${comprovante.id}`,
-          verification_code: comprovante.id
+          verification_code: comprovante.id,
+          latitude: comprovante.location_lat?.toFixed(6),
+          longitude: comprovante.location_lng?.toFixed(6)
         }
       });
 
