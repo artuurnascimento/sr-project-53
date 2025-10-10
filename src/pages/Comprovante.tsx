@@ -291,7 +291,7 @@ export default function Comprovante() {
             </div>
 
             {/* Localização */}
-            {(comprovante.location_address || (comprovante.location_lat && comprovante.location_lng)) && (
+            {(comprovante.location_lat && comprovante.location_lng) && (
               <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
                 <svg
                   width="20"
@@ -309,15 +309,9 @@ export default function Comprovante() {
                 </svg>
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Localização</p>
-                  {comprovante.location_address ? (
-                    <p className="font-medium">{comprovante.location_address}</p>
-                  ) : (
-                    comprovante.location_lat && comprovante.location_lng && (
-                      <p className="font-medium">
-                        {comprovante.location_lat.toFixed(6)}, {comprovante.location_lng.toFixed(6)}
-                      </p>
-                    )
-                  )}
+                  <p className="font-medium">
+                    {comprovante.location_lat.toFixed(6)}, {comprovante.location_lng.toFixed(6)}
+                  </p>
                 </div>
               </div>
             )}
